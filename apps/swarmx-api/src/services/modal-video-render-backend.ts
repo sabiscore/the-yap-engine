@@ -134,9 +134,21 @@ export class ModalVideoRenderBackend implements RenderBackend {
       throw Object.assign(new Error(`Modal segment batch exceeds the per-job safety ceiling (${this.capabilities.maxConcurrentSegments * 2})`), { code: "RENDER_BACKEND_INVALID" });
     }
 
+    const normalizedTasks = buildTasks(request, tasks);
     const payload = await requestJson<ModalSubmitResponse>(
       `${modalUrl()}/v1/render`,
-      { method: "POST", body: JSON.stringify({ request, tasks: buildTasks(request, tasks) }) },
+      {
+        method: "POST",
+        body: JSON.stringify({
+          request,
+          tasks: normalizedTasks,
+          dispatch: {
+            mode: "function.map",
+            maxConcurrent: this.capabilities.maxConcurrentSegments,
+            minContainers: 0,
+          },
+        }),
+      },
       signal,
     );
     if (!payload.call_id) throw Object.assign(new Error("Modal renderer returned no call_id"), { code: "MODAL_RENDER_REQUEST_FAILED" });
@@ -151,8 +163,8 @@ export class ModalVideoRenderBackend implements RenderBackend {
         signal,
       );
       if (result.status === "completed") {
-        const artifacts = validateArtifacts(tasks, result.artifacts ?? []);
-        const jobId = tasks[0]!.jobId;
+        const artifacts = validateArtifacts(normalizedTasks, result.artifacts ?? []);
+        const jobId = normalizedTasks[0]!.jobId;
         const tempRoot = join(loadEnv().SWARMX_VIDEO_TEMP_DIR, "modal", jobId);
         await mkdir(tempRoot, { recursive: true });
         const localArtifacts: RenderSegmentArtifact[] = [];

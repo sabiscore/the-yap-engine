@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 import type {
   AssetLicense,
   VideoTone,
@@ -20,6 +20,7 @@ import { rankAvailableProviders, readVoiceBenchmarkReport } from "./voice-benchm
 
 const VOICE_COMMAND_TIMEOUT_MS = 120_000;
 const COMMAND_MAX_BUFFER_BYTES = 1024 * 1024;
+const KOKORO_HTTP_TIMEOUT_MS = 4_000;
 
 export const KOKORO_VOICE_MAP: Record<string, string> = {
   warm: "af_sarah",
@@ -397,36 +398,77 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
     }));
   }
 
-  private async synthesizeKokoroWav(
+  private async synthesizeKokoroWavViaCli(
     text: string,
     voiceId: string,
     speed: number,
     outputPath: string,
     signal?: AbortSignal,
   ): Promise<void> {
+    const python = loadEnv().SWARMX_PYTHON_BIN?.trim() || join(process.cwd(), ".venv", "bin", "python3");
+    try {
+      await execFileChecked(
+        python,
+        [
+          "-m", "swarmx.services.kokoro_cli",
+          "--text", text,
+          "--voice", voiceId,
+          "--speed", String(speed),
+          "--output", outputPath,
+        ],
+        signal,
+      );
+    } catch (error) {
+      throw Object.assign(new Error(`Kokoro HTTP and CLI synthesis both failed: ${error instanceof Error ? error.message : String(error)}`), {
+        code: "VOICE_SYNTHESIS_REQUIRED",
+        cause: error,
+      });
+    }
+  }
+
+  private async synthesizeKokoroWav(
+    text: string,
+    voiceId: string,
+    speed: number,
+    outputPath: string,
+    signal?: AbortSignal,
+  ): Promise<{ mode: "http" | "cli" }> {
     const env = loadEnv();
-    const response = await fetch(`${env.SWARMX_TTS_URL}/tts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text,
-        voice: voiceId,
-        speed,
-      }),
-      signal: signal ?? AbortSignal.timeout(VOICE_COMMAND_TIMEOUT_MS),
+    let httpFailure: string | undefined;
+    try {
+      const timeoutSignal = AbortSignal.timeout(KOKORO_HTTP_TIMEOUT_MS);
+      const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+      const response = await fetch(`${env.SWARMX_TTS_URL}/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice: voiceId,
+          speed,
+        }),
+        signal: requestSignal,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const body = await response.json() as { wav_b64?: unknown };
+      if (typeof body.wav_b64 !== "string" || body.wav_b64.length === 0) {
+        throw new Error("response did not include wav_b64");
+      }
+      await writeFile(outputPath, Buffer.from(body.wav_b64, "base64"));
+      return { mode: "http" };
+    } catch (error) {
+      if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+      httpFailure = error instanceof Error ? error.message : String(error);
+    }
+
+    await this.synthesizeKokoroWavViaCli(text, voiceId, speed, outputPath, signal).catch((error) => {
+      throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+        code: "VOICE_SYNTHESIS_REQUIRED",
+        cause: httpFailure,
+      });
     });
-    if (!response.ok) {
-      throw Object.assign(new Error(`Kokoro TTS failed with HTTP ${response.status}`), {
-        code: "KOKORO_TTS_FAILED",
-      });
-    }
-    const body = await response.json() as { wav_b64?: unknown };
-    if (typeof body.wav_b64 !== "string" || body.wav_b64.length === 0) {
-      throw Object.assign(new Error("Kokoro TTS response did not include wav_b64"), {
-        code: "KOKORO_TTS_INVALID_RESPONSE",
-      });
-    }
-    await writeFile(outputPath, Buffer.from(body.wav_b64, "base64"));
+    return { mode: "cli" };
   }
 
   async synthesize(request: VoiceSynthesisRequest, outputPath: string, signal?: AbortSignal): Promise<VoiceArtifact> {
@@ -437,14 +479,22 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
     const voices = await this.listVoices(request.locale);
     const descriptor = voices.find((voice) => voice.voiceId === voiceId) ?? voices.find((voice) => voice.voiceId === KOKORO_VOICE_MAP.default) ?? voices[0]!;
     const started = Date.now();
-    await this.synthesizeKokoroWav(
+    const result = await this.synthesizeKokoroWav(
       normalizedText,
       voiceId,
       request.speakingRate ?? KOKORO_SPEED_MAP[requestedVoiceStyle] ?? 1,
       outputPath,
       signal,
     );
-    return this.artifactBase(request, outputPath, "kokoro-82m", descriptor, normalizedText, Date.now() - started);
+    return this.artifactBase(
+      request,
+      outputPath,
+      "kokoro-82m",
+      descriptor,
+      normalizedText,
+      Date.now() - started,
+      result.mode === "cli" ? "Kokoro HTTP endpoint unavailable; direct Python CLI fallback used" : undefined,
+    );
   }
 
   async synthesizeSegments(
@@ -478,9 +528,17 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
 
     const segmentArtifacts: VoiceProsodySegment[] = [];
     const segmentPaths: string[] = [];
+    let cliFallbackUsed = false;
     for (const segment of normalizedSegments) {
       const segmentPath = `${outputPath}.segment-${segment.index}.wav`;
-      await this.synthesizeKokoroWav(segment.text, segment.voiceId, segment.speakingRate, segmentPath, signal);
+      const mode = await this.synthesizeKokoroWav(
+        segment.text,
+        segment.voiceId,
+        segment.speakingRate,
+        segmentPath,
+        signal,
+      );
+      cliFallbackUsed ||= mode.mode === "cli";
       const probe = await probeAudio(segmentPath);
       segmentPaths.push(segmentPath);
       segmentArtifacts.push({
@@ -511,7 +569,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       descriptor,
       normalizedSegments.map((segment) => segment.text).join(" "),
       Date.now() - started,
-      undefined,
+      cliFallbackUsed ? "One or more Kokoro segments used the direct Python CLI fallback" : undefined,
       segmentArtifacts,
     );
   }

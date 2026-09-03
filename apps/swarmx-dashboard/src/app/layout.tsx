@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PRODUCT_BRAND } from "@/lib/brand";
 
 const dashboardVersion =
   process.env.NEXT_PUBLIC_SWARMX_VERSION ??
@@ -8,12 +9,12 @@ const dashboardVersion =
 
 export const metadata: Metadata = {
   title: {
-    default: "SwarmX Operator Console",
-    template: "%s | SwarmX Operator Console",
+    default: PRODUCT_BRAND.name,
+    template: `%s | ${PRODUCT_BRAND.name}`,
   },
   description:
-    `SwarmX ${dashboardVersion} operator console for live fleet telemetry, workflow control, logs, and Linux runtime diagnostics.`,
-  keywords: ["swarm", "agents", "orchestration", "telemetry", "LLM"],
+    `${PRODUCT_BRAND.name} — ${PRODUCT_BRAND.descriptor}. ${PRODUCT_BRAND.transitionNote}. Runtime ${dashboardVersion}.`,
+  keywords: ["video creation", "short-form video", "creator", "AI", "Yap Engine"],
 };
 
 export default function RootLayout({
