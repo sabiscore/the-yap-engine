@@ -28,6 +28,14 @@ def _escape_ass(text: str) -> str:
     return text.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}").replace("\n", " ")
 
 
+def _ass_color(accent_hex: str) -> str:
+    normalized = accent_hex.strip().lstrip("#")
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", normalized):
+        normalized = "00CCFF"
+    red, green, blue = normalized[0:2], normalized[2:4], normalized[4:6]
+    return f"{blue}{green}{red}".upper()
+
+
 def align_audio(audio_path: str, language: str = "en", model_size: str = "small") -> list[WordTiming]:
     try:
         from faster_whisper import WhisperModel
@@ -52,7 +60,7 @@ def align_audio(audio_path: str, language: str = "en", model_size: str = "small"
     return words
 
 
-def build_ass(words: list[WordTiming], style: str = "Kinetic") -> str:
+def build_ass(words: list[WordTiming], style: str = "Kinetic", accent_hex: str = "00CCFF") -> str:
     events = [
         "[Script Info]",
         "ScriptType: v4.00+",
@@ -69,6 +77,7 @@ def build_ass(words: list[WordTiming], style: str = "Kinetic") -> str:
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
 
+    accent_color = _ass_color(accent_hex)
     # Group adjacent words into short readable kinetic chunks. The timestamps
     # remain word-derived; grouping only controls visual density.
     chunk: list[WordTiming] = []
@@ -77,13 +86,21 @@ def build_ass(words: list[WordTiming], style: str = "Kinetic") -> str:
         text = " ".join(item.word for item in chunk)
         pause = (word.start - chunk[-2].end) if len(chunk) > 1 else 0.0
         if len(chunk) >= 5 or len(text) >= 34 or pause >= 0.45 or re.search(r"[.!?]$", word.word):
+            karaoke = "".join(
+                f"{{\\k{max(1, round((item.end - item.start) * 100))}\\c&H{accent_color}&\\t(0,120,\\c&HFFFFFF&)}}{_escape_ass(item.word)} "
+                for item in chunk
+            ).rstrip()
             events.append(
-                f"Dialogue: 0,{_format_ass_time(chunk[0].start)},{_format_ass_time(chunk[-1].end)},{style},,0,0,0,,{_escape_ass(text)}"
+                f"Dialogue: 0,{_format_ass_time(chunk[0].start)},{_format_ass_time(chunk[-1].end)},{style},,0,0,0,,{karaoke}"
             )
             chunk = []
     if chunk:
+        karaoke = "".join(
+            f"{{\\k{max(1, round((item.end - item.start) * 100))}\\c&H{accent_color}&\\t(0,120,\\c&HFFFFFF&)}}{_escape_ass(item.word)} "
+            for item in chunk
+        ).rstrip()
         events.append(
-            f"Dialogue: 0,{_format_ass_time(chunk[0].start)},{_format_ass_time(chunk[-1].end)},{style},,0,0,0,,{_escape_ass(' '.join(item.word for item in chunk))}"
+            f"Dialogue: 0,{_format_ass_time(chunk[0].start)},{_format_ass_time(chunk[-1].end)},{style},,0,0,0,,{karaoke}"
         )
     return "\n".join(events) + "\n"
 

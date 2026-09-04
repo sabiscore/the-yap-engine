@@ -126,7 +126,7 @@ export default function VideoStudioPage() {
 
             <button disabled={!ready} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-bg transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40" type="submit">
               <Sparkles className="h-4 w-4" aria-hidden="true" />
-              {isSubmitting ? "Building your video…" : "Create viral video"}
+              {isSubmitting ? "Building your video…" : "Make a Yap"}
             </button>
             {submitError && <div className="mt-4 rounded-xl border border-status-error/35 bg-status-error/10 p-4 text-sm text-status-error" role="alert">{submitError}</div>}
           </form>
