@@ -26,7 +26,7 @@ assert.match(modal, /gpu="L4"/);
 assert.match(modal, /min_containers=0/);
 assert.match(modal, /MAX_CONTAINERS/);
 assert.match(modal, /Retries\(max_retries=2/);
-assert.match(modal, /render_one\.map\(tasks\)/);
+assert.match(modal, /render_one\.map\(validated\)/);
 assert.match(modal, /Wan2\.2-TI2V-5B/);
 assert.match(modal, /secrets=\[modal_secret\]/);
 
