@@ -33,7 +33,7 @@ assert.ok(modalSource.includes("min_containers=0"));
 assert.ok(modalSource.includes("MAX_CONTAINERS"));
 assert.ok(modalSource.includes('os.getenv("SWARMX_MODAL_MAX_CONTAINERS", "4")'));
 assert.ok(modalSource.includes("modal.Retries(max_retries=2"));
-assert.ok(modalSource.includes("render_one.map(tasks)"));
+assert.ok(modalSource.includes("render_one.map(validated)"));
 assert.ok(modalSource.includes("Wan2.2-TI2V-5B-Diffusers"));
 assert.ok(modalSource.includes("FunctionCall.from_id(call_id)"));
 
