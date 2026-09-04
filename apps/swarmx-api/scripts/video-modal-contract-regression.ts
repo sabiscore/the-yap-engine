@@ -12,7 +12,7 @@ assert.ok(backendSource.includes("class ModalVideoRenderBackend") || backendSour
 assert.ok(backendSource.includes("SWARMX_MODAL_RENDER_URL"));
 assert.ok(backendSource.includes("/v1/render"));
 assert.ok(backendSource.includes("maxConcurrentSegments: 4"));
-assert.ok(backendSource.includes("min_containers"));
+assert.ok(backendSource.includes("minContainers"));
 
 assert.deepEqual(contract.required, [
   "jobId",

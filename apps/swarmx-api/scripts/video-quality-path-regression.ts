@@ -5,7 +5,7 @@ const root = new URL("../", import.meta.url);
 const renderer = await readFile(new URL("src/services/ffmpeg-video-renderer.ts", root), "utf8");
 const aligner = await readFile(new URL("../../src/swarmx/services/video_caption_aligner.py", root), "utf8");
 const modal = await readFile(new URL("../../src/swarmx/services/modal_video_renderer.py", root), "utf8");
-const studio = await readFile(new URL("../../swarmx-dashboard/src/app/(dashboard)/video/studio/page.tsx", root), "utf8");
+const studio = await readFile(new URL("../../apps/swarmx-dashboard/src/app/(dashboard)/video/studio/page.tsx", root), "utf8");
 
 assert.match(renderer, /alignNarrationAudio/);
 assert.match(renderer, /SWARMX_VIDEO_REQUIRE_WORD_ALIGNMENT/);
