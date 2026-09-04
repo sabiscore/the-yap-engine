@@ -10,6 +10,7 @@ import type {
   RendererCapabilityTier,
   VoiceProsodySection,
   VoiceArtifact,
+  AudioMasteringRequest,
 } from "@swarmx/types/video-types";
 import type { VideoJobRequest } from "../types/video.js";
 import { outputDir, resolveOutputPath } from "./video-assets.js";
@@ -18,6 +19,7 @@ import { clampCertificationTier } from "./renderer-certification.js";
 import { KokoroVoiceProvider, normalizeScriptForSpeech, selectVoiceProvider, type SectionVoiceSynthesisSegment } from "./voice-providers.js";
 import { runTemplateQc } from "./template-aware-qc.js";
 import { alignNarrationAudio, type CaptionAlignmentArtifacts } from "./video-caption-alignment-client.js";
+import { createAmbientBed, masterAudioWithBed } from "./audio-mastering.js";
 
 const _ffenv = loadEnv();
 const RENDER_COMMAND_TIMEOUT_MS = Math.min(
@@ -108,14 +110,15 @@ interface StyleMotionProfile {
   slowPanelSpeed: number;
   hookBoost: number;
   parallaxAlpha: string;
+  backgroundProfile: "gradient_flow" | "plasma_pulse" | "fractal_noise" | "minimal_grid";
 }
 
 const STYLE_MOTION_PROFILES: Record<NonNullable<VideoJobRequest["style"]>, StyleMotionProfile> = {
-  kinetic_text: { pulseHz: 2.25, xAmp: 30, widthAmp: 58, panelSpeed: 1.35, slowPanelSpeed: 0.44, hookBoost: 0.55, parallaxAlpha: "0.105" },
-  storytime: { pulseHz: 0.95, xAmp: 13, widthAmp: 24, panelSpeed: 0.7, slowPanelSpeed: 0.32, hookBoost: 0.24, parallaxAlpha: "0.075" },
-  tutorial: { pulseHz: 1.05, xAmp: 15, widthAmp: 28, panelSpeed: 0.78, slowPanelSpeed: 0.34, hookBoost: 0.22, parallaxAlpha: "0.070" },
-  myth_busting: { pulseHz: 1.75, xAmp: 24, widthAmp: 48, panelSpeed: 1.12, slowPanelSpeed: 0.42, hookBoost: 0.46, parallaxAlpha: "0.095" },
-  faceless_broll: { pulseHz: 1.15, xAmp: 16, widthAmp: 30, panelSpeed: 0.82, slowPanelSpeed: 0.35, hookBoost: 0.20, parallaxAlpha: "0.070" },
+  kinetic_text: { pulseHz: 2.25, xAmp: 30, widthAmp: 58, panelSpeed: 1.35, slowPanelSpeed: 0.44, hookBoost: 0.55, parallaxAlpha: "0.105", backgroundProfile: "minimal_grid" },
+  storytime: { pulseHz: 0.95, xAmp: 13, widthAmp: 24, panelSpeed: 0.7, slowPanelSpeed: 0.32, hookBoost: 0.24, parallaxAlpha: "0.075", backgroundProfile: "gradient_flow" },
+  tutorial: { pulseHz: 1.05, xAmp: 15, widthAmp: 28, panelSpeed: 0.78, slowPanelSpeed: 0.34, hookBoost: 0.22, parallaxAlpha: "0.070", backgroundProfile: "minimal_grid" },
+  myth_busting: { pulseHz: 1.75, xAmp: 24, widthAmp: 48, panelSpeed: 1.12, slowPanelSpeed: 0.42, hookBoost: 0.46, parallaxAlpha: "0.095", backgroundProfile: "plasma_pulse" },
+  faceless_broll: { pulseHz: 1.15, xAmp: 16, widthAmp: 30, panelSpeed: 0.82, slowPanelSpeed: 0.35, hookBoost: 0.20, parallaxAlpha: "0.070", backgroundProfile: "fractal_noise" },
 };
 
 const DEFAULT_MOTION_PROFILE: StyleMotionProfile = STYLE_MOTION_PROFILES.faceless_broll;
@@ -371,6 +374,19 @@ function narrationText(input: FfmpegRenderInput, cards: string[]): string {
 function dialogueEligible(request: VideoJobRequest): boolean {
   return request.style === "storytime" &&
     (request.storyMode === "dialogue_storytime" || request.voiceProfileId === "kokoro_storytime_dual");
+}
+
+function audioPlatformForRequest(request: VideoJobRequest): AudioMasteringRequest["platform"] {
+  switch (request.platform) {
+    case "reels":
+      return "reels";
+    case "youtube_shorts":
+      return "shorts";
+    case "tiktok":
+      return "tiktok";
+    default:
+      return "youtube";
+  }
 }
 
 function segmentSection(section: VoiceProsodySection, text: string, speakingRate: number): SectionVoiceSynthesisSegment | null {
@@ -1012,6 +1028,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
     const narrationPath = join(workDir, "narration.wav");
     const narration = narrationText(input, cards);
     let voiceArtifact: VoiceArtifact | undefined;
+    let audioPath = narrationPath;
     try {
       const selected = await selectVoiceProvider({
         voiceProfileId: input.request.voiceProfileId,
@@ -1045,13 +1062,26 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       }
     }
 
+    if (voiceArtifact && loadEnv().SWARMX_AUDIO_AMBIENT_BED_ENABLED === "1") {
+      const ambientPath = join(workDir, "ambient-bed.wav");
+      const mixedPath = join(workDir, "narration-with-ambient.wav");
+      const masteredPath = join(workDir, "narration-mastered.m4a");
+      createAmbientBed(duration, ambientPath);
+      await masterAudioWithBed({
+        inputPath: mixedPath,
+        outputPath: masteredPath,
+        platform: audioPlatformForRequest(input.request),
+      }, narrationPath, ambientPath, mixedPath);
+      audioPath = masteredPath;
+    }
+
     const requireWordAlignment = loadEnv().SWARMX_VIDEO_REQUIRE_WORD_ALIGNMENT === "1" && input.request.style === "kinetic_text";
     let alignment: CaptionAlignmentArtifacts | undefined;
     if (requireWordAlignment && voiceArtifact) {
       try {
         alignment = await alignNarrationAudio(
           input.jobId,
-          narrationPath,
+          audioPath,
           loadEnv().SWARMX_TTS_LOCALE.split("-")[0] ?? "en",
           input.signal,
         );
@@ -1091,7 +1121,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       ? ["-f", "concat", "-safe", "0", "-i", segmentListPath]
       : ["-f", "lavfi", "-i", `color=c=${bgColor}:s=720x1280:r=30:d=${duration}`];
     const inputArgs = voiceArtifact
-      ? ["-i", narrationPath]
+      ? ["-i", audioPath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"];
 
     await execFileChecked("ffmpeg", [

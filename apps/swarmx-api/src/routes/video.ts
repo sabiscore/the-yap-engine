@@ -256,7 +256,7 @@ const VideoJobRequestSchema = {
     },
     templateFamily: {
       type: "string",
-      enum: ["myth-vs-fact", "list/countdown", "mystery/reveal", "product-demo", "quote-to-insight", "chart/data", "motivational", "series-recap"],
+      enum: ["myth-vs-fact", "pov-immersion", "listicle-countdown", "reddit-story"],
     },
     targetDurationSeconds: { type: "number", minimum: 15, maximum: 180 },
     modelTier: {

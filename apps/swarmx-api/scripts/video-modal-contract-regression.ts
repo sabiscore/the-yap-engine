@@ -12,7 +12,7 @@ assert.ok(backendSource.includes("class ModalVideoRenderBackend") || backendSour
 assert.ok(backendSource.includes("SWARMX_MODAL_RENDER_URL"));
 assert.ok(backendSource.includes("/v1/render"));
 assert.ok(backendSource.includes("maxConcurrentSegments: 4"));
-assert.ok(backendSource.includes("min_containers"));
+assert.ok(backendSource.includes("minContainers"));
 
 assert.deepEqual(contract.required, [
   "jobId",
@@ -30,9 +30,10 @@ for (const field of contract.required ?? []) {
 
 assert.ok(modalSource.includes('gpu="L4"'));
 assert.ok(modalSource.includes("min_containers=0"));
-assert.ok(modalSource.includes("max_containers=4"));
-assert.ok(modalSource.includes("modal.Retries(max_retries=3"));
-assert.ok(modalSource.includes("render_one.map(tasks)"));
+assert.ok(modalSource.includes("MAX_CONTAINERS"));
+assert.ok(modalSource.includes('os.getenv("SWARMX_MODAL_MAX_CONTAINERS", "4")'));
+assert.ok(modalSource.includes("modal.Retries(max_retries=2"));
+assert.ok(modalSource.includes("render_one.map(validated)"));
 assert.ok(modalSource.includes("Wan2.2-TI2V-5B-Diffusers"));
 assert.ok(modalSource.includes("FunctionCall.from_id(call_id)"));
 

@@ -110,6 +110,7 @@ const schema = z.object({
   SWARMX_AUDIO_MASTER_CHANNELS: z.coerce.number().int().min(1).max(2).default(2),
   SWARMX_AUDIO_TARGET_LUFS: z.coerce.number().default(-16),
   SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS: z.coerce.number().default(-1.5),
+  SWARMX_AUDIO_AMBIENT_BED_ENABLED: boolFlag.default("0"),
   SWARMX_VOICE_BENCHMARK_FILE: z.preprocess((val) => val ?? "/tmp/swarmxq-voice-benchmark.json", z.string()),
   SWARMX_VOICE_BENCHMARK_MAX_AGE_HOURS: z.coerce.number().int().min(1).max(720).default(168),
 
