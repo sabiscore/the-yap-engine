@@ -86,7 +86,7 @@ import type {
   VideoOutputMetadata,
   VideoJobRequest,
 } from "../types/video.js";
-import type { OperatorTraceEntry, ScriptQualityWarning } from "@swarmx/types/video-types";
+import type { OperatorTraceEntry, ScriptQualityWarning, RetentionMap } from "@swarmx/types/video-types";
 // [VOT-01] Removed: VIDEO_JOB_STAGE_ORDER, stageIndex, computeOverallProgress
 // were imported but never used — caused TypeScript "no exported member" errors.
 import type { SwarmXEvent } from "../types/events.js";
@@ -113,6 +113,8 @@ import { fetchBackend } from "./backend-fetch-errors.js";
 import { log } from "../lib/logger.js";
 import { HOOK_BLOCKLIST, findHookBlocklistViolations } from "../lib/creative-quality.js";
 import { classifyHookFamily, validateHookCandidate } from "../lib/hook-laboratory.js";
+import { generateRetentionMap } from "./retention-map.js";
+import { notifyJobCompleted, notifyJobFailed } from "./webhook-notifier.js";
 import { tracer, SpanStatusCode, trace } from "../lib/tracer.js";
 import { renderWithFfmpeg, type FfmpegRenderPackage } from "./ffmpeg-video-renderer.js";
 import { sanitizeReasoningOutput } from "./reasoning-sanitizer.js";
@@ -797,7 +799,7 @@ async function stagePlanning(
 async function stageScripting(
   ctx:  OrchestratorContext,
   plan: string[]
-): Promise<{ scriptText: string }> {
+): Promise<{ scriptText: string; preliminaryHookScore: number; retentionMap?: RetentionMap }> {
   const { modelTag: model, keepAlive, overrides } = await acquireModel(
     "scripting",
     ctx.job.request,
@@ -812,8 +814,12 @@ async function stageScripting(
   try {
     let selectedScriptText: string | null = null;
     let selectedWarnings: ScriptQualityWarning[] = [];
+    let selectedHookScore = 0;
+    let selectedRetentionMap: RetentionMap | null = null;
     let firstValidScriptText: string | null = null;
     let firstValidWarnings: ScriptQualityWarning[] = [];
+    let firstValidHookScore = 0;
+    let firstValidRetentionMap: RetentionMap | null = null;
     let totalTokens = 0;
     let totalLatencyMs = 0;
     let lastValidationFailed = false;
@@ -841,24 +847,65 @@ async function stageScripting(
 
       const scriptWarnings = validateScriptSections(validated.scriptText, ctx.job.id, model);
       const hookBlocked = scriptWarnings.some((warning) => warning.code === "hook_blocklist");
-      if (attempt === 0 && hookBlocked) {
+
+      // Pre-render quality gate (ADR-7, v5 finalization directive): both
+      // signals below are free, local, deterministic (no LLM call, no I/O)
+      // — hook-laboratory.ts and retention-map.ts were already built and
+      // exported but never gated anything before this. Catching a weak hook
+      // or an unrecovered retention drop-off HERE, before storyboard
+      // generation and the GPU/Modal render stage, is strictly cheaper than
+      // discovering it after render (the previous behavior — see
+      // stageViralityAndCaption, which scored virality only after the full
+      // render had already completed).
+      const preliminaryHookScore = derivePreliminaryHookScore(validated.scriptText);
+      const retentionMap = generateRetentionMap(
+        validated.scriptText,
+        ctx.job.request.targetDurationSeconds ?? 30,
+      );
+      const weakHook = preliminaryHookScore < PRELIMINARY_HOOK_REGEN_THRESHOLD;
+      // NOTE: retentionMap.unrecoveredHighRiskCount is structurally always 0
+      // in the current retention-map.ts — every HIGH-risk beat unconditionally
+      // receives a fallback plannedRecovery string, so "unrecovered" never
+      // fires as coded. Verified directly against the module rather than
+      // trusted from its docstring. Gate on overallRisk === "HIGH" instead,
+      // which does vary meaningfully with content density. retention-map.ts
+      // itself is left untouched (out of this pass's scope) — flagged as a
+      // follow-up micro-fix candidate in the v5 directive.
+      const highRetentionRisk = retentionMap.overallRisk === "HIGH";
+
+      if (attempt === 0 && (hookBlocked || weakHook || highRetentionRisk)) {
         firstValidScriptText = validated.scriptText;
         firstValidWarnings = scriptWarnings;
+        firstValidHookScore = preliminaryHookScore;
+        firstValidRetentionMap = retentionMap;
         log.warn(
-          { jobId: ctx.job.id, model, attempt: attempt + 1 },
-          "[script-quality] regenerating script after HOOK_BLOCKLIST violation",
+          {
+            jobId: ctx.job.id,
+            model,
+            attempt: attempt + 1,
+            hookBlocked,
+            weakHook,
+            preliminaryHookScore,
+            unrecoveredRetentionRisk: highRetentionRisk,
+            retentionOverallRisk: retentionMap.overallRisk,
+          },
+          "[script-quality] regenerating script after pre-render quality gate (hook_blocklist / weak_hook / retention_risk)",
         );
         continue;
       }
 
       selectedScriptText = validated.scriptText;
       selectedWarnings = scriptWarnings;
+      selectedHookScore = preliminaryHookScore;
+      selectedRetentionMap = retentionMap;
       break;
     }
 
     if (!selectedScriptText && firstValidScriptText) {
       selectedScriptText = firstValidScriptText;
       selectedWarnings = firstValidWarnings;
+      selectedHookScore = firstValidHookScore;
+      selectedRetentionMap = firstValidRetentionMap;
     }
 
     if (!selectedScriptText) {
@@ -874,8 +921,33 @@ async function stageScripting(
     if (selectedWarnings.length > 0) {
       ctx.job.scriptQualityWarnings = [...(ctx.job.scriptQualityWarnings ?? []), ...selectedWarnings];
     }
+
+    // Surface unrecovered retention risk through the existing
+    // stageValidationTrace mechanism (soft guard, per retention-map.ts's
+    // own docstring: it never throws, only warns) so the dashboard and any
+    // downstream QC consumer can see WHY a script shipped with residual
+    // drop-off risk after both regeneration attempts.
+    if (selectedRetentionMap) {
+      pushStageValidation(ctx.job, {
+        schemaVersion: 1,
+        stage: "scripting",
+        passed: selectedRetentionMap.overallRisk !== "HIGH",
+        ...(selectedRetentionMap.overallRisk === "HIGH"
+          ? {
+            issues: selectedRetentionMap.beats
+              .filter((beat) => beat.dropOffRisk === "HIGH")
+              .map((beat) => `${beat.beatLabel}: HIGH drop-off risk — ${beat.plannedRecovery ?? beat.viewerQuestion}`),
+          }
+          : {}),
+      });
+    }
+
     recordOperatorTrace(ctx, "scripting", model, startedAt, true, totalTokens, totalLatencyMs);
-    return { scriptText: selectedScriptText };
+    return {
+      scriptText: selectedScriptText,
+      preliminaryHookScore: selectedHookScore,
+      ...(selectedRetentionMap ? { retentionMap: selectedRetentionMap } : {}),
+    };
   } finally {
     controller.abort();
     ModelOrchestrator.getInstance().onModelCallComplete(model);
@@ -1312,7 +1384,7 @@ export async function runOrchestration(
       const result = await stageScripting(ctx, plan);
       scriptText = result.scriptText;
       ctx.scriptText = scriptText;
-      ctx.job.preliminaryHookScore = derivePreliminaryHookScore(scriptText);
+      ctx.job.preliminaryHookScore = result.preliminaryHookScore;
       ctx.job.updatedAt = new Date().toISOString();
       ctx.broadcast({
         type: "video:stream",
@@ -1322,7 +1394,9 @@ export async function runOrchestration(
           stage: "scripting",
           pct: 50,
           operatorTag: "system",
-          message: `Pre-render hook confidence ${ctx.job.preliminaryHookScore.toFixed(2)}`,
+          message: result.retentionMap
+            ? `Pre-render hook confidence ${ctx.job.preliminaryHookScore.toFixed(2)} · retention risk ${result.retentionMap.overallRisk}`
+            : `Pre-render hook confidence ${ctx.job.preliminaryHookScore.toFixed(2)}`,
         },
       });
     });
@@ -1373,6 +1447,7 @@ export async function runOrchestration(
     rootSpan.setStatus({ code: SpanStatusCode.OK });
 
     const completedJob = queue.completeJob(jobId, output);
+    notifyJobCompleted(ctx.job, output);
     broadcast(makeVideoCompletedEvent(jobId, {
       outputPublicUrl: output.publicUrl,
       durationSeconds: output.durationSeconds,
@@ -1438,6 +1513,11 @@ export async function runOrchestration(
           void runOrchestration(jobId, broadcast);
         }
       }, retryDelayMs ?? RETRY_BASE_DELAY_MS);
+    } else {
+      // Terminal failure — no retry scheduled. Notify once here rather than
+      // on every transient retry, so the webhook signal means "this job is
+      // truly done and needs a human," not "ffmpeg hiccuped once."
+      notifyJobFailed(ctx.job, videoError);
     }
   } finally {
     clearInterval(cancelWatcher);
@@ -1679,6 +1759,14 @@ function computeRetryDelayMs(retryCount: number): number {
   const jitter = RETRY_JITTER_MS > 0 ? Math.floor(Math.random() * (RETRY_JITTER_MS + 1)) : 0;
   return bounded + jitter;
 }
+
+// ADR-7 (v5 finalization directive): below this preliminary hook score, the
+// pre-render quality gate in stageScripting() triggers one bounded
+// regeneration attempt before storyboard/render begins. Tuned conservatively
+// (0.45 sits below the ~0.58 floor a HOOK_BLOCKLIST-clean-but-otherwise-flat
+// hook scores) so the gate catches genuinely weak hooks without regenerating
+// on every borderline pass.
+const PRELIMINARY_HOOK_REGEN_THRESHOLD = 0.45;
 
 function derivePreliminaryHookScore(scriptText: string): number {
   const hook = extractHookLine(scriptText);
