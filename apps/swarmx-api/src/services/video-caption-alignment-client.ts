@@ -29,11 +29,22 @@ function run(command: string, args: string[], timeoutMs: number, signal?: AbortS
   });
 }
 
+export interface CaptionAlignmentStyleOptions {
+  /** 6-digit hex accent color, no `#`/`0x` prefix — pass the renderer's
+   * resolved tone/niche accent so the ASS karaoke highlight and the
+   * drawtext cards path stay visually consistent. */
+  accentHex?: string;
+  /** Caption pill-box opacity, 0-1, matched to the renderer's
+   * CaptionStyleConfig.boxOpacity for the request's caption style. */
+  boxOpacity?: number;
+}
+
 export async function alignNarrationAudio(
   jobId: string,
   audioPath: string,
   language = "en",
   signal?: AbortSignal,
+  styleOptions: CaptionAlignmentStyleOptions = {},
 ): Promise<CaptionAlignmentArtifacts> {
   const env = loadEnv();
   const packageDir = join(env.SWARMX_VIDEO_ARTIFACT_DIR, jobId, "alignment");
@@ -58,6 +69,8 @@ export async function alignNarrationAudio(
       artifacts.wordTimingPath,
       "--language",
       language,
+      ...(styleOptions.accentHex ? ["--accent-hex", styleOptions.accentHex] : []),
+      ...(styleOptions.boxOpacity !== undefined ? ["--box-opacity", String(styleOptions.boxOpacity)] : []),
     ],
     Math.max(60_000, env.SWARMX_VIDEO_FFMPEG_TIMEOUT_MS),
     signal,

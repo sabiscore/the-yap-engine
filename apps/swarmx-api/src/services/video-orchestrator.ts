@@ -1714,7 +1714,12 @@ const TEMPLATE_FAMILY_STRUCTURES: Record<string, string> = {
   "quote-to-insight": "Structure around a powerful quote. Hook drops the quote, Body analyzes its non-obvious meaning, Resolution applies it to the viewer's life.",
   "chart/data": "Structure around a single striking data point. Hook presents the stat, Body visualizes the trend and context, Resolution explains the implication.",
   "motivational": "Structure as a hero's journey micro-narrative. Hook identifies a moment of defeat, Body shows the pivot/grind, Resolution delivers the triumph.",
-  "series-recap": "Structure as a fast-paced catch-up. Hook reminds of the cliffhanger, Body blitzes through key plot points, Resolution sets up the next episode."
+  "series-recap": "Structure as a fast-paced catch-up. Hook reminds of the cliffhanger, Body blitzes through key plot points, Resolution sets up the next episode.",
+  // Ported from swarmxq-main's `template` taxonomy per ADR-3 (Yap Engine
+  // completion directive v4) — ported verbatim as new templateFamily values
+  // since neither has an equivalent among the existing eight.
+  "pov-immersion": "Structure as first-person immersion. Hook drops the viewer directly into the moment (no scene-setting), Body unfolds in real-time sensory detail, Resolution lands the emotional beat from inside the POV.",
+  "reddit-story": "Structure as a found-story readaloud. Hook quotes the provocative title/premise as if pulled from a thread, Body escalates through plot turns with a narrator's aside, Resolution delivers the punchline or moral the thread was known for."
 };
 
 function buildPlanningPrompt(req: VideoJobRequest, intent: string): string {

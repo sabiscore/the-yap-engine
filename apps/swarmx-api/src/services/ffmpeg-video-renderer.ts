@@ -519,48 +519,87 @@ function buildBackgroundMotionLayers(
   const pulseHz = profile.pulseHz.toFixed(2);
   const panelFast = (44 * profile.panelSpeed).toFixed(1);
   const panelSlow = (18 * profile.slowPanelSpeed).toFixed(1);
-  return [
-    `drawgrid=width=90:height=90:thickness=1:color=${accentRgb}@${gridOpacity}`,
 
-    // Left ambient accent glow — soft, wide; breathes via width oscillation.
-    `drawbox=x='-ih*0.35+${profile.xAmp}*${hookBoost}*sin(t*${pulseHz})':y=ih*0.10:w='ih*0.9+${profile.widthAmp}*${hookBoost}*sin(t*${pulseHz})':h=ih*0.9:color=${accentRgb}@${glowAlpha}:t=fill`,
-
-    // Right ambient soft glow — offset phase for alternate breathing.
-    `drawbox=x='iw-ih*0.55+${Math.round(profile.xAmp * 0.8)}*${hookBoost}*sin(t*${pulseHz}+3.14)':y=ih*0.30:w='ih*0.9+${Math.round(profile.widthAmp * 0.75)}*${hookBoost}*sin(t*${pulseHz}+3.14)':h=ih*0.9:color=white@${glowSoft}:t=fill`,
-
-    // Drifting accent panel — linear+sine trajectory (breathing motion).
-    `drawbox=x='-280+mod(t*${panelFast}+40*sin(t*1.2)\\,1000)':y=ih*0.10:w=280:h=280:color=${accentRgb}@${panelOpacity}:t=fill`,
-
-    // Third parallax layer — slower period (~2.5s) beneath the faster panels.
-    `drawbox=x='-420+mod(t*${panelSlow}+24*sin(t*0.40)\\,1320)':y=ih*0.42:w=420:h=420:color=${accentRgb}@${profile.parallaxAlpha}:t=fill`,
-
-    // Drifting white panel — counter direction, faster sine wobble.
-    `drawbox=x='iw-360-mod(t*32+50*sin(t*0.9)\\,1080)':y=ih*0.58:w=360:h=360:color=white@0.055:t=fill`,
-
-    // Horizontal accent streak — fast, thin.
-    `drawbox=x='-160+mod(t*120\\,880)':y=120:w=160:h=6:color=${accentRgb}@0.55:t=fill`,
-
-    // Small accent block — subtle secondary motion.
-    `drawbox=x='iw-80-mod(t*90\\,820)':y=ih*0.18:w=80:h=80:color=${accentRgb}@0.18:t=fill`,
-
-    // Vertical accent bar — travels top to bottom with sine damping.
-    `drawbox=x=80:y='220+mod(t*75\\,760)':w=5:h=180:color=${accentRgb}@0.45:t=fill`,
-
-    // Vertical white bar — right side, upward travel.
-    "drawbox=x=iw-96:y='ih-320-mod(t*60\\,700)':w=8:h=220:color=white@0.22:t=fill",
-
-    // Full-width scan line — the primary attention-guide across screen.
-    `drawbox=x=0:y='ih*0.28+mod(t*34\\,420)':w=iw:h=2:color=${accentRgb}@${lineOpacity}:t=fill`,
-
-    // Bottom sweeping accent line — feels like a subtitle underline.
-    `drawbox=x='mod(t*132\\,iw+320)-320':y=ih*0.84:w=320:h=5:color=white@0.16:t=fill`,
-
-    // Vignette-lite: dark corner boxes darken the edges to focus attention
-    // on center caption. Cheaper and safer than the `vignette` filter, which
-    // can cost noticeable CPU on 4-core hosts.
+  // ── Core layers (every profile) ──────────────────────────────────────────
+  // Grid texture, the two ambient glows, and the vignette-lite dark corners
+  // anchor the kinetic visual identity across all four named profiles.
+  const grid = `drawgrid=width=90:height=90:thickness=1:color=${accentRgb}@${gridOpacity}`;
+  const glowLeft = `drawbox=x='-ih*0.35+${profile.xAmp}*${hookBoost}*sin(t*${pulseHz})':y=ih*0.10:w='ih*0.9+${profile.widthAmp}*${hookBoost}*sin(t*${pulseHz})':h=ih*0.9:color=${accentRgb}@${glowAlpha}:t=fill`;
+  const glowRight = `drawbox=x='iw-ih*0.55+${Math.round(profile.xAmp * 0.8)}*${hookBoost}*sin(t*${pulseHz}+3.14)':y=ih*0.30:w='ih*0.9+${Math.round(profile.widthAmp * 0.75)}*${hookBoost}*sin(t*${pulseHz}+3.14)':h=ih*0.9:color=white@${glowSoft}:t=fill`;
+  const parallaxSlow = `drawbox=x='-420+mod(t*${panelSlow}+24*sin(t*0.40)\\,1320)':y=ih*0.42:w=420:h=420:color=${accentRgb}@${profile.parallaxAlpha}:t=fill`;
+  const scanLine = `drawbox=x=0:y='ih*0.28+mod(t*34\\,420)':w=iw:h=2:color=${accentRgb}@${lineOpacity}:t=fill`;
+  // Vignette-lite: dark corner boxes darken the edges to focus attention on
+  // center caption. Cheaper and safer than the `vignette` filter, which can
+  // cost noticeable CPU on 4-core hosts — kept as-is per ADR-4 (never add
+  // the literal `vignette` filter here).
+  const vignetteLite = [
     "drawbox=x=0:y=0:w=iw:h=ih*0.06:color=black@0.35:t=fill",
     "drawbox=x=0:y=ih*0.94:w=iw:h=ih*0.06:color=black@0.35:t=fill",
   ];
+
+  // ── Character layers (differ per named backgroundProfile, ADR-4) ────────
+  // `minimal_grid`, `gradient_flow`, `plasma_pulse`, and `fractal_noise` were
+  // previously just labels on StyleMotionProfile with no distinct rendering
+  // — every request produced the same generic layer stack. This branch gives
+  // each name an actual, cheap-primitive-only visual identity.
+  const characterLayers: string[] = (() => {
+    switch (profile.backgroundProfile) {
+      case "minimal_grid":
+        // Calmer, text-forward: drop the busy drifting panels/streaks/blocks
+        // entirely so captions read cleanly. Cheaper than the default stack,
+        // not just quieter — fewer drawbox calls for kinetic_text/tutorial.
+        return [];
+
+      case "gradient_flow":
+        // A wide, very slow soft "wash" band simulates a flowing gradient
+        // using the same cheap drawbox primitive — no new filter type.
+        return [
+          `drawbox=x='-iw*0.6+mod(t*18\\,iw*2.2)':y=0:w=iw*0.9:h=ih:color=${accentRgb}@0.045:t=fill`,
+          `drawbox=x='iw-mod(t*13\\,iw*2)':y=0:w=iw*0.7:h=ih:color=white@0.025:t=fill`,
+          // Drifting accent panel — linear+sine trajectory (breathing motion).
+          `drawbox=x='-280+mod(t*${panelFast}+40*sin(t*1.2)\\,1000)':y=ih*0.10:w=280:h=280:color=${accentRgb}@${panelOpacity}:t=fill`,
+        ];
+
+      case "plasma_pulse":
+        // Higher-energy throb: an extra fast-pulsing glow layered on top of
+        // the core glows, for myth_busting's sharper reveal-pulse hook.
+        return [
+          `drawbox=x='iw*0.5-180+${Math.round(profile.xAmp * 1.3)}*sin(t*${(profile.pulseHz * 1.8).toFixed(2)})':y='ih*0.5-180+120*sin(t*${(profile.pulseHz * 1.4).toFixed(2)}+1.5)':w=360:h=360:color=${accentRgb}@0.05:t=fill`,
+          // Drifting accent panel — linear+sine trajectory (breathing motion).
+          `drawbox=x='-280+mod(t*${panelFast}+40*sin(t*1.2)\\,1000)':y=ih*0.10:w=280:h=280:color=${accentRgb}@${panelOpacity}:t=fill`,
+          // Drifting white panel — counter direction, faster sine wobble.
+          `drawbox=x='iw-360-mod(t*32+50*sin(t*0.9)\\,1080)':y=ih*0.58:w=360:h=360:color=white@0.055:t=fill`,
+          // Horizontal accent streak — fast, thin.
+          `drawbox=x='-160+mod(t*120\\,880)':y=120:w=160:h=6:color=${accentRgb}@0.55:t=fill`,
+        ];
+
+      case "fractal_noise":
+      default:
+        // Organic multi-frequency jitter (two sine terms summed) reads as
+        // noisier/less mechanical drift — fits faceless_broll's b-roll-led,
+        // "let the footage breathe" character.
+        return [
+          // Drifting accent panel — linear+sine trajectory (breathing motion).
+          `drawbox=x='-280+mod(t*${panelFast}+40*sin(t*1.2)\\,1000)':y=ih*0.10:w=280:h=280:color=${accentRgb}@${panelOpacity}:t=fill`,
+          // Drifting white panel — counter direction, faster sine wobble.
+          `drawbox=x='iw-360-mod(t*32+50*sin(t*0.9)\\,1080)':y=ih*0.58:w=360:h=360:color=white@0.055:t=fill`,
+          // Small accent block — subtle secondary motion.
+          `drawbox=x='iw-80-mod(t*90\\,820)':y=ih*0.18:w=80:h=80:color=${accentRgb}@0.18:t=fill`,
+          // Vertical accent bar — travels top to bottom with sine damping.
+          `drawbox=x=80:y='220+mod(t*75\\,760)':w=5:h=180:color=${accentRgb}@0.45:t=fill`,
+          // Vertical white bar — right side, upward travel.
+          "drawbox=x=iw-96:y='ih-320-mod(t*60\\,700)':w=8:h=220:color=white@0.22:t=fill",
+          // Jitter box A — fast primary + slow secondary sine, summed.
+          `drawbox=x='iw*0.22+30*sin(t*2.1)+14*sin(t*0.53)':y='ih*0.65+22*sin(t*1.7+1)':w=6:h=6:color=${accentRgb}@0.3:t=fill`,
+          // Jitter box B — offset phase for a second noise particle.
+          `drawbox=x='iw*0.74+26*sin(t*1.9+2)+18*sin(t*0.61+0.4)':y='ih*0.22+18*sin(t*2.3)':w=5:h=5:color=white@0.22:t=fill`,
+          // Bottom sweeping accent line — feels like a subtitle underline.
+          `drawbox=x='mod(t*132\\,iw+320)-320':y=ih*0.84:w=320:h=5:color=white@0.16:t=fill`,
+        ];
+    }
+  })();
+
+  return [grid, glowLeft, glowRight, parallaxSlow, ...characterLayers, scanLine, ...vignetteLite];
 }
 
 interface CardTiming { start: number; end: number }
@@ -608,6 +647,18 @@ function computeCardTimings(cards: string[], duration: number): CardTiming[] {
 }
 
 // Build the filter_complex chain: fade in, per-card drawtext, progress bar, fade out.
+/**
+ * Caption overlay mode for the render's filter chain:
+ *  - "cards": estimated word-weighted drawtext cards (default path).
+ *  - "subtitles": whisper-aligned ASS burn-in via the `subtitles` filter,
+ *    applied as a normal node inside this SAME filter_complex chain (not a
+ *    separate `-vf`, which cannot be combined with `-filter_complex` on the
+ *    same mapped output stream). This keeps fades, background motion layers,
+ *    and the progress bar intact for aligned kinetic-text jobs instead of
+ *    losing them, per ADR-1.
+ */
+type CaptionOverlay = { mode: "cards" } | { mode: "subtitles"; assPath: string };
+
 function buildFilterComplex(
   fontFile: string,
   textFiles: string[],
@@ -618,38 +669,45 @@ function buildFilterComplex(
   rendererTier: RendererCapabilityTier,
   request: VideoJobRequest,
   timings: CardTiming[],
+  captionOverlay: CaptionOverlay = { mode: "cards" },
 ): string {
   const accentRgb = accentHex.replace(/^0x/, "");
 
-  const textFilters = textFiles.map((file, index) => {
-    const timing = timings[index] ?? { start: 0, end: duration };
-    const { start, end } = timing;
+  const textFilters = captionOverlay.mode === "cards"
+    ? textFiles.map((file, index) => {
+      const timing = timings[index] ?? { start: 0, end: duration };
+      const { start, end } = timing;
 
-    const cardText = cardTexts[index] ?? "";
-    const fontSize = fontSizeForText(cardText, styleConfig.baseFontSize);
-    const enableExpr = index === textFiles.length - 1
-      ? `gte(t,${start})*lte(t,${end})`
-      : `gte(t,${start})*lt(t,${end})`;
+      const cardText = cardTexts[index] ?? "";
+      const fontSize = fontSizeForText(cardText, styleConfig.baseFontSize);
+      const enableExpr = index === textFiles.length - 1
+        ? `gte(t,${start})*lte(t,${end})`
+        : `gte(t,${start})*lt(t,${end})`;
 
-    return [
-      `drawtext=fontfile=${fontFile}`,
-      `textfile=${file}`,
-      "fontcolor=white",
-      `fontsize=${fontSize}`,
-      "line_spacing=12",
-      "box=1",
-      `boxcolor=black@${styleConfig.boxOpacity}`,
-      `boxborderw=${styleConfig.borderW}`,
-      "x=(w-text_w)/2",
-      `y=${styleConfig.yExpr}`,
-      `enable='${enableExpr}'`,
-    ].join(":");
-  });
+      return [
+        `drawtext=fontfile=${fontFile}`,
+        `textfile=${file}`,
+        "fontcolor=white",
+        `fontsize=${fontSize}`,
+        "line_spacing=12",
+        "box=1",
+        `boxcolor=black@${styleConfig.boxOpacity}`,
+        `boxborderw=${styleConfig.borderW}`,
+        "x=(w-text_w)/2",
+        `y=${styleConfig.yExpr}`,
+        `enable='${enableExpr}'`,
+      ].join(":");
+    })
+    : [];
 
   // Animated progress bar: grows from left to right over the full duration.
   // Accent color in hex without the 0x prefix for FFmpeg's color syntax.
   const progressBar = `drawbox=x=0:y=ih-8:w=trunc(iw*t/${duration}):h=8:color=${accentRgb}@0.9:t=fill`;
   const motionLayers = buildBackgroundMotionLayers(rendererTier, accentRgb, request, timings[0]?.end ?? 2);
+
+  const subtitleFilter = captionOverlay.mode === "subtitles"
+    ? [`subtitles=${captionOverlay.assPath.replaceAll("\\", "/").replaceAll(":", "\\:")}`]
+    : [];
 
   return [
     "format=yuv420p",
@@ -657,6 +715,7 @@ function buildFilterComplex(
     ...motionLayers,
     ...textFilters,
     progressBar,
+    ...subtitleFilter,
     `fade=t=out:st=${Math.max(0, duration - 0.6)}:d=0.6`,
   ].join(",");
 }
@@ -1084,6 +1143,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
           audioPath,
           loadEnv().SWARMX_TTS_LOCALE.split("-")[0] ?? "en",
           input.signal,
+          { accentHex: accentColor.replace(/^0x/, ""), boxOpacity: Number(styleConfig.boxOpacity) },
         );
       } catch (error) {
         throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
@@ -1093,19 +1153,22 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
     }
 
     const renderTimings = computeCardTimings(cards, duration);
-    const filterComplex = alignment
-      ? "format=yuv420p"
-      : buildFilterComplex(
-        fontFile,
-        textFiles,
-        displayCards,
-        duration,
-        accentColor,
-        styleConfig,
-        rendererTier,
-        input.request,
-        renderTimings,
-      );
+    // Whisper-aligned jobs still render the full cinematic filter chain
+    // (fades, background motion layers, progress bar) — only the caption
+    // overlay mechanism switches from drawtext cards to an ASS subtitle
+    // burn-in, unified in one filter_complex chain (ADR-1).
+    const filterComplex = buildFilterComplex(
+      fontFile,
+      textFiles,
+      displayCards,
+      duration,
+      accentColor,
+      styleConfig,
+      rendererTier,
+      input.request,
+      renderTimings,
+      alignment ? { mode: "subtitles", assPath: alignment.assPath } : { mode: "cards" },
+    );
 
       const remoteSegments = input.backgroundVideoPaths ?? [];
     const segmentListPath = join(workDir, "remote-segments.txt");
@@ -1129,7 +1192,6 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       ...visualInputArgs,
       ...inputArgs,
       "-filter_complex", `[0:v]${filterComplex}[v]`,
-      ...(alignment ? ["-vf", `subtitles=${alignment.assPath.replaceAll("\\", "/").replaceAll(":", "\\:")}`] : []),
       "-map", "[v]",
       "-map", "1:a",
       "-shortest",
