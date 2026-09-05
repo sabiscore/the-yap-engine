@@ -65,8 +65,18 @@ export interface VideoJobRequest {
   platform?: VideoExportPlatform | "youtube_shorts";
   /** Niche category — informs scripting model routing. */
   niche?: "motivational" | "finance" | "facts" | "true_crime" | "tech" | "other";
-  /** Structural template family. */
-  templateFamily?: "myth-vs-fact" | "list/countdown" | "mystery/reveal" | "product-demo" | "quote-to-insight" | "chart/data" | "motivational" | "series-recap";
+  /**
+   * Structural template family. Canonical field per ADR-3 (Yap Engine
+   * completion directive v4): this branch's 8-value taxonomy is the
+   * surviving set, extended with `pov-immersion` and `reddit-story` ported
+   * in from the `swarmxq-main` 4-value `template` field. `myth-vs-fact`
+   * already overlapped exactly; `listicle-countdown` was dropped as a
+   * duplicate of the existing `list/countdown` value rather than ported
+   * verbatim. The `template` field name itself was not adopted — this
+   * branch's orchestrator, presets, and dashboard already integrate against
+   * `templateFamily`, so extending it was the lower-risk reconciliation.
+   */
+  templateFamily?: "myth-vs-fact" | "list/countdown" | "mystery/reveal" | "product-demo" | "quote-to-insight" | "chart/data" | "motivational" | "series-recap" | "pov-immersion" | "reddit-story";
   /** Preferred output duration in seconds. Clamped to 15–180 by orchestrator. */
   targetDurationSeconds?: number;
   /** Model tier override — defaults to auto-routing via complexity score. */
