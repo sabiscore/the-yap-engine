@@ -31,7 +31,7 @@ const schema = z.object({
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
 
   SWARMX_MODEL_FAST: z.preprocess((val) => val ?? process.env["SWARM_MODEL_FAST"], z.string().default("instruct-phi4-pro-q8-prod")),
-  SWARMX_MODEL_REASON: z.preprocess((val) => val ?? process.env["SWARMX_MODEL_REASONER"] ?? process.env["SWARM_MODEL_REASON"], z.string().default("reason-deepseekr1-pro-q5km-prod")),
+  SWARMX_MODEL_REASON: z.preprocess((val) => val ?? process.env["SWARM_MODEL_REASONER"] ?? process.env["SWARM_MODEL_REASON"], z.string().default("reason-deepseekr1-pro-q5km-prod")),
   SWARMX_MODEL_CODE: z.preprocess((val) => val ?? process.env["SWARM_MODEL_CODE"], z.string().default("code-qwen25-pro-q5km-prod")),
   SWARMX_MODEL_ULTRA_ROUTER: z.preprocess((val) => val ?? process.env["SWARM_MODEL_ULTRA_ROUTER"], z.string().default("route-phi4-lite-q4km-prod")),
   SWARMX_COMPOSER_FAST_MODEL: z.string().optional(),
@@ -123,6 +123,23 @@ const schema = z.object({
   // Webhook to Workspace (free tier covers this).
   SWARMX_DISCORD_WEBHOOK_URL: z.string().url().optional(),
   SWARMX_SLACK_WEBHOOK_URL: z.string().url().optional(),
+
+  // V5 optional integrations. Every feature is fail-open and disabled by
+  // default unless explicitly enabled and its provider credentials exist.
+  SWARMX_AUDIO_FREESOUND_BED_ENABLED: boolFlag,
+  SWARMX_FREESOUND_API_KEY: z.string().min(1).optional(),
+  SWARMX_FREESOUND_CACHE_DIR: z.string().min(1).default(".swarmx/video/freesound-cache"),
+  SWARMX_VIDEO_STOCK_BROLL_ENABLED: boolFlag,
+  SWARMX_PEXELS_API_KEY: z.string().min(1).optional(),
+  SWARMX_PIXABAY_API_KEY: z.string().min(1).optional(),
+  SWARMX_EXPORT_VMAF_MIN: z.coerce.number().min(0).max(100).default(85),
+  SWARMX_TREND_RADAR_ENABLED: boolFlag,
+  SWARMX_TREND_RADAR_CACHE_TTL_MS: positiveInt.default(6 * 60 * 60 * 1000),
+  SWARMX_HOOK_MEMORY_ENABLED: boolFlag,
+  SWARMX_HOOK_MEMORY_DB_PATH: z.string().min(1).default(".swarmx/video/hook-memory.sqlite"),
+  SWARMX_LIBRETRANSLATE_URL: z.string().url().optional(),
+  SWARMX_VIDEO_TRANSLATION_LANGUAGES: z.string().default(""),
+  SWARMX_VIDEO_ALT_TEXT_ENABLED: boolFlag.default("1"),
 
   SWARMX_COMFYUI_URL: z.preprocess((val) => val ?? process.env["COMFY_HOST"], z.string().url().default("http://127.0.0.1:8188")),
   SWARMX_COMFYUI_OUTPUT_DIR: z.string().optional(),
