@@ -30,10 +30,20 @@ import { appendStateEvent, readSnapshot, writeSnapshot } from "./local-state-sto
 
 const queueEnv = loadEnv();
 const MAX_QUEUE_SIZE = queueEnv.SWARMX_VIDEO_QUEUE_MAX_SIZE;
-// SINGLE-VIDEO LOCK: 8 GB RAM cannot support parallel generation
-const MAX_CONCURRENT_JOBS = 1;
-const concurrency = MAX_CONCURRENT_JOBS;
+
+/**
+ * Derive effective worker concurrency from operator configuration and the
+ * deployment's declared Modal container capacity. The safe default remains 1.
+ */
+export function getEffectiveConcurrency(env = loadEnv()): number {
+  const configured = Math.max(1, Math.floor(env.SWARMX_VIDEO_MAX_CONCURRENT_JOBS));
+  const modalCapacity = Math.max(1, Math.floor(env.SWARMX_MODAL_MAX_CONTAINERS));
+  return Math.max(1, Math.min(configured, modalCapacity));
+}
+
 const CONFIGURED_CONCURRENCY = queueEnv.SWARMX_VIDEO_MAX_CONCURRENT_JOBS;
+const MODAL_CAPACITY = queueEnv.SWARMX_MODAL_MAX_CONTAINERS;
+const concurrency = getEffectiveConcurrency(queueEnv);
 const MAX_RETRIES = queueEnv.SWARMX_VIDEO_MAX_RETRIES;
 const JOB_TTL_MS = queueEnv.SWARMX_VIDEO_JOB_TTL_MS;
 export const VIDEO_QUEUE_NAME = queueEnv.SWARMX_VIDEO_QUEUE_NAME;
@@ -203,14 +213,13 @@ export function startJob(id: string): VideoJob | null {
     (j) => j.status === "running"
   ).length;
 
-  if (CONFIGURED_CONCURRENCY > 1) {
-    log.warn(
-      { configured: CONFIGURED_CONCURRENCY },
-      "video-queue ignoring VIDEO_MAX_CONCURRENT_JOBS — SINGLE-VIDEO LOCK enforced",
+  if (CONFIGURED_CONCURRENCY !== concurrency) {
+    log.info(
+      { configured: CONFIGURED_CONCURRENCY, modalCapacity: MODAL_CAPACITY, effective: concurrency },
+      "video-queue: concurrency capped by deployment capacity",
     );
   }
 
-  // SINGLE-VIDEO LOCK: 8 GB RAM cannot support parallel generation
   if (running >= concurrency) return null;
 
   job.status = "running";
@@ -403,6 +412,36 @@ export function queuedCount(): number {
   return [...registry.values()].filter((j) => j.status === "queued").length;
 }
 
+/**
+ * Stable operational snapshot for health/readiness endpoints and the operator
+ * console. It intentionally excludes Redis credentials and job payloads.
+ */
+export function queueHealthSnapshot(): {
+  queueName: string;
+  bullmqEnabled: boolean;
+  configuredConcurrency: number;
+  modalCapacity: number;
+  effectiveConcurrency: number;
+  running: number;
+  queued: number;
+  capacityUtilization: number;
+  maxQueueSize: number;
+} {
+  const effective = getEffectiveConcurrency();
+  const running = runningCount();
+  return {
+    queueName: VIDEO_QUEUE_NAME,
+    bullmqEnabled: isBullMQEnabled(),
+    configuredConcurrency: CONFIGURED_CONCURRENCY,
+    modalCapacity: MODAL_CAPACITY,
+    effectiveConcurrency: effective,
+    running,
+    queued: queuedCount(),
+    capacityUtilization: Number((running / effective).toFixed(3)),
+    maxQueueSize: MAX_QUEUE_SIZE,
+  };
+}
+
 export async function reprioritizeQueue(orderedIds: string[]): Promise<void> {
   const queuedJobs = [...registry.values()].filter((job) => job.status === "queued");
   const indexed = new Map(orderedIds.map((id, idx) => [id, idx]));
@@ -447,15 +486,11 @@ export function resumeJob(id: string, fromStage: VideoJobStage): VideoJob {
     throw new Error(`VideoQueue: job ${id} is not terminal and cannot be resumed`);
   }
 
-  // Validate that fromStage is a known pipeline stage.
   const stageIdx = VIDEO_JOB_STAGE_ORDER.indexOf(fromStage);
   if (stageIdx === -1) {
     throw new Error(`invalid_stage:${fromStage}`);
   }
 
-  // Validate that the immediately preceding stage completed before this one.
-  // Resuming from a stage whose prerequisite never ran is always wrong — the
-  // orchestrator would silently start from scratch and produce incorrect output.
   if (stageIdx > 0) {
     const precedingStage = VIDEO_JOB_STAGE_ORDER[stageIdx - 1]!;
     if (!job.stages[precedingStage]?.completedAt) {
@@ -499,50 +534,49 @@ export function restoreJobFromBullMQ(
       : {}),
   };
   registry.set(id, job);
+  persistJob("restore", job);
   scheduleCleanup(id);
-  persistJob("restore_bullmq", job);
   return job;
 }
 
-export function hydrateVideoQueueFromDisk(): number {
-  if (hydrated) return registry.size;
-  const records = readSnapshot<VideoJob>("video-jobs");
-  let restored = 0;
-  for (const record of records) {
-    if (!record?.id || !record.request || !record.status) continue;
-    registry.set(record.id, record);
-    scheduleCleanup(record.id);
-    restored++;
-  }
+export function hydrateFromDisk(): void {
+  if (hydrated) return;
   hydrated = true;
-  if (restored > 0) {
-    log.info({ restored }, "video-queue: restored jobs from durable snapshot");
+  try {
+    const snapshot = readSnapshot<VideoJob[]>("video-jobs");
+    if (Array.isArray(snapshot)) {
+      for (const job of snapshot) registry.set(job.id, job);
+    }
+    for (const job of registry.values()) {
+      if (job.status === "queued" || job.status === "running") {
+        scheduleCleanup(job.id);
+      }
+    }
+  } catch (error) {
+    log.warn({ err: String(error) }, "video-queue: failed to hydrate state");
   }
-  return restored;
 }
 
 export function subscribeToJob(jobId: string): AsyncIterable<SwarmXEvent> {
+  const queue: SwarmXEvent[] = [];
+  let closed = false;
+  let pendingResolver: ((result: IteratorResult<SwarmXEvent>) => void) | null = null;
+  let pendingPromise: Promise<IteratorResult<SwarmXEvent>> | null = null;
+
   return {
     [Symbol.asyncIterator](): AsyncIterator<SwarmXEvent> {
-      const queueItems: SwarmXEvent[] = [];
-      let pendingPromise: Promise<IteratorResult<SwarmXEvent>> | null = null;
-      let pendingResolver: ((value: IteratorResult<SwarmXEvent>) => void) | null = null;
-      let closed = false;
-
-      const createPending = (): Promise<IteratorResult<SwarmXEvent>> => {
-        pendingPromise = new Promise<IteratorResult<SwarmXEvent>>((resolveNext) => {
-          pendingResolver = resolveNext;
+      const createPending = () => {
+        pendingPromise = new Promise<IteratorResult<SwarmXEvent>>((resolve) => {
+          pendingResolver = resolve;
         });
         return pendingPromise;
       };
 
-      const resolvePending = (value: IteratorResult<SwarmXEvent>): void => {
+      const resolvePending = (value: IteratorResult<SwarmXEvent>) => {
         const resolver = pendingResolver;
         pendingResolver = null;
         pendingPromise = null;
-        if (resolver) {
-          resolver(value);
-        }
+        if (resolver) resolver(value);
       };
 
       const unsubscribe = subscribeToEvents((event) => {
@@ -561,7 +595,7 @@ export function subscribeToJob(jobId: string): AsyncIterable<SwarmXEvent> {
         if (pendingResolver) {
           resolvePending({ value: event, done: false });
         } else {
-          queueItems.push(event);
+          queue.push(event);
         }
 
         if (["video:completed", "video:failed", "video:cancelled"].includes(event.type)) {
@@ -575,8 +609,8 @@ export function subscribeToJob(jobId: string): AsyncIterable<SwarmXEvent> {
 
       return {
         next(): Promise<IteratorResult<SwarmXEvent>> {
-          if (queueItems.length > 0) {
-            const nextItem = queueItems.shift();
+          if (queue.length > 0) {
+            const nextItem = queue.shift();
             if (nextItem) return Promise.resolve({ value: nextItem, done: false });
           }
           if (closed) {
