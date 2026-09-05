@@ -99,4 +99,31 @@ assert.match(studio, /Make a Yap/);
 // internal runtime identifier elsewhere, but this surface is customer-facing.
 assert.ok(!/SwarmX/.test(studio), "video/studio/page.tsx copy must use Yap Engine language, not SwarmX");
 
+// v5 finalization directive — ADR-7: pre-render quality gate. Hook and
+// retention signals must be checked BEFORE storyboard/render, using only
+// free, local, deterministic scoring (no LLM call, no new dependency).
+assert.match(orchestrator, /generateRetentionMap/);
+assert.match(orchestrator, /PRELIMINARY_HOOK_REGEN_THRESHOLD/);
+assert.match(orchestrator, /highRetentionRisk/);
+assert.match(orchestrator, /hookBlocked \|\| weakHook \|\| highRetentionRisk/);
+assert.match(orchestrator, /preliminaryHookScore: number; retentionMap\?: RetentionMap/);
+// Guards against reintroducing the disproven unrecoveredHighRiskCount gate
+// (structurally always 0 in retention-map.ts as currently implemented).
+assert.ok(!/unrecoveredRetentionRisk = retentionMap\.unrecoveredHighRiskCount/.test(orchestrator), "gate must use overallRisk, not the always-zero unrecoveredHighRiskCount");
+
+// v5 finalization directive — ADR-8: free Discord/Slack webhook
+// notifications. Must be fire-and-forget (never awaited on the render
+// critical path) and must never throw on a broken webhook.
+const webhookNotifier = await readFile(new URL("src/services/webhook-notifier.ts", root), "utf8");
+assert.match(webhookNotifier, /SWARMX_DISCORD_WEBHOOK_URL/);
+assert.match(webhookNotifier, /SWARMX_SLACK_WEBHOOK_URL/);
+assert.match(webhookNotifier, /export function notifyJobCompleted/);
+assert.match(webhookNotifier, /export function notifyJobFailed/);
+assert.match(orchestrator, /notifyJobCompleted\(ctx\.job, output\)/);
+assert.match(orchestrator, /notifyJobFailed\(ctx\.job, videoError\)/);
+// Must only fire on TERMINAL failure (inside the retry-not-scheduled branch),
+// never on every transient retry.
+assert.match(orchestrator, /} else {\s*\n\s*\/\/ Terminal failure/);
+assert.match(orchestrator, /notifyJobFailed\(ctx\.job, videoError\);/);
+
 console.log("video-quality-path-regression: PASS");
