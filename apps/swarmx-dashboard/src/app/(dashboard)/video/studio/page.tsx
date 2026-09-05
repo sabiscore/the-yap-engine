@@ -66,10 +66,10 @@ export default function VideoStudioPage() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-accent">
               <Clapperboard className="h-3.5 w-3.5" aria-hidden="true" />
-              SwarmX Video Studio
+              The Yap Engine Studio
             </div>
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Turn an idea into a short people want to finish.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Give SwarmX the idea, angle and vibe. The pipeline handles hook strategy, script, storyboard, voice, visuals, captions and production QC.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Give it your idea, angle and vibe. The pipeline handles hook strategy, script, storyboard, voice, visuals, captions and production QC.</p>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={tryExample} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-border-active hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
@@ -91,7 +91,7 @@ export default function VideoStudioPage() {
             </div>
             <textarea id="video-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Example: Explain why sleep debt changes reaction time using a surprising opening and 3 visual proof beats." rows={7} maxLength={2000} aria-describedby="video-prompt-help" className="mt-3 w-full resize-none rounded-xl border border-border bg-bg px-4 py-4 text-sm leading-6 outline-none transition placeholder:text-text-muted focus:border-accent focus:ring-1 focus:ring-accent/20" />
             <div className="mt-2 flex items-start justify-between gap-4">
-              <p id="video-prompt-help" className="max-w-xl text-[11px] leading-5 text-text-muted">Best results come from a clear hook, the feeling you want, the visual idea, and the takeaway. SwarmX fills in the production detail.</p>
+              <p id="video-prompt-help" className="max-w-xl text-[11px] leading-5 text-text-muted">Best results come from a clear hook, the feeling you want, the visual idea, and the takeaway. The pipeline fills in the production detail.</p>
               <span className={`shrink-0 font-mono text-[10px] tabular-nums ${promptLengthClass}`}>{promptLength}/2000</span>
             </div>
 
@@ -132,7 +132,7 @@ export default function VideoStudioPage() {
           </form>
 
           <aside className="rounded-2xl border border-border bg-bg-elevated/60 p-5">
-            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-text-muted">What SwarmX optimizes</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-text-muted">What every Yap optimizes for</p>
             <div className="mt-5 space-y-4">
               {[
                 ["01", "Stop the scroll", "Contrasting hooks, curiosity gaps and open loops before render spend."],
