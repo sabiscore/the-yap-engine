@@ -9,6 +9,7 @@ import { useVideoStore } from "../../stores/video";
 import type { VideoJobRequest } from "../../lib/video-dashboard";
 
 type ModelRoute = NonNullable<VideoJobRequest["modelTier"]> | "auto";
+type TemplateFamilyRoute = NonNullable<VideoJobRequest["templateFamily"]> | "none";
 
 type SelectOption<T extends string> = {
   value: T;
@@ -133,6 +134,7 @@ export function VideoJobForm({
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
+  const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [captionStyle, setCaptionStyle] = useState<NonNullable<VideoJobRequest["captionStyle"]>>("bold_center");
   const [voice, setVoice] = useState<NonNullable<VideoJobRequest["voice"]>>("default");
   const [voiceProfileId, setVoiceProfileId] = useState<NonNullable<VideoJobRequest["voiceProfileId"]>>("auto");
@@ -159,6 +161,7 @@ export function VideoJobForm({
     setTargetDuration(draft.targetDuration);
     setTone(draft.tone);
     setStyle(draft.style);
+    setTemplateFamily(draft.templateFamily ?? "none");
     setCaptionStyle(draft.captionStyle);
     setVoice(draft.voice);
     setVoiceProfileId(draft.voiceProfileId);
@@ -187,6 +190,7 @@ export function VideoJobForm({
       storyMode,
       ...(audience.trim() ? { audience: audience.trim() } : {}),
       ...(modelTier !== undefined ? { modelTier } : {}),
+      ...(templateFamily !== "none" ? { templateFamily } : {}),
     };
 
     const jobId = await submitJob(jobRequest);
@@ -422,6 +426,26 @@ export function VideoJobForm({
                 { value: "storytime", label: "Storytime", help: "Calmer drift and optional dialogue voice routing for quoted lines." },
                 { value: "tutorial", label: "Tutorial", help: "Stable instructional pacing with low-amplitude motion." },
                 { value: "myth_busting", label: "Myth Busting", help: "Sharper reveal pulse during the hook before settling into proof." },
+              ]}
+            />
+            <Select
+              id={`${formId}-template-family`}
+              label="Template"
+              value={templateFamily}
+              onChange={setTemplateFamily}
+              disabled={isSubmitting}
+              options={[
+                { value: "none", label: "None (auto)", help: "Lets the planner choose beat structure freely, without a fixed template." },
+                { value: "myth-vs-fact", label: "Myth vs Fact", help: "Hook states the myth, body reveals the surprising fact, resolution explains why it persisted." },
+                { value: "list/countdown", label: "List / Countdown", help: "Hook sets the stakes, body cycles through 3-5 items fast, resolution synthesizes the takeaway." },
+                { value: "mystery/reveal", label: "Mystery / Reveal", help: "Hook presents an anomaly, body drops clues, resolution reveals the answer." },
+                { value: "product-demo", label: "Product Demo", help: "Hook is the pain point, body demonstrates the solution, resolution shows the outcome." },
+                { value: "quote-to-insight", label: "Quote to Insight", help: "Hook drops a quote, body analyzes its meaning, resolution applies it to the viewer." },
+                { value: "chart/data", label: "Chart / Data", help: "Hook is a striking stat, body visualizes the trend, resolution explains the implication." },
+                { value: "motivational", label: "Motivational", help: "Hook is a moment of defeat, body shows the pivot, resolution delivers the triumph." },
+                { value: "series-recap", label: "Series Recap", help: "Hook reminds the cliffhanger, body blitzes plot points, resolution teases the next episode." },
+                { value: "pov-immersion", label: "POV Immersion", help: "First-person, real-time sensory beats — drops the viewer directly into the moment." },
+                { value: "reddit-story", label: "Reddit Story", help: "Found-story readaloud framing with a narrator's aside and a punchline resolution." },
               ]}
             />
             <Select
