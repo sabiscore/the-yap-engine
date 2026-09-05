@@ -11,6 +11,7 @@ import { loadEnv } from "../lib/env.js";
 import { log } from "../lib/logger.js";
 import type { VideoJobRequest } from "../types/video.js";
 import {
+  getEffectiveConcurrency,
   getJob,
   restoreJobFromBullMQ,
   VIDEO_QUEUE_NAME,
@@ -41,10 +42,11 @@ export function startVideoWorker(): void {
   // Pass connection options object — BullMQ creates its own IORedis instance,
   // keeping the Worker connection separate from the Queue connection (CLAUDE.md invariant).
   const connection = { url: REDIS_URL, maxRetriesPerRequest: null as null };
+  const concurrency = getEffectiveConcurrency();
 
   worker = new Worker<VideoJobRequest>(VIDEO_QUEUE_NAME, processJob, {
     connection,
-    concurrency: 1, // Mirrors MAX_CONCURRENT_JOBS — CPU inference is serial
+    concurrency,
   });
 
   worker.on("completed", (job) =>
@@ -60,7 +62,7 @@ export function startVideoWorker(): void {
     log.error({ err: String(err) }, "video-worker: connection error"),
   );
 
-  log.info({ queue: VIDEO_QUEUE_NAME }, "video-worker: started");
+  log.info({ queue: VIDEO_QUEUE_NAME, concurrency }, "video-worker: started");
 }
 
 export async function stopVideoWorker(): Promise<void> {
