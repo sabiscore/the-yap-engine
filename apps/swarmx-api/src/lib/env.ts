@@ -114,6 +114,16 @@ const schema = z.object({
   SWARMX_VOICE_BENCHMARK_FILE: z.preprocess((val) => val ?? "/tmp/swarmxq-voice-benchmark.json", z.string()),
   SWARMX_VOICE_BENCHMARK_MAX_AGE_HOURS: z.coerce.number().int().min(1).max(720).default(168),
 
+  // v5 finalization directive — ADR-8 (free operator notifications). Both
+  // optional and independent: set either, both, or neither. Neither set
+  // means the notifier is a silent no-op (checked once per call, not
+  // required at boot). Discord: Server Settings -> Integrations -> Webhooks
+  // -> New Webhook -> Copy URL (free, no signup beyond a Discord account).
+  // Slack: api.slack.com/apps -> your app -> Incoming Webhooks -> Add New
+  // Webhook to Workspace (free tier covers this).
+  SWARMX_DISCORD_WEBHOOK_URL: z.string().url().optional(),
+  SWARMX_SLACK_WEBHOOK_URL: z.string().url().optional(),
+
   SWARMX_COMFYUI_URL: z.preprocess((val) => val ?? process.env["COMFY_HOST"], z.string().url().default("http://127.0.0.1:8188")),
   SWARMX_COMFYUI_OUTPUT_DIR: z.string().optional(),
   SWARMX_COMFYUI_TEACACHE: boolFlag,
