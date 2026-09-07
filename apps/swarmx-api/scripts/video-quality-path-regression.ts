@@ -7,8 +7,10 @@ const alignmentClient = await readFile(new URL("src/services/video-caption-align
 const aligner = await readFile(new URL("../../src/swarmx/services/video_caption_aligner.py", root), "utf8");
 const modal = await readFile(new URL("../../src/swarmx/services/modal_video_renderer.py", root), "utf8");
 const studio = await readFile(new URL("../../apps/swarmx-dashboard/src/app/(dashboard)/video/studio/page.tsx", root), "utf8");
+const videoRoute = await readFile(new URL("src/routes/video.ts", root), "utf8");
 const orchestrator = await readFile(new URL("src/services/video-orchestrator.ts", root), "utf8");
 const apiVideoTypes = await readFile(new URL("src/types/video.ts", root), "utf8");
+const sharedVideoTypes = await readFile(new URL("../../packages/swarmx-types/src/video-types.ts", root), "utf8");
 const dashboardVideoTypes = await readFile(new URL("../../apps/swarmx-dashboard/src/lib/video-dashboard.ts", root), "utf8");
 const jobForm = await readFile(new URL("../../apps/swarmx-dashboard/src/components/video/VideoJobForm.tsx", root), "utf8");
 
@@ -69,10 +71,16 @@ assert.match(renderer, /masterAudioWithBed/);
 // ADR-3: template taxonomy reconciliation. `templateFamily` is the
 // surviving canonical field (not `template`), extended with the two
 // swarmxq-main-only values that had no equivalent in the existing eight.
-for (const source of [apiVideoTypes, dashboardVideoTypes]) {
+assert.match(sharedVideoTypes, /VIDEO_TEMPLATE_FAMILY_VALUES/);
+for (const source of [sharedVideoTypes]) {
   assert.match(source, /"pov-immersion"/);
   assert.match(source, /"reddit-story"/);
 }
+assert.match(apiVideoTypes, /templateFamily\?: VideoTemplateFamily/);
+assert.match(dashboardVideoTypes, /templateFamily\?: VideoTemplateFamily/);
+assert.match(videoRoute, /VIDEO_TEMPLATE_FAMILY_VALUES/);
+assert.match(videoRoute, /normalizeVideoTemplateFamily\(requestedTemplate\)/);
+assert.match(videoRoute, /listicle-countdown/);
 assert.match(orchestrator, /"pov-immersion":/);
 assert.match(orchestrator, /"reddit-story":/);
 // The dashboard template selector must be restored, not left silently
