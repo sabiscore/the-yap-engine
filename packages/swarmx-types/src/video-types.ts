@@ -26,6 +26,37 @@ export type VideoQuantTier = "q4_k_m" | "q5_k_m" | "q8_0" | "fp16";
 
 export type VideoExportPlatform = "tiktok" | "reels" | "shorts" | "generic";
 
+/**
+ * Canonical creative template taxonomy for video generation.
+ *
+ * The values are intentionally stable machine-safe identifiers. Legacy
+ * `listicle-countdown` is accepted only at the API boundary and normalized
+ * to the canonical `list/countdown` value before orchestration.
+ */
+export const VIDEO_TEMPLATE_FAMILY_VALUES = [
+  "myth-vs-fact",
+  "list/countdown",
+  "mystery/reveal",
+  "product-demo",
+  "quote-to-insight",
+  "chart/data",
+  "motivational",
+  "series-recap",
+  "pov-immersion",
+  "reddit-story",
+] as const;
+
+export type VideoTemplateFamily = (typeof VIDEO_TEMPLATE_FAMILY_VALUES)[number];
+export type LegacyVideoTemplateFamily = "listicle-countdown";
+
+export function normalizeVideoTemplateFamily(value: string): VideoTemplateFamily {
+  const canonical = value === "listicle-countdown" ? "list/countdown" : value;
+  if ((VIDEO_TEMPLATE_FAMILY_VALUES as readonly string[]).includes(canonical)) {
+    return canonical as VideoTemplateFamily;
+  }
+  throw new Error(`Unsupported video template family: ${value}`);
+}
+
 export type VideoJobStatus =
   | "queued"
   | "classifying"
