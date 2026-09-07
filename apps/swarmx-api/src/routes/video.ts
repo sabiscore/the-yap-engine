@@ -37,7 +37,7 @@ import {
   getVideoPublisher,
   listSupportedPublishPlatforms,
 } from "../services/video-publishers.js";
-import type { PublishResult } from "@swarmx/types/video-types";
+import { normalizeVideoTemplateFamily, VIDEO_TEMPLATE_FAMILY_VALUES, type LegacyVideoTemplateFamily, type PublishResult } from "@swarmx/types/video-types";
 import { recordVideoPerformance } from "../services/video-assets.js";
 import { selectVoiceProvider } from "../services/voice-providers.js";
 import { resolveCanonicalTag } from "@swarmx/types/operator-map";
@@ -256,6 +256,13 @@ const VideoJobRequestSchema = {
     },
     templateFamily: {
       type: "string",
+      enum: [...VIDEO_TEMPLATE_FAMILY_VALUES, "listicle-countdown"],
+    },
+    // Deprecated boundary alias from the pre-reconciliation `template` field.
+    // It is normalized immediately to `templateFamily` and never enters the
+    // queue/orchestrator contract.
+    template: {
+      type: "string",
       enum: ["myth-vs-fact", "pov-immersion", "listicle-countdown", "reddit-story"],
     },
     targetDurationSeconds: { type: "number", minimum: 15, maximum: 180 },
@@ -338,7 +345,7 @@ export async function videoRoutes(
     ((event) => fastify.log.debug({ event }, "video:event (no broadcaster)"));
 
   // ── POST /jobs ─────────────────────────────────────────────────────────────
-  fastify.post<{ Body: VideoJobRequest }>(
+  fastify.post<{ Body: VideoJobRequest & { template?: LegacyVideoTemplateFamily | VideoJobRequest["templateFamily"] } }>(
     "/jobs",
     {
       preHandler: requireVideoWriteAuth,
@@ -427,9 +434,18 @@ export async function videoRoutes(
         }
       }
 
+      const rawRequest = request.body;
+      const requestedTemplate = rawRequest.templateFamily ?? rawRequest.template;
+      const normalizedRequest: VideoJobRequest = requestedTemplate
+        ? { ...rawRequest, templateFamily: normalizeVideoTemplateFamily(requestedTemplate) }
+        : rawRequest;
+      // `template` is a deprecated input alias only; keep the queued contract
+      // canonical so downstream services never need to branch on taxonomy.
+      delete (normalizedRequest as VideoJobRequest & { template?: unknown }).template;
+
       let job;
       try {
-        job = queue.enqueue(request.body);
+        job = queue.enqueue(normalizedRequest);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Queue error";
         return reply.status(503).send({ error: "queue_full", message });
