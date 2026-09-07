@@ -19,6 +19,7 @@ import type {
   VideoError,
   PublishResult,
   VideoTone,
+  VideoTemplateFamily,
   VoiceProfileId,
   VoiceStoryMode,
   VoiceArtifact,
@@ -76,7 +77,7 @@ export interface VideoJobRequest {
    * branch's orchestrator, presets, and dashboard already integrate against
    * `templateFamily`, so extending it was the lower-risk reconciliation.
    */
-  templateFamily?: "myth-vs-fact" | "list/countdown" | "mystery/reveal" | "product-demo" | "quote-to-insight" | "chart/data" | "motivational" | "series-recap" | "pov-immersion" | "reddit-story";
+  templateFamily?: VideoTemplateFamily;
   /** Preferred output duration in seconds. Clamped to 15–180 by orchestrator. */
   targetDurationSeconds?: number;
   /** Model tier override — defaults to auto-routing via complexity score. */
