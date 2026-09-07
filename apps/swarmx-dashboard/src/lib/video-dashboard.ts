@@ -14,6 +14,7 @@ import type {
   ViralitySignal,
   VoiceArtifact,
   VideoTone,
+  VideoTemplateFamily,
 } from "@swarmx/types/video-types";
 import type { SeriesEpisodeContext } from "@swarmx/types/series-types";
 
@@ -70,7 +71,7 @@ export interface VideoJobRequest {
   platform?: VideoExportPlatform | "youtube_shorts";
   niche?: "motivational" | "finance" | "facts" | "true_crime" | "tech" | "other";
   /** Mirrors `apps/swarmx-api/src/types/video.ts` — keep in sync (ADR-3). */
-  templateFamily?: "myth-vs-fact" | "list/countdown" | "mystery/reveal" | "product-demo" | "quote-to-insight" | "chart/data" | "motivational" | "series-recap" | "pov-immersion" | "reddit-story";
+  templateFamily?: VideoTemplateFamily;
   targetDurationSeconds?: number;
   modelTier?: "fast" | "worker" | "supervisor" | "reasoner";
   audience?: string;
