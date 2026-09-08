@@ -8,6 +8,8 @@ export default defineConfig({
       // to prevent the prefix match from incorrectly rewriting sub-path imports.
       { find: "@swarmx/types/operator-map", replacement: path.resolve(__dirname, "../../packages/swarmx-types/src/operator-map.ts") },
       { find: "@swarmx/types/operation-types", replacement: path.resolve(__dirname, "../../packages/swarmx-types/src/operation-types.ts") },
+      { find: "@swarmx/types/video-types", replacement: path.resolve(__dirname, "../../packages/swarmx-types/src/video-types.ts") },
+      { find: "@swarmx/types/series-types", replacement: path.resolve(__dirname, "../../packages/swarmx-types/src/series-types.ts") },
       { find: "@swarmx/types", replacement: path.resolve(__dirname, "../../packages/swarmx-types/src/index.ts") },
     ],
   },

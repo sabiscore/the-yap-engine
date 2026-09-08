@@ -127,7 +127,7 @@ assert.ok(orchestratorSource.includes("videoConfig.SWARMX_VIDEO_HIGH_PRESSURE_DE
 assert.ok(orchestratorSource.includes("videoConfig.SWARMX_API_INTERNAL"));
 assert.ok(orchestratorSource.includes("reinforceHookBlocklist"), "scripting prompt must support hook-blocklist regeneration");
 assert.ok(
-  orchestratorSource.includes("regenerating script after HOOK_BLOCKLIST violation"),
+  orchestratorSource.includes("regenerating script after pre-render quality gate (hook_blocklist / weak_hook / retention_risk)"),
   "scripting stage must retry once before accepting a blocklisted hook",
 );
 assert.equal(orchestratorSource.includes("process.env.COMFY_HOST"), false);
@@ -419,7 +419,7 @@ assert.ok(
 );
 // The preflight block must come before queue.enqueue() so jobs are not created on failure
 const preflightPos = routesSourceV2.indexOf("ffmpeg_unavailable");
-const enqueuePos = routesSourceV2.indexOf("queue.enqueue(request.body)");
+const enqueuePos = routesSourceV2.indexOf("queue.enqueue(normalizedRequest)");
 assert.ok(
   preflightPos < enqueuePos,
   "preflight checks must appear before queue.enqueue() in the route handler",

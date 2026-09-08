@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   MODEL_OPERATOR_MAP,
   resolveCanonicalTag,
@@ -33,7 +34,7 @@ interface ExtendedModelRecord {
   deprecationState: "active" | "dev_only";
 }
 
-const repoRoot = resolve(new URL("../../../", import.meta.url).pathname);
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 const MODELFILE_BY_TAG: Record<string, string> = {
   "synth-phi4-exp-q8-dev": "models/Modelfiles/variants/phi4-fast-evolve.modelfile",

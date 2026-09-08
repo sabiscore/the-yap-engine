@@ -47,3 +47,6 @@ Thumbs.db
 AGENTS.md
 .vercel
 .env*
+
+# AI agent session workspaces — ephemeral orchestration artifacts, not source
+.agents/teamwork_preview_*/

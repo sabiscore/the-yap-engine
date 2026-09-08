@@ -20,6 +20,7 @@ import { KokoroVoiceProvider, normalizeScriptForSpeech, selectVoiceProvider, typ
 import { runTemplateQc } from "./template-aware-qc.js";
 import { alignNarrationAudio, type CaptionAlignmentArtifacts } from "./video-caption-alignment-client.js";
 import { createAmbientBed, masterAudioWithBed } from "./audio-mastering.js";
+import { log } from "../lib/logger.js";
 
 const _ffenv = loadEnv();
 const RENDER_COMMAND_TIMEOUT_MS = Math.min(
@@ -526,6 +527,7 @@ function buildBackgroundMotionLayers(
   const grid = `drawgrid=width=90:height=90:thickness=1:color=${accentRgb}@${gridOpacity}`;
   const glowLeft = `drawbox=x='-ih*0.35+${profile.xAmp}*${hookBoost}*sin(t*${pulseHz})':y=ih*0.10:w='ih*0.9+${profile.widthAmp}*${hookBoost}*sin(t*${pulseHz})':h=ih*0.9:color=${accentRgb}@${glowAlpha}:t=fill`;
   const glowRight = `drawbox=x='iw-ih*0.55+${Math.round(profile.xAmp * 0.8)}*${hookBoost}*sin(t*${pulseHz}+3.14)':y=ih*0.30:w='ih*0.9+${Math.round(profile.widthAmp * 0.75)}*${hookBoost}*sin(t*${pulseHz}+3.14)':h=ih*0.9:color=white@${glowSoft}:t=fill`;
+  // Third parallax layer — slower period (~2.5s) beneath the faster panels.
   const parallaxSlow = `drawbox=x='-420+mod(t*${panelSlow}+24*sin(t*0.40)\\,1320)':y=ih*0.42:w=420:h=420:color=${accentRgb}@${profile.parallaxAlpha}:t=fill`;
   const scanLine = `drawbox=x=0:y='ih*0.28+mod(t*34\\,420)':w=iw:h=2:color=${accentRgb}@${lineOpacity}:t=fill`;
   // Vignette-lite: dark corner boxes darken the edges to focus attention on
@@ -1121,17 +1123,29 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       }
     }
 
+    let masteredPath: string | undefined;
     if (voiceArtifact && loadEnv().SWARMX_AUDIO_AMBIENT_BED_ENABLED === "1") {
       const ambientPath = join(workDir, "ambient-bed.wav");
       const mixedPath = join(workDir, "narration-with-ambient.wav");
-      const masteredPath = join(workDir, "narration-mastered.m4a");
-      createAmbientBed(duration, ambientPath);
-      await masterAudioWithBed({
-        inputPath: mixedPath,
-        outputPath: masteredPath,
-        platform: audioPlatformForRequest(input.request),
-      }, narrationPath, ambientPath, mixedPath);
-      audioPath = masteredPath;
+      masteredPath = join(workDir, "narration-mastered.m4a");
+      try {
+        createAmbientBed(duration, ambientPath);
+        await masterAudioWithBed({
+          inputPath: mixedPath,
+          outputPath: masteredPath,
+          platform: audioPlatformForRequest(input.request),
+        }, narrationPath, ambientPath, mixedPath);
+        audioPath = masteredPath;
+      } catch (error) {
+        log.warn(
+          {
+            jobId: input.jobId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          "[audio-mastering] ambient bed mastering failed; falling back to clean narration",
+        );
+        audioPath = narrationPath;
+      }
     }
 
     const requireWordAlignment = loadEnv().SWARMX_VIDEO_REQUIRE_WORD_ALIGNMENT === "1" && input.request.style === "kinetic_text";
@@ -1196,7 +1210,9 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       "-map", "1:a",
       "-shortest",
       "-t", String(duration),
-      "-af", `aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ},loudnorm=I=${loadEnv().SWARMX_AUDIO_TARGET_LUFS}:TP=${loadEnv().SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS}:LRA=11`,
+      "-af", audioPath === masteredPath
+        ? `aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ}`
+        : `aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ},loudnorm=I=${loadEnv().SWARMX_AUDIO_TARGET_LUFS}:TP=${loadEnv().SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS}:LRA=11`,
       "-ar", String(loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ),
       "-ac", String(loadEnv().SWARMX_AUDIO_MASTER_CHANNELS),
       "-c:v", "libx264",

@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const repoRoot = new URL("../../../", import.meta.url);
 const PUBLIC_VIDEO_TOKEN_ENV = `NEXT_PUBLIC_${"SWARMX_VIDEO_API_TOKEN"}`;
@@ -18,7 +19,7 @@ async function readRepoFile(path: string): Promise<string> {
 }
 
 async function listFilesRecursive(relativeDir: string): Promise<string[]> {
-  const root = new URL(relativeDir, repoRoot);
+  const root = fileURLToPath(new URL(relativeDir, repoRoot));
   const results: string[] = [];
   async function walk(absDir: string, relPrefix: string): Promise<void> {
     const entries = await readdir(absDir, { withFileTypes: true });
@@ -32,7 +33,7 @@ async function listFilesRecursive(relativeDir: string): Promise<string[]> {
       if (entry.isFile()) results.push(`${relativeDir.replace(/\/$/, "")}/${relPath}`);
     }));
   }
-  await walk(root.pathname, "");
+  await walk(root, "");
   return results.sort();
 }
 

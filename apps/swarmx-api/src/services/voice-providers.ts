@@ -405,7 +405,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
     outputPath: string,
     signal?: AbortSignal,
   ): Promise<void> {
-    const python = loadEnv().SWARMX_PYTHON_BIN?.trim() || join(process.cwd(), ".venv", "bin", "python3");
+    const python = loadEnv().SWARMX_PYTHON?.trim() || join(process.cwd(), ".venv", "bin", "python3");
     try {
       await execFileChecked(
         python,
