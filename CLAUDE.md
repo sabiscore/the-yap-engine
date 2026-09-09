@@ -980,17 +980,17 @@ Execute these steps before closing any session where code was written:
 
 ```bash
 # 1. Run all quality gates
-pnpm -F swarmx-api tsc --noEmit
-pnpm -F swarmx-types tsc --noEmit
-pnpm -F swarmx-dashboard tsc --noEmit
-pnpm -F swarmx-api vitest run              # must be ≥353 (as of V6.2.60)
-pnpm -F swarmx-dashboard vitest run        # must be ≥58
+pnpm -F @swarmx/types typecheck
+pnpm -F @swarmx/api typecheck
+pnpm -F @swarmx/dashboard typecheck
+pnpm -F @swarmx/api test              # 377 passing (26 test files)
+pnpm -F @swarmx/dashboard test        # 69 passing (9 test files)
 npx tsx apps/swarmx-api/scripts/video-regression-check.ts
 npx tsx apps/swarmx-api/scripts/system-health-regression.ts
 npx tsx apps/swarmx-api/scripts/reasoning-sanitizer-regression.ts
 npx tsx apps/swarmx-api/scripts/eviction-metric-regression.ts
 npx tsx apps/swarmx-api/scripts/adaptive-timeout-regression.ts
-pnpm -F swarmx-dashboard next build        # must produce ≥14 routes
+pnpm -F @swarmx/dashboard build       # must produce ≥14 routes
 
 # 2. Invariant checks
 grep -rn 'console\.' apps/swarmx-api/src/services apps/swarmx-api/src/routes
@@ -1043,12 +1043,12 @@ If any system-level change is made:
 The following must all pass before any commit to `main`:
 
 ```bash
-pnpm -F swarmx-api tsc --noEmit           # zero type errors
-pnpm -F swarmx-types tsc --noEmit         # zero type errors
-pnpm -F swarmx-dashboard tsc --noEmit     # zero type errors
+pnpm -F @swarmx/api typecheck           # zero type errors
+pnpm -F @swarmx/types typecheck         # zero type errors
+pnpm -F @swarmx/dashboard typecheck     # zero type errors
 
-pnpm -F swarmx-dashboard vitest run       # ≥58 passing
-pnpm -F swarmx-api vitest run             # ≥353 passing (V6.2.60 baseline; grows with V4 slices)
+pnpm -F @swarmx/dashboard test          # 69 passing (9 test files)
+pnpm -F @swarmx/api test                # 377 passing (26 test files)
 
 # API regression scripts (no Ollama/Redis needed)
 npx tsx apps/swarmx-api/scripts/adaptive-timeout-regression.ts
@@ -1057,7 +1057,7 @@ npx tsx apps/swarmx-api/scripts/eviction-metric-regression.ts
 npx tsx apps/swarmx-api/scripts/system-health-regression.ts
 npx tsx apps/swarmx-api/scripts/reasoning-sanitizer-regression.ts
 
-pnpm -F swarmx-dashboard next build       # ≥14 routes, zero build errors
+pnpm -F @swarmx/dashboard build         # ≥14 routes, zero build errors
 git diff --check                          # zero whitespace violations
 
 # Invariant checks (must return zero hits)

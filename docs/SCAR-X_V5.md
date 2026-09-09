@@ -1022,13 +1022,13 @@ Production closeout is complete only when all of the following are simultaneousl
 ☐ Fail-closed production mutations confirmed
 
 **Build and release:**
-☐ `pnpm -F swarmx-api tsc --noEmit` → zero errors
-☐ `pnpm -F swarmx-types tsc --noEmit` → zero errors
-☐ `pnpm -F swarmx-dashboard tsc --noEmit` → zero errors
-☐ `pnpm -F swarmx-api vitest run` → ≥ 228 passing
-☐ `pnpm -F swarmx-dashboard vitest run` → ≥ 52 passing
+☐ `pnpm -F @swarmx/api typecheck` → zero errors
+☐ `pnpm -F @swarmx/types typecheck` → zero errors
+☐ `pnpm -F @swarmx/dashboard typecheck` → zero errors
+☐ `pnpm -F @swarmx/api test` → ≥ 228 passing
+☐ `pnpm -F @swarmx/dashboard test` → ≥ 52 passing
 ☐ All 5 regression scripts exit 0
-☐ `pnpm -F swarmx-dashboard next build` → ≥ 14 routes, zero errors
+☐ `pnpm -F @swarmx/dashboard build` → ≥ 14 routes, zero errors
 ☐ `git diff --check` → zero whitespace violations
 ☐ `grep -rn 'console\.' apps/swarmx-api/src/services apps/swarmx-api/src/routes` → 0 hits
 

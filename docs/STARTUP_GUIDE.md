@@ -1,4 +1,7 @@
-# SwarmX Startup Guide
+# The Yap Engine — Startup Guide
+
+> **Powered by SwarmXQ** · APEX-17 r8 · v6 production certification pass (`8f25287`)
+> **Hardware:** HP EliteBook 850 G3 · 16 GB RAM · CPU-only · WSL2
 
 ## Quick Start (Recommended)
 
@@ -7,19 +10,19 @@
 For the best experience with built-in health checks and diagnostics:
 
 ```bash
-cd SwarmXQ
+cd the-yap-engine
 bash scripts/startup-enhanced.sh --dashboard
 ```
 
 **What happens automatically:**
-✅ Checks Python 3.11+ is installed  
-✅ Checks Node.js 22+ is installed  
-✅ Verifies pnpm is available  
-✅ Checks port 3000 and 3001 availability (kills stale processes if needed)  
-✅ Evicts stale SwarmX API/dashboard instances from current and legacy roots before launch  
-✅ Verifies Ollama is running (non-blocking; continues without it)  
-✅ Attempts best-effort non-blocking `ollama serve` autostart when enabled  
-✅ Auto-seeds CORS origins for localhost (`http://localhost:3000`)  
+- Checks Python 3.11+ is installed (verified: **3.14.6**)
+- Checks Node.js 22+ is installed (verified: **v24.17.0**)
+- Verifies pnpm is available (verified: **11.9.0**)
+- Checks port 3000 and 3001 availability (kills stale processes if needed)
+- Evicts stale SwarmX API/dashboard instances from current and legacy roots before launch
+- Verifies Ollama is running (non-blocking; continues without it)
+- Attempts best-effort non-blocking `ollama serve` autostart when enabled
+- Auto-seeds CORS origins for localhost (`http://localhost:3000`)
 ✅ Starts API server on `http://127.0.0.1:3001`  
 ✅ Starts dashboard on `http://127.0.0.1:3000`  
 
@@ -28,7 +31,7 @@ bash scripts/startup-enhanced.sh --dashboard
 If you prefer the traditional method:
 
 ```bash
-cd SwarmXQ
+cd the-yap-engine
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --editable '.[dev]'
@@ -474,11 +477,11 @@ echo $SWARMX_DASHBOARD_ORIGIN
 # Check Python
 python3 --version
 
-# If missing: Install Python 3.11+
+# If missing: Install Python 3.11+ (verified on this host: 3.14.6)
 # macOS
-brew install python@3.11
+brew install python@3.12
 # Ubuntu/Debian
-sudo apt-get install python3.11 python3.11-venv
+sudo apt-get install python3.12 python3.12-venv
 
 # Check Node.js
 node --version
@@ -629,8 +632,7 @@ source .venv/bin/activate
 python -m cli up --dashboard --host 127.0.0.1 --port 3001
 
 # Terminal 2: Start Dashboard dev server (auto-reloads on TypeScript/CSS changes)
-cd apps/swarmx-dashboard
-pnpm dev
+pnpm -F @swarmx/dashboard dev
 ```
 
 Navigate to `http://localhost:3000` (dev server) for auto-reload.
@@ -641,7 +643,7 @@ Navigate to `http://localhost:3000` (dev server) for auto-reload.
 2. 📚 **Learn the Dashboard:** Explore the Composer, Workflows, and Logs pages
 3. 🤖 **Run a Task:** Use the Composer to test a simple task
 4. 📖 **Read Documentation:**
-   - [CORS Configuration](../docs/CORS_CONFIGURATION.md) — network setup
+   - [CORS Configuration](CORS_CONFIGURATION.md) — network setup
    - [README.md](../README.md) — project overview
    - [ARCHITECTURE.md](../ARCHITECTURE.md) — system design
 
@@ -654,7 +656,7 @@ Navigate to `http://localhost:3000` (dev server) for auto-reload.
 
 ## Further Reading
 
-- [CORS Configuration Guide](../docs/CORS_CONFIGURATION.md)
+- [CORS Configuration Guide](CORS_CONFIGURATION.md)
 - [SwarmX Architecture](../ARCHITECTURE.md)
 - [Safety & Execution Policy](../SAFETY.md)
 - [System Prompt](../SYSTEM-PROMPT.md)

@@ -1,6 +1,47 @@
-# SwarmX Changelog
+# The Yap Engine — Changelog
+
+> **Powered by SwarmXQ** · Full version history from V6.2.0 onward.
 
 <!-- markdownlint-disable MD024 MD032 -->
+
+---
+
+## V6 Production Certification Pass — Reconciliation Commit `8f25287` (2026-09-09)
+
+### Summary
+
+v6 production certification pass on `main`. All 9 AGENTS.md invariants confirmed. No regressions.
+
+### Changes
+
+#### `ffmpeg-video-renderer.ts`
+- Gap B audio mastering fail-open: loudnorm failures no longer block the render; pipeline continues with un-normalized audio.
+- Double-loudnorm fix: removed erroneous second loudnorm pass causing audio artifacts.
+
+#### `voice-providers.ts`
+- TS2551 env key fix: `SWARMX_PYTHON` now accessed via `loadEnv()` (Zod schema) instead of direct `process.env` access — closes invariant 5 violation.
+
+#### `vitest.config.ts`
+- Added subpath aliases for `@swarmx/types/video-types` and `@swarmx/types/series-types` — prevents fallback to bare `@swarmx/types` catch-all for those imports in tests.
+
+#### `video-regression-check.ts`
+- Reconciled regression assertions to match current pipeline implementation. Stale assertion strings removed.
+
+#### `model-registry-modelfile-check.ts` + `creative-factory-release-check.ts`
+- Windows `fileURLToPath` fix: replaced `new URL(import.meta.url).pathname` with `fileURLToPath(import.meta.url)` to resolve drive-letter path corruption on Windows hosts (`/C:/...` → `C:/...`).
+
+#### `apps/swarmx-api/__tests__/challenger-gate6-verification.test.ts`
+- 17 new empirical tests added covering v6 certification paths.
+
+### Environment truth
+
+Node v24.17.0 · pnpm 11.9.0 · Python 3.14.6 · HP EliteBook 850 G3 · 16 GB RAM · CPU-only · WSL2
+
+### Known blockers (document only)
+
+- FFmpeg not in Windows PATH — WSL2 install required for local renders.
+- `faster-whisper` not installed — word-level caption alignment bypassed.
+- Modal credentials not provisioned — cloud GPU backend unavailable; local FFmpeg fallback active.
 
 ---
 

@@ -94,7 +94,7 @@ Fields:
 2. Copy the asset into the appropriate subdirectory
 3. Compute the SHA-256: `sha256sum apps/swarmx-api/fixtures/rights-safe/<path>`
 4. Add the record to `attribution.json`
-5. Run `pnpm -F swarmx-api tsc --noEmit` and the Creative Factory invariant
+5. Run `pnpm -F @swarmx/api tsc --noEmit` and the Creative Factory invariant
    script to confirm no regression
 
 Assets whose license changes after import must be removed from this tree and

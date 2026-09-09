@@ -1,4 +1,6 @@
-# SwarmX Backup and Restore
+# The Yap Engine — Backup and Restore
+
+> **Powered by SwarmXQ** — Capturing runtime state, mission logs, memories, and SQLite backups.
 
 ## What is backed up
 

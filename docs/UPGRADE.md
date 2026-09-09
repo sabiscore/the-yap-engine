@@ -1,4 +1,6 @@
-# SwarmX Upgrade Guide
+# The Yap Engine — Upgrade Guide
+
+> **Powered by SwarmXQ** · APEX-17 r8 · v6 production certification pass (`8f25287`)
 
 ## Check for an update
 
@@ -45,15 +47,19 @@ swarm backup --tag pre-upgrade
 git pull origin main
 
 # 3 — Python
-source ~/.swarmx/venv/bin/activate
+source .venv/bin/activate
 pip install --upgrade pip
 pip install -e ".[dev]"
 
 # 4 — Node.js
-pnpm install
-pnpm --filter @swarmx/dashboard build
+pnpm install --frozen-lockfile
+pnpm -F @swarmx/types typecheck
+pnpm -F @swarmx/api build
+pnpm -F @swarmx/dashboard build
 
 # 5 — Verify
+pnpm -F @swarmx/api test
+pnpm -F @swarmx/dashboard test
 swarm doctor
 bash scripts/verify.sh
 ```
@@ -70,9 +76,11 @@ swarm restore --latest
 git checkout HEAD~1
 
 # 3 — Reinstall
+source .venv/bin/activate
 pip install -e ".[dev]"
-pnpm install
-pnpm --filter @swarmx/dashboard build
+pnpm install --frozen-lockfile
+pnpm -F @swarmx/api build
+pnpm -F @swarmx/dashboard build
 
 # 4 — Restart the stack
 swarm up --restart --detach
@@ -80,13 +88,14 @@ swarm up --restart --detach
 
 ## Version compatibility
 
-| SwarmX version | Python | Node.js | Redis |
-|---|---|---|---|
-| 4.x (RC1) | 3.11 – 3.12 | 22 LTS | 7.x |
-| 3.x | 3.10+ | 20 LTS | 6.x |
+| Engine / Runtime version | Python | Node.js | pnpm | Redis |
+|---|---|---|---|---|
+| **v6 (`2026.6.0`)** | **3.11+ (verified: 3.14.6)** | **22+ (verified: v24.17.0)** | **11.9.0** | **7.x** (optional) |
+| 4.x (RC1) | 3.11 – 3.12 | 22 LTS | 9.x | 7.x |
+| 3.x | 3.10+ | 20 LTS | 8.x | 6.x |
 
 Downgrading across major versions is not supported without a full backup/restore cycle.
 
 ## Release notes
 
-See `CHANGELOG.md` at the repo root for per-release changes.
+See [CHANGELOG.md](CHANGELOG.md) for per-release changes and [V6.md](V6.md) for the v6 production certification pass.

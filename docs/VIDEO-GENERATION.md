@@ -1,27 +1,28 @@
-# Video Generation Subsystem
+# The Yap Engine — Video Generation Subsystem
 
-> **SwarmX Video Pipeline** — pressure-aware, faceless video generation orchestrated through
-> Ollama local models → storyboard → optional ComfyUI render.
+> **Powered by SwarmXQ** — pressure-aware, viral short-form video generation orchestrated through
+> Ollama local models → storyboard → render (local FFmpeg / ComfyUI / Modal GPU).
 
 ---
 
 ## Table of contents
 
 1. [Architecture overview](#architecture-overview)
-2. [File map](#file-map)
-3. [Environment setup](#environment-setup)
-4. [Installation & startup](#installation--startup)
-5. [API reference](#api-reference)
-6. [SSE event lifecycle](#sse-event-lifecycle)
-7. [Job lifecycle & state machine](#job-lifecycle--state-machine)
-8. [Degradation behavior](#degradation-behavior)
-9. [Model assignment](#model-assignment)
-10. [Dashboard integration](#dashboard-integration)
-11. [M13 live certification](#m13-live-certification)
-12. [Browser verification](#browser-verification)
-13. [ComfyUI render setup](#comfyui-render-setup)
-14. [Troubleshooting](#troubleshooting)
-15. [Known bugs fixed in this release](#known-bugs-fixed-in-this-release)
+2. [10-Template creative taxonomy](#10-template-creative-taxonomy)
+3. [File map](#file-map)
+4. [Environment setup](#environment-setup)
+5. [Installation & startup](#installation--startup)
+6. [API reference](#api-reference)
+7. [SSE event lifecycle](#sse-event-lifecycle)
+8. [Job lifecycle & state machine](#job-lifecycle--state-machine)
+9. [Degradation behavior](#degradation-behavior)
+10. [Model assignment](#model-assignment)
+11. [Dashboard integration](#dashboard-integration)
+12. [M13 live certification](#m13-live-certification)
+13. [Browser verification](#browser-verification)
+14. [ComfyUI render setup](#comfyui-render-setup)
+15. [Troubleshooting](#troubleshooting)
+16. [Known bugs fixed in this release](#known-bugs-fixed-in-this-release)
 
 ---
 
@@ -69,6 +70,42 @@ code-qwen25-pro-q5km-prod
 ```
 
 The pipeline runs **one job at a time** (sequential queue). Under `constrained_cpu_8gb`, parallel heavyweight model, TTS, and render stages are rejected rather than queued into memory pressure. The queue drains FIFO; the orchestrator respects cancellation at every stage boundary.
+
+---
+
+## 10-Template creative taxonomy
+
+The Yap Engine provides 10 structured creative templates defined in `@swarmx/types/video-types` (`VIDEO_TEMPLATE_FAMILY_VALUES`). Each template family provides a distinct narrative architecture applied to the 5-beat production planner (`buildPlanningPrompt` in `video-orchestrator.ts`):
+
+| Template Family (`templateFamily`) | Narrative Structure & Strategy | Strategic Guidance |
+|---|---|---|
+| `myth-vs-fact` | Direct debunking | Hook states the popular myth; Body reveals the surprising fact and counter-evidence; Resolution explains why the myth persisted. |
+| `list/countdown` | Rapid-fire high-retention list | Hook establishes high stakes/topic; Body cycles through 3–5 items in rapid succession; Resolution synthesizes the ultimate takeaway. Accepts legacy `listicle-countdown` and normalizes automatically. |
+| `mystery/reveal` | Narrative puzzle | Hook presents an intriguing anomaly; Body drops progressive clues and breadcrumbs; Resolution delivers the unexpected answer. |
+| `product-demo` | Problem/solution showcase | Hook highlights a visceral user pain point; Body demonstrates the practical solution in action; Resolution showcases the transformative outcome. |
+| `quote-to-insight` | Powerful quote breakdown | Hook drops a provocative quote; Body analyzes its non-obvious deeper meaning; Resolution applies the wisdom to the viewer's everyday life. |
+| `chart/data` | Single striking data point | Hook leads with an astonishing stat; Body visualizes the trend, comparison, and context; Resolution reveals the real-world implication. |
+| `motivational` | Micro-narrative arc | Hook captures a relatable moment of defeat; Body demonstrates the pivot, discipline, and grind; Resolution delivers the hard-earned triumph. |
+| `series-recap` | Fast-paced catch-up | Hook reminds viewers of the critical cliffhanger; Body blitzes through pivotal plot turns; Resolution sets up anticipation for the next episode. |
+| `pov-immersion` | First-person immersion | Hook drops the viewer immediately into the action (zero preamble); Body unfolds sensory, real-time detail; Resolution lands the emotional beat from inside the POV. |
+| `reddit-story` | Found-story readaloud | Hook quotes a provocative thread title or premise; Body escalates tension through plot turns with narrator commentary; Resolution delivers the moral or punchline. |
+
+### Canonical Pipeline Stage Flow
+
+The video pipeline stage sequence is immutable:
+
+```
+intent_classification → planning → scripting → storyboard_generation → render_assembly → finalizing
+```
+
+Post-pipeline (non-blocking): `stageViralityAndCaption()`
+
+1. **Intent Classification** (Pilot: `instruct-phi4-pro-q8-prod`) — Parses user input into structured creative intent. Malformed JSON falls back deterministically to a structured object derived from the request.
+2. **Planning** (Architect: `plan-qwen25-pro-q5km-prod`) — Generates 5 precise production beats (HOOK, CONTEXT, INSIGHT, PROOF, CTA) structured according to the selected `templateFamily`.
+3. **Scripting** (Architect) — Produces narration text with strict section markers (`[HOOK]`, `[BODY]`, `[RESOLUTION]`, `[CTA]`), visual cues (`[VISUAL: ...]`), and tone rules.
+4. **Storyboard Generation** (Architect) — Generates scene frames, camera motions, and visual prompts for rendering.
+5. **Render Assembly** (Renderer) — Synthesizes narration (Kokoro TTS / Piper / eSpeak), masters audio with EBU R128 two-pass loudnorm (Gap B fail-open), generates kinetic captions, and renders 1080x1920 MP4 via FFmpeg, ComfyUI, or Modal GPU.
+6. **Finalizing** (Assets layer) — Verifies MP4 with FFprobe, runs template-aware QC, and packages metadata.
 
 ---
 
@@ -1344,7 +1381,7 @@ not reliably complete for `medium` or `long` jobs.
 | `/api/video/jobs/:id` | DELETE | Cancel alias (same as POST cancel, for REST semantics) |
 | `/api/video/jobs/:id/resume` | POST | Resume a terminal job from a stage marker when partial artifacts exist |
 | `/api/video/jobs/reprioritize` | POST | Reorder queued jobs by explicit ordered job IDs |
-| `/api/video/templates` | GET | List available ComfyUI workflow templates with RAM requirements |
+| `/api/video/templates` | GET | List available ComfyUI workflow templates with RAM requirements (distinct from the 10 creative narrative templates) |
 | `/api/video/caption/score` | POST | Score a caption draft and return both captionDraft + engagement heuristic signal |
 
 ### New dashboard components

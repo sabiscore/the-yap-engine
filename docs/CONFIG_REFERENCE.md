@@ -1,4 +1,6 @@
-# Config reference
+# The Yap Engine — Configuration Reference
+
+> **Powered by SwarmXQ** · APEX-17 r8 · v6 production certification pass (`8f25287`)
 
 ## Runtime
 
@@ -16,6 +18,13 @@
 - `routing.workflow_preference` — preferred workflow override
 - `routing.framework_preference` — optional orchestration backends
 
+## Redis & Queue Infrastructure
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `REDIS_URL` | `redis://127.0.0.1:6379` | Redis connection URL for BullMQ job queues and state persistence when `SWARMX_VIDEO_USE_BULLMQ=1`. |
+| `SWARMX_VIDEO_USE_BULLMQ` | `1` | Enable BullMQ Redis-backed job queue. Falls back to in-memory FIFO queue when Redis is unavailable. |
+
 ## Ollama And Host Runtime Profiles
 
 Set these before starting Ollama or the SwarmX stack. The startup script auto-detects `constrained_cpu_8gb` vs `standard_cpu_16gb` by total RAM, but you can pin the behavior explicitly. Legacy `8gb`, `16gb`, `constrained_cpu`, and `standard_cpu` values are accepted only as compatibility aliases.
@@ -23,8 +32,8 @@ Set these before starting Ollama or the SwarmX stack. The startup script auto-de
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `SWARMX_HOST_PROFILE` | `auto` | Auto-detects `constrained_cpu_8gb` or `standard_cpu_16gb`; pin one explicitly when you need stable behavior across restarts. |
-| `OLLAMA_MAX_LOADED_MODELS` | profile-managed | `1` on `constrained_cpu_8gb`; `2` only on `standard_cpu_16gb` when measured safe. Low free RAM forces constrained safeguards even on a 16 GB host. |
-| `OLLAMA_NUM_PARALLEL` | `1` | One inference slot prevents duplicate heavyweight loads. |
+| `OLLAMA_MAX_LOADED_MODELS` | profile-managed | `1` on `constrained_cpu_8gb`; `2` on `standard_cpu_16gb` (Pilot resident while a 7B runs). Low free RAM forces constrained safeguards even on a 16 GB host. |
+| `OLLAMA_NUM_PARALLEL` | `1` | One inference slot prevents duplicate heavyweight loads on CPU. Protected constant. |
 | `OLLAMA_KEEP_ALIVE` | `0` | Global keep-alive stays off on CPU-only hosts; SwarmX still sends request-level `keep_alive` where safe. |
 | `OLLAMA_FLASH_ATTENTION` | `0` | Conservative CPU default because Q8 Phi-4 flash-attention has shown host-specific instability. GPU operators may override after validation. |
 | `OLLAMA_KV_CACHE_TYPE` | `f16` | Conservative CPU default paired with flash-attention off. |
@@ -35,6 +44,7 @@ Set these before starting Ollama or the SwarmX stack. The startup script auto-de
 | `SWARMX_SYSTEM_HEALTH_PROBE_TIMEOUT_MS` | `1500` | Liveness budget for `/api/system/health`; bounded to 250–10000 ms. When liveness fails, the route returns degraded health without model discovery. |
 | `SWARMX_SYSTEM_HEALTH_MODEL_PROBE_TIMEOUT_MS` | `2500` | Readiness budget for model listing after liveness succeeds; bounded to 250–10000 ms. |
 | `SWARMX_API_INTERNAL` | `http://localhost:7380` | Internal Python sidecar base URL used for governor pressure probes. |
+| `SWARMX_PYTHON` | `python3` | Python binary used for sidecar operations, metrics poller, and TTS server. |
 
 The `standard_cpu_16gb` profile permits `OLLAMA_MAX_LOADED_MODELS=2` only for
 dual residency; it does not permit concurrent inference. Keep
@@ -76,6 +86,21 @@ decisions use physical `MemAvailable` and report ZRAM separately.
 | `SWARMX_VIDEO_RETRY_JITTER_MS` | `1000` | Max random jitter (ms) added to each retry delay to avoid thundering-herd re-queues. |
 | `SWARMX_VIDEO_JOB_TTL_MS` | `14400000` | Terminal job retention window before in-memory cleanup. Legacy `VIDEO_JOB_TTL_MS` is still accepted by the env schema. |
 | `SWARMX_VIDEO_MAX_CONCURRENT_JOBS` | `1` | Configuration visibility for concurrency requests. The SINGLE-VIDEO LOCK still enforces one active video job on CPU-only hosts. Legacy `VIDEO_MAX_CONCURRENT_JOBS` is still accepted by the env schema. |
+| `SWARMX_VIDEO_RENDER_BACKEND` | `auto` | Render backend selection: `auto`, `ffmpeg`, `comfyui`, or `modal`. Defaults to local FFmpeg on CPU hosts. |
+| `SWARMX_MODAL_RENDER_URL` | unset | Modal cloud GPU render endpoint URL. When set, renders can run on cloud GPUs. |
+| `SWARMX_MODAL_SECRET_NAME` | `swarmxq-video-renderer` | Secret name used in Modal deployments. |
+| `SWARMX_MODAL_MAX_CONTAINERS` | `4` | Max concurrent Modal container instances. |
+| `SWARMX_MODAL_FUNCTION_TIMEOUT_S` | `600` | Function execution timeout (seconds) on Modal. |
+| `SWARMX_MODAL_STARTUP_TIMEOUT_S` | `180` | Container cold-start timeout (seconds) on Modal. |
+| `SWARMX_VIDEO_REQUIRE_WORD_ALIGNMENT` | `0` | Require word-level whisper alignment before assembling subtitles. When 0, degrades gracefully to sentence timing if whisper is missing. |
+| `SWARMX_WHISPER_DEVICE` | `cpu` | Faster-whisper device: `cpu` or `cuda`. |
+| `SWARMX_WHISPER_COMPUTE_TYPE` | `int8` | Faster-whisper quantization type. |
+| `SWARMX_WHISPER_MODEL_SIZE` | `small` | Faster-whisper model size (`tiny`, `base`, `small`, `medium`). |
+| `SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ` | `48000` | Sample rate for final audio track mastering (Hz). |
+| `SWARMX_AUDIO_MASTER_CHANNELS` | `2` | Audio channel count (2 = stereo). |
+| `SWARMX_AUDIO_AMBIENT_BED_ENABLED` | `0` | Enable ambient audio bed mixing behind narration. |
+| `SWARMX_VOICE_BENCHMARK_FILE` | `/tmp/swarmxq-voice-benchmark.json` | Voice benchmark file path. |
+| `SWARMX_VOICE_BENCHMARK_MAX_AGE_HOURS` | `168` | Cache validity duration (hours) for voice benchmark rankings. |
 | `SWARMX_VIDEO_EXPORT_TTL_DAYS` | `7` | Days after which rendered exports and artifacts are eligible for cleanup. Minimum 1. |
 | `SWARMX_VIDEO_CLEANUP_INTERVAL_MS` | `21600000` | How often the cleanup service scans for stale exports (ms). Minimum 60000. First run fires 30 s after startup. |
 
@@ -108,6 +133,20 @@ module rather than directly from services or routes.
 **LOW_RAM_MODE auto-detection (V6.2.15)** — `SWARMX_VIDEO_LOW_RAM_MODE` is auto-enabled at API startup when `MemAvailable < 6170 MB` and the operator has not set an explicit value. Explicit `SWARMX_VIDEO_LOW_RAM_MODE=1` or `=0` always wins. When auto-enabled, the API also fires a fire-and-forget prewarm of `instruct-phi4-lite-q4km-prod` so the first user submission finds a warm model. A one-line startup log summarises the resolved mode: `{ lowRamMode, availableMb, videoModel }`.
 
 For persistent per-host overrides, use `apps/swarmx-api/.env.local` (gitignored).
+
+### 10-Template Creative Taxonomy (`templateFamily`)
+
+The Yap Engine provides 10 structured creative templates (`VIDEO_TEMPLATE_FAMILY_VALUES`):
+- `myth-vs-fact`
+- `list/countdown` (accepts legacy `listicle-countdown`)
+- `mystery/reveal`
+- `product-demo`
+- `quote-to-insight`
+- `chart/data`
+- `motivational`
+- `series-recap`
+- `pov-immersion`
+- `reddit-story`
 
 Required local binaries for production local renders:
 

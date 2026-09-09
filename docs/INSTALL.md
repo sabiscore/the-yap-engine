@@ -1,46 +1,43 @@
-# SwarmXQ Installation Guide
+# The Yap Engine — Installation Guide
+
+> **Powered by SwarmXQ** · APEX-17 r8 · v6 production certification pass (`8f25287`)
 
 ## System requirements
 
-| Component | Requirement |
-|---|---|
-| OS | Linux (Ubuntu 22.04+ recommended), macOS 13+, WSL2 |
-| Python | 3.11 or 3.12 |
-| Node.js | 22 LTS |
-| pnpm | 11.9.0 (`npm install -g pnpm@11.9.0`) |
-| Redis | 7.x |
-| Disk | 2 GB free (models need additional space — see Step 5) |
-| RAM | 8 GB minimum, 16 GB recommended |
+| Component | Minimum | Verified on this host |
+|---|---|---|
+| OS | Linux (Ubuntu 22.04+ recommended), macOS 13+, WSL2 | WSL2 on Windows 11 |
+| Python | 3.11 | **3.14.6** |
+| Node.js | 22 LTS | **v24.17.0** |
+| pnpm | 11.9.0 | **11.9.0** (`npm install -g pnpm@11.9.0`) |
+| Redis | 7.x | 7.x (optional — only required when `SWARMX_VIDEO_USE_BULLMQ=1`) |
+| Disk | 2 GB free | Models need additional space — see Step 5 |
+| RAM | 8 GB minimum | **16 GB** (this host) |
 
-## Quick install (recommended)
+### Production deployment requirements
 
-```bash
-chmod +x scripts/install.sh
-./scripts/install.sh
-```
+These are required for full video pipeline operation. The pipeline degrades gracefully without them:
 
-Reload your shell, then run:
-
-```bash
-swarm doctor
-```
-
-`swarm doctor` validates every dependency and reports pass/fail for each check.
-
-## Manual install
+| Dependency | Minimum version | Purpose | Status on this host |
+|---|---|---|---|
+| FFmpeg + FFprobe | ≥ 6.0 | Local video render and artifact validation | **Not in Windows PATH** — install in WSL2 |
+| espeak-ng | any | Fallback TTS voice synthesis | Needs WSL2 install check |
+| Kokoro TTS | any | Production-quality narration | Optional — `pip install '.[tts]'` |
+| faster-whisper | ≥ 1.1.0 | Word-level caption alignment | **Not installed** — `pip install '.[video]'` |
+| Modal credentials | any | Cloud GPU render backend | **Not provisioned** — set `SWARMX_MODAL_RENDER_URL` |
 
 ### 1 — Clone and enter the repo
 
 ```bash
-git clone https://github.com/Scardubu/SwarmXQ.git
-cd SwarmXQ
+git clone <repo-url> the-yap-engine
+cd the-yap-engine
 ```
 
 ### 2 — Python side
 
 ```bash
-python3.11 -m venv ~/.swarmx/venv
-source ~/.swarmx/venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install --upgrade pip
 pip install -e ".[dev]"
 ```
@@ -54,7 +51,7 @@ export PATH="$HOME/.local/bin:$PATH"
 ### 3 — Node.js side
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build
 ```
 
@@ -123,26 +120,26 @@ Key environment variables:
 |---|---|---|
 | `SWARMX_HOME` | `~/.swarmx` | Runtime data directory |
 | `SWARMX_API_PORT` | `3001` | Fastify API port |
-| `SWARMX_DASHBOARD_PORT` | `3000` | Dashboard port |
-| `SWARMX_REDIS_URL` | `redis://localhost:6379` | Redis connection string |
+| `SWARMX_DASHBOARD_ORIGIN` | `http://localhost:3000` | Dashboard origin for CORS |
+| `REDIS_URL` | `redis://127.0.0.1:6379` | Redis connection URL |
 | `SWARMX_WORKSPACE` | current dir | Default workspace |
 | `SWARMX_LOG_LEVEL` | `info` | Log verbosity |
 | `SWARMX_MAX_PTY_SESSIONS` | `8` | Max concurrent terminal sessions |
 | `SWARMX_PTY_SHELL` | `/bin/bash` | Shell for terminal sessions |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama API endpoint |
-| `SWARM_MODEL_FAST` | `instruct-phi4-pro-q8-prod` | Override fast fallback model |
-| `SWARM_MODEL_REASON` | `reason-deepseekr1-pro-q5km-prod` | Override reasoning model |
-| `SWARM_MODEL_CODE` | `code-qwen25-pro-q5km-prod` | Override execution model |
+| `SWARM_MODEL_FAST` | `instruct-phi4-pro-q8-prod` | Pilot model (fast fallback) |
+| `SWARM_MODEL_REASON` | `reason-deepseekr1-pro-q5km-prod` | Oracle model (reasoning) |
+| `SWARM_MODEL_CODE` | `code-qwen25-pro-q5km-prod` | Forge model (code generation) |
 
-For day-to-day local startup on 8 GB hosts, prefer:
+For day-to-day local startup, prefer:
 
 ```bash
 bash scripts/startup-enhanced.sh --dashboard
 ```
 
-That wrapper now clamps inherited unsafe Ollama values back to the constrained
-profile automatically: `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`,
-and `OLLAMA_KEEP_ALIVE=0`.
+The enhanced startup auto-detects host RAM:
+- On **16 GB hosts** (`standard_cpu_16gb`), it sets `OLLAMA_MAX_LOADED_MODELS=2` to keep Pilot (~3 GB) resident while a 7B model runs (serial inference, `OLLAMA_NUM_PARALLEL=1`).
+- On **8 GB hosts** (`constrained_cpu_8gb`), it clamps `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`, and `OLLAMA_KEEP_ALIVE=0`.
 
 Secrets belong in a secrets manager. Never commit API keys or credentials to the repo.
 

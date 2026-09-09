@@ -1,4 +1,4 @@
-# SwarmX Troubleshooting
+# The Yap Engine — Troubleshooting
 
 ## First steps
 
@@ -44,7 +44,7 @@ If `~/.local/bin/swarm` does not exist, reinstall:
 
 ### `swarm doctor` reports Python version failure
 
-SwarmX requires Python 3.11+.
+The Yap Engine requires Python 3.11+. The verified runtime on this host is **3.14.6**.
 
 ```bash
 python3 --version
@@ -53,12 +53,12 @@ python3 --version
 If the version is below 3.11, install a newer Python:
 
 ```bash
-# Ubuntu
+# Ubuntu / WSL2
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.11
+sudo apt-get install python3.12
 
 # macOS
-brew install python@3.11
+brew install python@3.12
 ```
 
 ---
@@ -86,7 +86,7 @@ redis-cli ping
 If using a remote Redis, set:
 
 ```bash
-export SWARMX_REDIS_URL=redis://host:6379
+export REDIS_URL=redis://host:6379
 ```
 
 ---
@@ -136,22 +136,34 @@ sudo apt-get install build-essential
 
 ### Ollama models not found
 
-```
-model not found: llama3.2:3b
-```
-
-Pull the required models:
+The Yap Engine uses canonical APEX-17 r8 model tags. If you see model-not-found errors, the models need to be built from Modelfiles:
 
 ```bash
-ollama pull llama3.2:3b
-ollama pull qwen2.5-coder:7b
-ollama pull nomic-embed-text
+# Rebuild all canonical models from Modelfiles
+bash scripts/rebuild-all-modelfiles.sh
+
+# Verify canonical naming
+bash scripts/rebuild-all-modelfiles.sh --validate
+
+# Then verify they are available
+ollama list
 ```
+
+Expected models after rebuild:
+
+| Operator | Canonical tag |
+|---|---|
+| Relay | `route-phi4-lite-q4km-prod` |
+| Pilot | `instruct-phi4-pro-q8-prod` |
+| Architect | `plan-qwen25-pro-q5km-prod` |
+| Oracle | `reason-deepseekr1-pro-q5km-prod` |
+| Forge | `code-qwen25-pro-q5km-prod` |
+| Auditor | `critique-deepseekr1-pro-q5km-prod` |
 
 Verify Ollama is running:
 
 ```bash
-curl http://localhost:11434/api/tags
+curl http://localhost:11434/api/tags | python3 -m json.tool | head -20
 ```
 
 ---
@@ -245,6 +257,60 @@ Kill any duplicates, then restart:
 swarm up --down
 swarm up
 ```
+
+---
+
+## Video pipeline issues
+
+### `FFMPEG_UNAVAILABLE` error during render
+
+The video renderer requires `ffmpeg` and `ffprobe` (version ≥ 6.0). On Windows hosts running WSL2, the binaries must be installed and executable inside WSL2:
+
+```bash
+which ffmpeg
+which ffprobe
+```
+
+If not found, install via apt:
+
+```bash
+sudo apt update && sudo apt install -y ffmpeg
+```
+
+Run the smoke test to verify:
+
+```bash
+pnpm -F @swarmx/api run test:video:smoke
+```
+
+### Word-level captions not aligned (`faster-whisper` missing)
+
+If video renders complete but subtitles lack word-level timing precision, `faster-whisper` is not installed. This is non-blocking — the pipeline degrades gracefully to sentence-level timing.
+
+To enable word-level alignment:
+
+```bash
+source .venv/bin/activate
+pip install faster-whisper
+```
+
+### Modal cloud GPU render fallback
+
+If `SWARMX_VIDEO_RENDER_BACKEND=auto` is configured but Modal credentials (`SWARMX_MODAL_RENDER_URL`) are not provisioned, the pipeline automatically falls back to local FFmpeg rendering. No action is required unless cloud GPU acceleration is specifically needed.
+
+### Loudnorm filter errors (Gap B audio mastering fail-open)
+
+In v6 (`ffmpeg-video-renderer.ts`), audio mastering loudnorm errors fail open. If the EBU R128 two-pass loudnorm normalization encounters an error, the render completes with un-normalized audio rather than failing the job.
+
+### Script schema validation failed (`SCRIPT_SCHEMA_INVALID`)
+
+Scripting output from the Architect model must conform to the 4 canonical script sections:
+- `[HOOK]` (≤ 18 words, passes `HOOK_BLOCKLIST`)
+- `[BODY]` (stakes escalation, `[VISUAL: ...]` prompts)
+- `[RESOLUTION]` (1–2 sentences, resolves tension)
+- `[CTA]` (5–8 words, audience-specific action)
+
+If an LLM returns poorly structured text, check that `plan-qwen25-pro-q5km-prod` has sufficient context or retry the job with a more specific brief.
 
 ---
 

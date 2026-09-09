@@ -1,6 +1,7 @@
-# SwarmX Operations Guide
+# The Yap Engine — Operations Guide
 
-Day-to-day commands for running SwarmX as an operator.
+> **Powered by SwarmXQ** · Day-to-day commands for running the stack as an operator.
+
 
 ## Stack lifecycle
 

@@ -192,11 +192,11 @@ cp video-planner-apex17r8.md agents/video-planner.md
 # Add TTS_UNAVAILABLE/TTS_KOKORO_ERROR to dashboard error map.
 
 # 6. Re-run release gate
-pnpm -F swarmx-api tsc --noEmit
-pnpm -F swarmx-types tsc --noEmit
-pnpm -F swarmx-dashboard tsc --noEmit
-pnpm -F swarmx-api vitest run     # ≥165 tests
-pnpm -F swarmx-dashboard vitest run  # ≥52 tests
+pnpm -F @swarmx/api tsc --noEmit
+pnpm -F @swarmx/types tsc --noEmit
+pnpm -F @swarmx/dashboard tsc --noEmit
+pnpm -F @swarmx/api vitest run     # ≥165 tests
+pnpm -F @swarmx/dashboard vitest run  # ≥52 tests
 npx tsx apps/swarmx-api/scripts/video-regression-check.ts
 grep -n "phi4-fast\|deepseek-reasoner\|qwen-worker" SYSTEM-PROMPT.md  # → 0 hits
 grep -n "phi4-fast\|deepseek-reasoner\|qwen-worker" agents/video-planner.md  # → 0 hits

@@ -1,8 +1,10 @@
-# SwarmXQ — Autonomous Multi-Agent Orchestration Platform
+# The Yap Engine — Viral Short-Form Video Generation Platform
 
-**Version:** APEX-17 r8 runtime profile · Auto-detected 8 GB / 16 GB host tuning · CPU-only · WSL2
+> **Powered by SwarmXQ** — an autonomous multi-agent AI runtime<br/>
+> **Runtime:** APEX-17 r8 · CPU-only (HP EliteBook 850 G3 · 16 GB RAM · WSL2)<br/>
+> **Version:** `2026.6.0` · v6 production certification pass (`8f25287`)
 
-SwarmXQ is a self-improving, pressure-aware multi-agent system that runs a fleet of specialized local LLMs through Ollama. It observes, critiques, mutates, validates, and deploys improvements autonomously — bounded by memory constraints, safety guardrails, and a deterministic governance layer.
+The Yap Engine is a viral short-form video generation pipeline — end-to-end, AI-driven, designed for TikTok and YouTube Shorts creators. Feed it a topic; receive a scripted, voiced, captioned MP4 ready to publish. The underlying runtime (SwarmXQ) orchestrates a pressure-aware fleet of local LLMs through Ollama, with memory safety, circuit breakers, and graceful degradation built in for CPU-only hardware.
 
 ---
 
@@ -30,18 +32,29 @@ SwarmXQ organizes its model fleet through a **dual-layer naming system** — mem
 
 ### Prerequisites
 
-- Python 3.11+ with venv
-- Node.js 22+ / pnpm
-- Ollama running locally
-- GGUF models in `~/llm-local/gguf/`
-- `ffmpeg` and `ffprobe` for local video renders
-- `espeak-ng` for voiced local renders
+| Requirement | Verified version | Notes |
+|---|---|---|
+| Node.js | **v24.17.0** | v22 is the package minimum; v24 is the tested runtime |
+| pnpm | **11.9.0** | `npm install -g pnpm@11.9.0` |
+| Python | **3.14.6** | pyproject.toml minimum is 3.11; 3.14 is tested |
+| Ollama | latest | Running locally with GGUF models in `~/llm-local/gguf/` |
+| Redis | 7.x | Required only when `SWARMX_VIDEO_USE_BULLMQ=1` |
+| FFmpeg ≥ 6.0 | system install | **Not in Windows PATH by default** — must be reachable from WSL2 for local video renders |
+| espeak-ng | system install | Fallback TTS for local renders |
+| Kokoro TTS | optional | `pip install '.[tts]'` — recommended for production voice quality |
+| faster-whisper | optional | `pip install '.[video]'` — required for word-level caption alignment |
+| Modal credentials | optional | Required only for cloud GPU renders (`SWARMX_MODAL_RENDER_URL`) |
+
+> **Known environment blockers (this host, no code changes needed):**
+> - FFmpeg is not in Windows PATH — run FFmpeg from WSL2 or add it to WSL2's PATH.
+> - `faster-whisper` is not installed — word-level caption alignment is disabled; runs succeed with caption alignment bypassed.
+> - Modal credentials are not provisioned — `SWARMX_VIDEO_RENDER_BACKEND=auto` falls back to local FFmpeg.
 
 ### Clean Clone Setup
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows WSL2 / Linux
 python -m pip install --editable '.[dev]'
 pnpm install --frozen-lockfile
 ```
@@ -53,6 +66,7 @@ bash scripts/startup-enhanced.sh --dashboard
 ```
 
 Dashboard: **http://localhost:3000** · API: **http://localhost:3001/health**
+
 
 ### Environment Variables
 
@@ -106,18 +120,40 @@ SwarmXQ includes a pressure-aware, faceless video generation subsystem for TikTo
 
 The dashboard consumes video API payloads through a local adapter boundary in `apps/swarmx-dashboard/src/lib/video-dashboard.ts`, which normalizes route payloads into dashboard-safe job shapes without coupling the UI to API-internal bridge types.
 
-### Pipeline Stages
+### Pipeline Stages (Canonical Order)
 
-1. **Intent Classification** (Pilot by default) — parse user request into structured intent
-2. **Planning** (Architect by default) — generate stage plan and narrative direction
-3. **Scripting** (Architect by default) — produce narration and visual cues
-4. **Storyboard Generation** (Architect by default) — derive visual scene frames
-5. **Render Assembly** (local FFmpeg by default, ComfyUI optional) — render a bounded MP4 artifact
-6. **Finalizing** (API assets layer) — probe the artifact, write metadata, and publish only after validation
+```
+intent_classification → planning → scripting → storyboard_generation → render_assembly → finalizing
+```
+Post-pipeline (non-blocking): `stageViralityAndCaption()`
 
-Integrations: FFmpeg/FFprobe, server-side VoiceProvider adapters (Kokoro microservice support installed in the app, Piper when installed, `espeak-ng` as an explicit fallback), ComfyUI (optional), pressure-aware stage gating, and graceful degradation paths. Dashboard: `/video` route with job list, creative brief controls, package/certification state, and detail timeline. For the exact route and payload contract, see [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md).
+1. **Intent Classification** (Pilot by default: `instruct-phi4-pro-q8-prod`) — parse user request into structured intent with deterministic fallback on malformed JSON
+2. **Planning** (Architect by default: `plan-qwen25-pro-q5km-prod`) — generate 5-beat production plan (HOOK, CONTEXT, INSIGHT, PROOF, CTA) tailored to the template family
+3. **Scripting** (Architect by default) — produce narration text conforming to `[HOOK]`, `[BODY]`, `[RESOLUTION]`, `[CTA]` sections and strict tone rules
+4. **Storyboard Generation** (Architect by default) — derive visual scene frames, visual prompts, and camera movements
+5. **Render Assembly** (local FFmpeg by default, ComfyUI optional, Modal GPU cloud fallback) — assemble audio, b-roll/visuals, and kinetic captions into a 1080x1920 MP4
+6. **Finalizing** (API assets layer) — probe artifact with FFprobe, run template-aware QC, and apply metadata
 
-Operational note: the compiled Fastify entrypoint currently resolves to `apps/swarmx-api/dist/apps/swarmx-api/src/server.js` because the API TypeScript build uses the monorepo root as `rootDir`.
+### 10-Template Creative Taxonomy
+
+The Yap Engine provides 10 structured creative templates (`VIDEO_TEMPLATE_FAMILY_VALUES` in `@swarmx/types`):
+
+| Template Family | Structure & Creative Direction |
+|---|---|
+| `myth-vs-fact` | Direct debunking: Hook states the myth, Body reveals the surprising fact, Resolution explains why it persisted |
+| `list/countdown` | Rapid-fire list: Hook establishes stakes, Body cycles through 3–5 items, Resolution synthesizes takeaways (accepts legacy `listicle-countdown`) |
+| `mystery/reveal` | Narrative puzzle: Hook presents an anomaly, Body drops clues/breadcrumbs, Resolution delivers the reveal |
+| `product-demo` | Problem/solution showcase: Hook highlights visceral pain point, Body demonstrates solution in action, Resolution shows outcome |
+| `quote-to-insight` | Powerful quote reframe: Hook drops the quote, Body analyzes deeper meaning, Resolution applies it to life |
+| `chart/data` | Data-driven insight: Hook presents a striking stat, Body visualizes trend/context, Resolution delivers implication |
+| `motivational` | Micro-narrative: Hook identifies moment of defeat, Body shows pivot/grind, Resolution lands triumph |
+| `series-recap` | Fast-paced catch-up: Hook recalls cliffhanger, Body blitzes key plot points, Resolution sets up next episode |
+| `pov-immersion` | First-person immersion: Hook drops viewer into moment without setup, Body unfolds sensory detail, Resolution lands emotional beat |
+| `reddit-story` | Found-story readaloud: Hook quotes provocative thread title, Body escalates through plot turns, Resolution delivers punchline/moral |
+
+Integrations: FFmpeg/FFprobe (>= 6.0), server-side VoiceProvider adapters (Kokoro TTS, Piper, `espeak-ng` fallback), ComfyUI, Modal GPU cloud backend, pressure-aware stage gating, and graceful degradation paths. Dashboard: `/video` route with job list, creative brief controls, package/certification state, and detail timeline. For the exact route and payload contract, see [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md).
+
+Operational note: the compiled Fastify entrypoint resolves to `apps/swarmx-api/dist/apps/swarmx-api/src/server.js` because the API TypeScript build uses the monorepo root as `rootDir`.
 
 ---
 
@@ -169,19 +205,40 @@ That result indicates runtime pressure, not necessarily a build or type-safety r
 
 ### Validate Before Release
 
-Use the repository Make targets after activating or creating `.venv`. The Makefile
-automatically prefers `.venv/bin/python` when present, keeping Python tests and
-quality tools aligned with the development dependency set.
+Run after activating `.venv`. The Makefile automatically uses `.venv/bin/python` when present.
 
 ```bash
+# TypeScript type-checking
+pnpm -F @swarmx/types typecheck
+pnpm -F @swarmx/api typecheck
+pnpm -F @swarmx/dashboard typecheck
+# (or from repository root: pnpm typecheck)
+
+# Tests
+pnpm -F @swarmx/dashboard test              # 69 passing (9 test files)
+pnpm -F @swarmx/api test                    # 377 passing (26 test files)
+# (or from repository root: pnpm test)
+
+# API regression scripts (require running API / local environment)
+pnpm -F @swarmx/api run test:video          # video pipeline regression assertions
+pnpm -F @swarmx/api run test:regression     # full regression suite (7 scripts)
+pnpm -F @swarmx/api run test:models         # model registry / Modelfile check
+pnpm -F @swarmx/api run test:factory        # creative factory release check
+
+# Python
 make test
 make typecheck-py
-make typecheck-ts
-make check-phase1
-pnpm --filter @swarmx/api run test:video
-pnpm --filter @swarmx/dashboard lint
-pnpm --filter @swarmx/dashboard build
+
+# Build
+pnpm -F @swarmx/dashboard build
+pnpm -F @swarmx/api build
+# (or from repository root: pnpm build)
+
+# Invariant checks
+grep -rn 'console\.' apps/swarmx-api/src/services apps/swarmx-api/src/routes  # → 0 hits
+grep -rn '\-scar' apps/ packages/ src/                                          # → 0 hits
 ```
+
 
 ---
 
@@ -202,11 +259,19 @@ pnpm --filter @swarmx/dashboard build
 
 | Document | Purpose |
 |----------|---------|
-| [docs/SETUP_AND_IMPLEMENTATION.md](docs/SETUP_AND_IMPLEMENTATION.md) | **Step-by-step bundle installation** |
-| [docs/SWARMXQ-APEX17-UPGRADE.md](docs/SWARMXQ-APEX17-UPGRADE.md) | Historical APEX-17 r7 upgrade changelog |
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | **Get running in five minutes** |
+| [docs/STARTUP_GUIDE.md](docs/STARTUP_GUIDE.md) | Full startup, env-var reference, cold-start tuning |
+| [docs/INSTALL.md](docs/INSTALL.md) | Detailed prerequisites, models, Redis, environment |
+| [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md) | All environment variables and runtime config options |
+| [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md) | Video pipeline route/payload contract, stage details |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common problems, debug flags, `swarm doctor` flow |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Day-to-day operator commands |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Full version history |
 | `ARCHITECTURE.md` | System architecture deep dive |
 | `SAFETY.md` | Safety guardrails and execution policy |
+| [docs/SETUP_AND_IMPLEMENTATION.md](docs/SETUP_AND_IMPLEMENTATION.md) | Historical r7 migration guide (r8 repos: skip this) |
 | `manifests/swarmx_model_manifest.yaml` | Bundle manifest with replacement matrix |
+
 
 ---
 
@@ -218,13 +283,13 @@ pnpm --filter @swarmx/dashboard build
 
 **OOM on 7B load** — Run the "Evict 7B Models" VS Code task or `ollama ps` followed by `ollama stop <model>`, then retry. The API pre-evicts incompatible resident models before 7B loads, but a manually pinned Ollama model can still consume headroom.
 
-**Video render fails before completion** — Verify local media binaries:
+**Video render fails before completion** — Verify local media binaries. On Windows/WSL2, FFmpeg must be on the WSL2 PATH (not Windows PATH):
 
 ```bash
-command -v ffmpeg
-command -v ffprobe
-command -v espeak-ng
-pnpm --filter @swarmx/api run test:video:smoke
+which ffmpeg                                # must resolve in WSL2
+which ffprobe
+which espeak-ng
+pnpm -F @swarmx/api run test:video:smoke   # smoke render test
 ```
 
 **Naming validation fails** — Run `bash scripts/migrate-to-r7.sh --dry-run` to see what's out of sync, then `bash scripts/migrate-to-r7.sh --apply`.
@@ -235,4 +300,4 @@ pnpm --filter @swarmx/api run test:video:smoke
 
 ## Philosophy
 
-*The incision is precise.* SwarmXQ's design rejects ornamental complexity. Every layer — naming, orchestration, pressure governance, video pipeline — answers a specific failure mode observed on real 8 GB hardware. When something feels over-engineered, it's because the alternative crashed.
+*The incision is precise.* The Yap Engine (powered by SwarmXQ) rejects ornamental complexity. Every layer — naming, orchestration, pressure governance, video pipeline — answers a specific failure mode observed on real constrained hardware. When something feels over-engineered, it's because the alternative crashed.
