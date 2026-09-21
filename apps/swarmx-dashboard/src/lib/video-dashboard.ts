@@ -16,6 +16,7 @@ import type {
   VideoTone,
   VideoTemplateFamily,
 } from "@swarmx/types/video-types";
+import { VIDEO_TEMPLATE_FAMILY_VALUES } from "@swarmx/types/video-types";
 import type { SeriesEpisodeContext } from "@swarmx/types/series-types";
 
 export type VideoJobStatus = CanonicalVideoJobStatus | "running" | "completed";
@@ -218,10 +219,19 @@ function normalizeStatus(status: unknown): VideoJobStatus {
 }
 
 function normalizeRequest(request: RawVideoJob["request"]): VideoJobRequest {
+  const raw = request?.templateFamily as string | undefined;
+  // Accept the known legacy alias; pass canonical values through; drop anything else.
+  const normalizedTemplate: VideoTemplateFamily | undefined =
+    raw === "listicle-countdown"
+      ? "list/countdown"
+      : (VIDEO_TEMPLATE_FAMILY_VALUES as readonly string[]).includes(raw ?? "")
+        ? (raw as VideoTemplateFamily)
+        : undefined;
   return {
     prompt: request?.prompt ?? "",
     ...(request?.platform ? { platform: request.platform } : {}),
     ...(request?.niche ? { niche: request.niche } : {}),
+    ...(normalizedTemplate ? { templateFamily: normalizedTemplate } : {}),
     ...(request?.targetDurationSeconds !== undefined
       ? { targetDurationSeconds: request.targetDurationSeconds }
       : {}),

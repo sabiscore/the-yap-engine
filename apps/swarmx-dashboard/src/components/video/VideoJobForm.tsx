@@ -129,12 +129,12 @@ export function VideoJobForm({
   const [prompt, setPrompt] = useState("");
   const [platform, setPlatform] = useState<NonNullable<VideoJobRequest["platform"]>>("tiktok");
   const [niche, setNiche] = useState<NonNullable<VideoJobRequest["niche"]>>("motivational");
+  const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
-  const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [captionStyle, setCaptionStyle] = useState<NonNullable<VideoJobRequest["captionStyle"]>>("bold_center");
   const [voice, setVoice] = useState<NonNullable<VideoJobRequest["voice"]>>("default");
   const [voiceProfileId, setVoiceProfileId] = useState<NonNullable<VideoJobRequest["voiceProfileId"]>>("auto");
@@ -153,15 +153,35 @@ export function VideoJobForm({
     presetGroupRef.current?.focus();
   }, [presetFocusSignal]);
 
+  useEffect(() => {
+    const applyExample = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (typeof detail !== "string" || !detail.trim()) return;
+      setPrompt(detail);
+      setPlatform("tiktok");
+      setNiche("facts");
+      setTemplateFamily("none");
+      setTargetDuration("30");
+      setTone("educational");
+      setStyle("faceless_broll");
+      setCaptionStyle("bold_center");
+      setVoice("default");
+      setVoiceProfileId("auto");
+      setStoryMode("single_narrator");
+    };
+    window.addEventListener("yap:example-prompt", applyExample);
+    return () => window.removeEventListener("yap:example-prompt", applyExample);
+  }, []);
+
   const applyQuickStart = (preset: QuickStartPreset) => {
     const draft = mapQuickStartPresetToDraft(preset);
     setPrompt(draft.prompt);
     setPlatform(draft.platform);
     setNiche(draft.niche);
+    setTemplateFamily(draft.templateFamily ?? "none");
     setTargetDuration(draft.targetDuration);
     setTone(draft.tone);
     setStyle(draft.style);
-    setTemplateFamily(draft.templateFamily ?? "none");
     setCaptionStyle(draft.captionStyle);
     setVoice(draft.voice);
     setVoiceProfileId(draft.voiceProfileId);
@@ -288,7 +308,7 @@ export function VideoJobForm({
         />
         <div className="flex items-center justify-between gap-3">
           <span className="text-[10px] text-text-muted">
-            Auto route omits `modelTier`; explicit overrides remain available for compatible hosts.
+            Auto route selects the safest available model; explicit overrides remain available for compatible hosts.
           </span>
           <span className="shrink-0 font-mono text-[10px] text-text-muted tabular-nums">
             {prompt.length}/2000
@@ -321,6 +341,20 @@ export function VideoJobForm({
               { value: "youtube_shorts", label: "YT Shorts" },
               { value: "reels", label: "Reels" },
               { value: "generic", label: "Generic" },
+            ]}
+          />
+          <Select
+            id={`${formId}-template`}
+            label="Template"
+            value={templateFamily}
+            onChange={setTemplateFamily}
+            disabled={isSubmitting}
+            options={[
+              { value: "none", label: "Auto (let engine decide)", help: "Lets the planner choose beat structure freely." },
+              { value: "myth-vs-fact", label: "Myth vs Fact", help: "Debunk a belief with a proof-led reveal." },
+              { value: "pov-immersion", label: "POV Immersion", help: "Put the viewer inside a specific moment and perspective shift." },
+              { value: "list/countdown", label: "Countdown", help: "Escalate through a numbered value ladder." },
+              { value: "reddit-story", label: "Reddit Story", help: "Open on the twist, then reconstruct the story." },
             ]}
           />
           <Select
@@ -546,7 +580,7 @@ export function VideoJobForm({
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {submissionBlocked ? "Video job submission is blocked by runtime readiness." : null}
         {isSubmitting ? "Queuing video job…" : null}
-        {lastQueuedId && !isSubmitting && !submitError ? "Video job queued successfully. Track progress in the queue below." : null}
+        {lastQueuedId && !isSubmitting && !submitError ? "Your Yap is queued. The production timeline is now live." : null}
       </div>
 
       {submitError && (
@@ -560,7 +594,7 @@ export function VideoJobForm({
 
       {lastQueuedId && !isSubmitting && !submitError && (
         <p className="text-xs text-status-success font-mono" role="status">
-          Job queued — {lastQueuedId.slice(0, 8)}… Track progress in the queue.
+          Yap queued — {lastQueuedId.slice(0, 8)}… Track progress in the queue.
         </p>
       )}
 
@@ -576,12 +610,12 @@ export function VideoJobForm({
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Queuing job…
+              Preparing your Yap…
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4" aria-hidden="true" />
-              Generate Video
+              Make a Yap
             </>
           )}
         </Button>

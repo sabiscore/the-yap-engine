@@ -25,7 +25,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@swarmx/types": ["../../packages/swarmx-types/src/index.ts"],
-      "@swarmx/types/operator-map": ["../../packages/swarmx-types/src/operator-map.ts"]
+      "@swarmx/types/operator-map": ["../../packages/swarmx-types/src/operator-map.ts"],
+      "@swarmx/types/video-types": ["../../packages/swarmx-types/src/video-types.ts"],
+      "@swarmx/types/series-types": ["../../packages/swarmx-types/src/series-types.ts"]
     }
   },
   "include": [

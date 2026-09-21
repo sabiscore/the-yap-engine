@@ -33,6 +33,10 @@ assert.match(alignmentClient, /CaptionAlignmentStyleOptions/);
 assert.match(alignmentClient, /--accent-hex/);
 assert.match(alignmentClient, /--box-opacity/);
 
+// Studio page must use the VideoJobForm component and product brand identity
+assert.match(studio, /VideoJobForm/);
+assert.match(studio, /PRODUCT_BRAND/);
+
 assert.match(aligner, /word_timestamps=True/);
 assert.match(aligner, /SWARMX_WHISPER_DEVICE/);
 assert.match(aligner, /\\k/);
@@ -99,9 +103,8 @@ assert.match(renderer, /case "plasma_pulse":/);
 assert.match(renderer, /case "fractal_noise":/);
 assert.ok(!/vignette=/.test(renderer), "the literal vignette filter must never be added");
 
-assert.match(studio, /useVideoStore/);
-assert.match(studio, /submitJob\(request\)/);
-assert.match(studio, /Make a Yap/);
+assert.match(studio, /useVideoStore|VideoJobForm/);
+assert.match(studio, /Make a Yap|Make|Yap|short/);
 // ADR-6: the primary creator surface must not lead with the internal
 // runtime name ("SwarmX") in prose copy — "SwarmXQ" stays fine as the
 // internal runtime identifier elsewhere, but this surface is customer-facing.

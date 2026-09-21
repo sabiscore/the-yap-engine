@@ -17,7 +17,7 @@ export default function Loading() {
         />
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] font-mono text-text-muted">Syncing with swarm</span>
+        <span className="text-[10px] font-mono text-text-muted">Preparing workspace</span>
         <div className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
             <span

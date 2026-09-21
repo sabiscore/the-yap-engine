@@ -923,3 +923,48 @@ body::after {
     transform: none !important;
   }
 }
+
+
+/* ── Yap Engine creator surface ─────────────────────────────────────────── */
+.yap-surface {
+  position: relative;
+  isolation: isolate;
+}
+.yap-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 12% 8%, rgb(19 217 141 / 6%), transparent 28%),
+    radial-gradient(circle at 88% 28%, rgb(73 168 255 / 5%), transparent 30%);
+}
+.yap-video-frame {
+  position: relative;
+  contain: paint;
+  background:
+    linear-gradient(155deg, rgb(11 16 20 / 98%), rgb(3 5 7 / 100%));
+}
+.yap-video-frame::after {
+  content: "";
+  position: absolute;
+  inset: 1rem;
+  pointer-events: none;
+  border: 1px solid rgb(255 255 255 / 4%);
+  border-radius: 1rem;
+}
+.yap-live {
+  contain: layout paint;
+}
+.yap-live [data-motion] {
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yap-surface::before,
+  .yap-live [data-motion] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

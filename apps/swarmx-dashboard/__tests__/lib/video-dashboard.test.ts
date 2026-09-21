@@ -58,6 +58,38 @@ describe("video dashboard normalization", () => {
     expect(job.request.audience).toBe("developers");
   });
 
+
+
+  it("normalizes legacy template values into the canonical creator taxonomy", () => {
+    // Canonical values pass through unchanged
+    const job = normalizeVideoJob({
+      id: "job-template",
+      status: "queued",
+      request: {
+        prompt: "Make a short about focus",
+        templateFamily: "list/countdown" as never,
+      },
+      createdAt: "2026-07-28T00:00:00.000Z",
+      updatedAt: "2026-07-28T00:00:01.000Z",
+    });
+
+    expect(job.request.templateFamily).toBe("list/countdown");
+
+    // Legacy alias "listicle-countdown" is normalized to the canonical value
+    const jobLegacy = normalizeVideoJob({
+      id: "job-template-legacy",
+      status: "queued",
+      request: {
+        prompt: "Make a short about focus",
+        templateFamily: "listicle-countdown" as never,
+      },
+      createdAt: "2026-07-28T00:00:00.000Z",
+      updatedAt: "2026-07-28T00:00:01.000Z",
+    });
+
+    expect(jobLegacy.request.templateFamily).toBe("list/countdown");
+  });
+
   it("surfaces classified backend hints and does not present UNKNOWN as retryable", () => {
     expect(errorCodeHint("COMFY_UNAVAILABLE")).toContain("ComfyUI is not reachable");
     expect(errorCodeHint("UNKNOWN")).toContain("Retry is disabled");

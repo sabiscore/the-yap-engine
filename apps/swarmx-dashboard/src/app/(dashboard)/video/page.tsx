@@ -38,12 +38,13 @@ import { useEventsStore } from "@/stores/events";
 import { useVideoStore } from "../../../stores/video";
 import { VideoJobForm } from "../../../components/video/VideoJobForm";
 import { VideoJobCard } from "../../../components/video/VideoJobCard";
+import type { VideoJob } from "../../../lib/video-dashboard";
 
 // ─── Skeleton loading row ─────────────────────────────────────────────────────
 
 function JobSkeleton() {
   return (
-    <div className="animate-pulse rounded border border-border bg-bg-elevated/60 p-4" role="status" aria-live="polite" aria-label="Loading video jobs">
+    <div className="rounded border border-border bg-bg-elevated/60 p-4" role="status" aria-live="polite" aria-label="Loading video jobs">
       <div className="flex items-center gap-2 mb-3">
         <div className="h-4 w-14 rounded bg-bg-input" />
         <div className="h-4 w-10 rounded bg-bg-input" />
@@ -63,13 +64,13 @@ function EmptyJobList({ onShowPresets }: { onShowPresets: () => void }) {
       <div className="flex h-14 w-14 items-center justify-center rounded border border-border bg-bg-elevated">
         <ListVideo className="h-7 w-7 text-text-muted" aria-hidden="true" />
       </div>
-      <p className="text-sm font-medium text-text-secondary">No video jobs yet</p>
+      <p className="text-sm font-medium text-text-secondary">No Yaps yet</p>
       <p className="max-w-72 text-xs leading-5 text-text-muted">
-        Submit a prompt above. New jobs appear here immediately, then advance by SSE updates.
+        Start with a brief above. Your Yap appears here immediately and updates live as production moves through each stage.
       </p>
       <Button type="button" variant="outline" size="sm" onClick={onShowPresets}>
         <Clapperboard className="h-3.5 w-3.5" aria-hidden="true" />
-        Submit your first video
+        Make your first Yap
       </Button>
     </div>
   );
@@ -125,6 +126,30 @@ function VideoRuntimeBanner({
         <p className="mt-1 text-xs leading-5 text-text-secondary">{guidance.detail}</p>
         <p className="mt-1 text-xs leading-5 text-text-muted">{guidance.recoveryHint}</p>
       </div>
+    </div>
+  );
+}
+
+// ─── Live queue pulse ─────────────────────────────────────────────────────────
+function LiveQueuePulse({ jobs }: { jobs: VideoJob[] }) {
+  const active = jobs.find((job) =>
+    ["running", "classifying", "scripting", "staging", "generating", "interpolating", "encoding", "reviewing", "publishing"].includes(job.status),
+  );
+  if (!active) return null;
+  const stageLabel = active.currentStage
+    ? active.currentStage.replace(/_/g, " ")
+    : active.status;
+  return (
+    <div
+      className="hidden min-w-0 items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5 text-[10px] text-text-secondary sm:flex"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="status-dot" data-status="running" aria-hidden="true" />
+      <span className="truncate">
+        Making <span className="font-medium text-text-primary">{active.request.prompt.slice(0, 42)}</span>
+        <span className="text-text-muted"> · {stageLabel} · {active.overallProgress}%</span>
+      </span>
     </div>
   );
 }
@@ -267,14 +292,15 @@ export default function VideoPage() {
             <div className="flex items-center gap-2">
               <Clapperboard className="h-5 w-5 text-accent" aria-hidden="true" />
               <h1 className="text-base font-semibold tracking-tight text-text-primary">
-                Video Generation
+                Yap Studio
               </h1>
             </div>
             <p className="mt-1 max-w-3xl text-xs leading-5 text-text-secondary">
-              Faceless short-form pipeline with low-RAM text routing, ComfyUI handoff, and FFmpeg fallback.
+              Build, watch, review, and ship short-form content from one low-RAM-safe production workspace.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <LiveQueuePulse jobs={jobs} />
             <QueueMetric label="running" value={runningCount} />
             <QueueMetric label="queued" value={queuedCount} />
             <QueueMetric label="done" value={doneCount} />
@@ -478,9 +504,9 @@ export default function VideoPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded border border-border bg-bg-elevated">
               <Clapperboard className="h-7 w-7 text-text-muted" aria-hidden="true" />
             </div>
-            <p className="text-sm font-medium text-text-secondary">Select a job to inspect output</p>
+            <p className="text-sm font-medium text-text-secondary">Select a Yap to inspect it</p>
             <p className="text-xs leading-5 text-text-muted">
-              Job details show render preview, metadata, operator trace, virality scoring, caption editing, and publishing state.
+              Inspect the preview, creative signal, captions, quality gates, and publishing state without leaving the production flow.
             </p>
           </div>
         </aside>

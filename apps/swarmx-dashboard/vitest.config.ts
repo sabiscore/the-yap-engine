@@ -8,6 +8,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@swarmx/types/operator-map": path.resolve(__dirname, "../../packages/swarmx-types/src/operator-map.ts"),
+      "@swarmx/types/video-types": path.resolve(__dirname, "../../packages/swarmx-types/src/video-types.ts"),
+      "@swarmx/types/series-types": path.resolve(__dirname, "../../packages/swarmx-types/src/series-types.ts"),
       "@swarmx/types": path.resolve(__dirname, "../../packages/swarmx-types/src/index.ts"),
     },
   },

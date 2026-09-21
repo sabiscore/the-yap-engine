@@ -68,14 +68,9 @@ export interface VideoJobRequest {
   niche?: "motivational" | "finance" | "facts" | "true_crime" | "tech" | "other";
   /**
    * Structural template family. Canonical field per ADR-3 (Yap Engine
-   * completion directive v4): this branch's 8-value taxonomy is the
-   * surviving set, extended with `pov-immersion` and `reddit-story` ported
-   * in from the `swarmxq-main` 4-value `template` field. `myth-vs-fact`
-   * already overlapped exactly; `listicle-countdown` was dropped as a
-   * duplicate of the existing `list/countdown` value rather than ported
-   * verbatim. The `template` field name itself was not adopted — this
-   * branch's orchestrator, presets, and dashboard already integrate against
-   * `templateFamily`, so extending it was the lower-risk reconciliation.
+   * completion directive v4): 10-value taxonomy — see VideoTemplateFamily in
+   * @swarmx/types. Legacy `listicle-countdown` is accepted at the API boundary
+   * and normalized to `list/countdown` by normalizeVideoTemplateFamily().
    */
   templateFamily?: VideoTemplateFamily;
   /** Preferred output duration in seconds. Clamped to 15–180 by orchestrator. */

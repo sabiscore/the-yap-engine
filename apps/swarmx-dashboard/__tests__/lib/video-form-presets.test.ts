@@ -20,6 +20,7 @@ describe("video form presets", () => {
     expect(draft.prompt).toBe(preset!.prompt);
     expect(draft.platform).toBe(preset!.platform);
     expect(draft.niche).toBe(preset!.niche);
+    expect(draft.templateFamily).toBe(preset!.templateFamily);
     expect(draft.tone).toBe(preset!.tone);
     expect(draft.style).toBe(preset!.style);
     expect(draft.captionStyle).toBe(preset!.captionStyle);

@@ -11,6 +11,7 @@ import { VideoJobTimeline } from "../../../../components/video/VideoJobTimeline"
 import { ViralityMeter } from "../../../../components/video/ViralityMeter";
 import { CaptionEditor } from "../../../../components/video/CaptionEditor";
 import { PlatformPublishPanel } from "../../../../components/video/PlatformPublishPanel";
+import { VideoPipelinePulse } from "@/components/video/VideoPipelinePulse";
 import type { VideoExportPlatform } from "@swarmx/types/video-types";
 import { errorCodeHint, errorCodeNextAction, getVideoPublishPlatform } from "../../../../lib/video-dashboard";
 import VideoJobDetailLoading from "./loading";
@@ -179,6 +180,8 @@ export default function VideoJobDetailPage() {
               </div>
             )}
           </div>
+
+          {!job.output && <VideoPipelinePulse job={job} />}
 
           <div className="rounded border border-border bg-bg-elevated p-4">
             <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">Metadata</p>
