@@ -112,14 +112,14 @@ export function NavRail() {
             "flex min-w-0 items-center gap-2 rounded px-1.5 py-1.5",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
           )}
-          aria-label="SwarmXQ overview"
+          aria-label="Yap Engine overview"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border-accent bg-[var(--color-accent-dim)] font-mono text-[10px] font-black text-accent">
             SX
           </span>
           {expanded && (
             <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-text-primary">
-              SwarmXQ
+              Yap Engine
             </span>
           )}
         </Link>

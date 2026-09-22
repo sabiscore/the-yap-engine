@@ -290,7 +290,7 @@ function ThinkingIndicator({ startedAt }: { readonly startedAt: number }) {
         {showSlowHint && (
           <div className="max-w-136 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2 text-[10px] font-mono text-text-secondary">
             Cold model loads can take a little longer on this host.
-            {showFallbackHint ? " If the model stays cold, SwarmX will fall back to a direct fleet summary." : ""}
+            {showFallbackHint ? " If the model stays cold, Yap Engine will fall back to a direct fleet summary." : ""}
           </div>
         )}
         {showDegradedHint && (
@@ -362,7 +362,7 @@ function ApiStatusDot({ health }: { readonly health: ApiHealthState }) {
   if (!health.apiOnline) {
     return (
       <span
-        title="SwarmX API unreachable — check port 3001"
+        title="Yap Engine API unreachable — check port 3001"
         className="flex items-center gap-1 rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[9px] font-mono text-red-300"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -550,7 +550,7 @@ export default function ComposerPage() {
         errorText = `Request rejected by API: ${safeErrorMessage(err, "check the API logs for details")}.\n\nCheck that the session payload is valid and the API version matches the dashboard.`;
       } else if (err instanceof TypeError && /fetch|network/i.test(err.message)) {
         errorText =
-          "Could not reach the SwarmX API.\n\nConfirm the API is running at port 3001:\n  curl http://127.0.0.1:3001/health";
+          "Could not reach the Yap Engine API.\n\nConfirm the API is running at port 3001:\n  curl http://127.0.0.1:3001/health";
       } else {
         errorText = `Swarm brain error: ${safeErrorMessage(err, "unknown error")}.\n\nCheck API logs for details.`;
       }
@@ -730,7 +730,7 @@ export default function ComposerPage() {
         {apiHealth.apiOnline === false && (
           <div className="mx-4 mt-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-200">
             <p>
-              SwarmX API is unreachable. Confirm it is running on port 3001:{" "}
+              Yap Engine API is unreachable. Confirm it is running on port 3001:{" "}
               <span className="font-semibold">curl http://127.0.0.1:3001/health</span>
             </p>
           </div>
@@ -835,7 +835,7 @@ export default function ComposerPage() {
               </div>
               <div className="text-center space-y-2">
                 <div className="text-sm font-mono font-semibold text-text-primary">
-                  SwarmX Composer
+                  Yap Engine Composer
                 </div>
                 <div className="min-h-[1.2rem]">
                   <WelcomeTypewriter />

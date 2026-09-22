@@ -23,7 +23,7 @@ describe("getRuntimeGuidance", () => {
 
     expect(guidance).toMatchObject({
       tone: "critical",
-      title: "SwarmX API unavailable",
+      title: "Yap Engine API unavailable",
       blocksSubmission: true,
     });
     expect(guidance?.recoveryHint).toContain("port 3001");

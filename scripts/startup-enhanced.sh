@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SwarmX Enhanced Startup Automation
+# Yap Engine Enhanced Startup Automation
 # Comprehensive health checks + intelligent retry + startup telemetry
 #
 # Usage:
@@ -296,24 +296,24 @@ check_cpu_governor() {
   fi
 }
 
-# ─── Ensure swarmxq-video-model Exists ───────────────────────────────────────
-# swarmxq-video-model is a derived Ollama model with a 21-token system prompt and
+# ─── Ensure yapengine-video-model Exists ───────────────────────────────────────
+# yapengine-video-model is a derived Ollama model with a 21-token system prompt and
 # n_batch=256 (vs the parent's 1239-token prompt and n_batch=32). It is NOT in git
 # because Ollama models are local. This function re-creates it if missing.
 ensure_video_model() {
   if ! command -v ollama >/dev/null 2>&1; then
-    log_warning "ollama CLI not found — skipping swarmxq-video-model check"
+    log_warning "ollama CLI not found — skipping yapengine-video-model check"
     return 0
   fi
   if ! probe_ollama_url "${OLLAMA_HOST:-http://localhost:11434}" 2>/dev/null; then
-    log_warning "Ollama not reachable — skipping swarmxq-video-model check"
+    log_warning "Ollama not reachable — skipping yapengine-video-model check"
     return 0
   fi
-  if ollama list 2>/dev/null | grep -q "swarmxq-video-model"; then
-    log_success "swarmxq-video-model: present"
+  if ollama list 2>/dev/null | grep -q "yapengine-video-model"; then
+    log_success "yapengine-video-model: present"
     return 0
   fi
-  log_info "swarmxq-video-model not found — creating from instruct-phi4-lite-q4km-prod..."
+  log_info "yapengine-video-model not found — creating from instruct-phi4-lite-q4km-prod..."
   local tmp_modelfile
   tmp_modelfile=$(mktemp /tmp/swarmxq-video-XXXXXX.Modelfile)
   cat > "$tmp_modelfile" << 'MODELFILE'
@@ -325,10 +325,10 @@ PARAMETER num_thread 4
 PARAMETER temperature 0.1
 PARAMETER num_predict 1024
 MODELFILE
-  if ollama create swarmxq-video-model -f "$tmp_modelfile" >/dev/null 2>&1; then
-    log_success "swarmxq-video-model created successfully"
+  if ollama create yapengine-video-model -f "$tmp_modelfile" >/dev/null 2>&1; then
+    log_success "yapengine-video-model created successfully"
   else
-    log_warning "Failed to create swarmxq-video-model — video inference will fall back to instruct-phi4-lite-q4km-prod (slower due to 1239-token system prompt)"
+    log_warning "Failed to create yapengine-video-model — video inference will fall back to instruct-phi4-lite-q4km-prod (slower due to 1239-token system prompt)"
   fi
   rm -f "$tmp_modelfile"
 }
@@ -458,7 +458,7 @@ evict_stale_instances() {
   if [[ $evicted -gt 0 ]]; then
     log_success "Startup hygiene evicted $evicted stale process(es)"
   else
-    log_info "No stale SwarmX instances detected"
+    log_info "No stale Yap Engine instances detected"
   fi
 }
 
@@ -664,7 +664,7 @@ setup_environment() {
 print_startup_banner() {
   cat >&2 << 'EOF'
 ╔════════════════════════════════════════════════════════════════════════════╗
-║                         SwarmX V6.2 Startup                               ║
+║                         The Yap Engine Startup                               ║
 ║                    Enhanced Health Check & Automation                      ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 EOF
@@ -682,7 +682,7 @@ EOF
 print_startup_summary() {
   echo >&2
   cat >&2 << EOF
-${GREEN}${BOLD}✓ SwarmX Stack Ready${NC}
+${GREEN}${BOLD}✓ Yap Engine Stack Ready${NC}
 
   ${BOLD}API Server:${NC}
     🚀 http://$API_HOST:$API_PORT
@@ -762,7 +762,7 @@ main() {
   # Print startup banner
   print_startup_banner
   
-  log_info "Starting SwarmX enhanced startup..."
+  log_info "Starting Yap Engine enhanced startup..."
   # [V6.2-ENH-03] Surface available RAM before launch so operators can
   # correlate pressure-adjusted defaults with system state.
   local _avail_mb_pre
@@ -784,14 +784,14 @@ main() {
   setup_environment
   setup_ollama_runtime_tuning
 
-  # Ensure swarmxq-video-model exists (21-token system prompt + n_batch=256).
+  # Ensure yapengine-video-model exists (21-token system prompt + n_batch=256).
   # Must run after Ollama is checked and after ollama runtime tuning is set.
   ensure_video_model
 
   # Write warmup status marker — API reads this via readWarmupStatus() in src/routes/system.ts
   # to serve a dynamic cold-start ETA to the dashboard instead of the hardcoded 140 s default.
   # Server.ts overwrites it with {"done":true,...} when Pilot prewarm completes.
-  local _warmup_file="${SWARMX_WARMUP_STATUS_FILE:-/tmp/swarmxq-warmup.json}"
+  local _warmup_file="${SWARMX_WARMUP_STATUS_FILE:-/tmp/yapengine-warmup.json}"
   mkdir -p "$(dirname "$_warmup_file")" 2>/dev/null || true
   printf '{"done":false,"startedAt":"%s","coldStartEtaSecs":140}\n' \
     "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > "$_warmup_file"

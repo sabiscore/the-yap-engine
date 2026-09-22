@@ -85,7 +85,7 @@ function BrandKitSheet({ onCreated }: { onCreated: () => void }) {
               id="bk-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. SwarmXQ Brand"
+              placeholder="e.g. Yap Engine Brand"
               maxLength={120}
               required
               aria-required="true"

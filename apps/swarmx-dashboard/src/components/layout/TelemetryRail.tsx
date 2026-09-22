@@ -494,7 +494,7 @@ export function TelemetryRail() {
                 alert={memPct > 85}
               />
               <MetricRow
-                label="swarmx.slice"
+                label="yap engine slice"
                 value={metrics ? `${Math.round(metrics.memory.swarmxSliceMb)} MB` : "…"}
                 {...(metrics?.memory.swarmxSliceLimitMb != null
                   ? { sublabel: `limit: ${Math.round(metrics.memory.swarmxSliceLimitMb)} MB` }

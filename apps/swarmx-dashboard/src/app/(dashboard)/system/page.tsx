@@ -134,7 +134,7 @@ function CgroupTree() {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={5} className="h-32 px-3 text-center text-xs font-mono text-text-muted">No cgroup scopes. Is SwarmX API running?</td>
+              <td colSpan={5} className="h-32 px-3 text-center text-xs font-mono text-text-muted">No cgroup scopes. Is Yap Engine API running?</td>
             </tr>
           ) : (
             rows.map((row) => <CgroupTableRow key={row.path} row={row} />)
@@ -245,7 +245,7 @@ function SystemInfoPanel() {
     { label: "Total Memory", value: `${Math.round(metrics.memory.totalMb / 1024)} GB`, icon: MemoryStick, sub: `${Math.round(metrics.memory.usedMb / 1024)} GB used` },
     { label: "Disk Read", value: formatBytes(metrics.disk.readBytesPerSec) + "/s", icon: HardDrive, sub: "current throughput" },
     { label: "Disk Write", value: formatBytes(metrics.disk.writeBytesPerSec) + "/s", icon: HardDrive, sub: "current throughput" },
-    { label: "SwarmX Slice", value: `${Math.round(metrics.memory.swarmxSliceMb)} MB`, icon: Server, sub: "cgroup memory" },
+    { label: "Yap Engine Slice", value: `${Math.round(metrics.memory.swarmxSliceMb)} MB`, icon: Server, sub: "cgroup memory" },
     { label: "Load (1m/5m/15m)", value: `${metrics.cpu.load1m.toFixed(2)}`, icon: Cpu, sub: `${metrics.cpu.load5m.toFixed(2)} / ${metrics.cpu.load15m.toFixed(2)}` },
   ] as const;
 
@@ -375,7 +375,7 @@ function V5MetricsPanel() {
     return (
       <div className="flex flex-col items-center justify-center h-40 gap-2">
         <span className="text-xs font-mono text-status-error">V5 metrics unavailable</span>
-        <span className="text-[10px] font-mono text-text-muted">Ensure swarmx API is running</span>
+        <span className="text-[10px] font-mono text-text-muted">Ensure Yap Engine API is running</span>
       </div>
     );
   }

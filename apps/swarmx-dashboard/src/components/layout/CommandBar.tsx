@@ -415,7 +415,7 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
 
 function SwarmXLogo() {
   return (
-    <div className="flex items-center gap-2 select-none" aria-label="SwarmX OS">
+    <div className="flex items-center gap-2 select-none" aria-label="Yap Engine OS">
       <svg
         className="swarm-logo-mark"
         width="24"
@@ -451,7 +451,7 @@ function SwarmXLogo() {
       </svg>
       <div className="flex flex-col leading-none gap-0.5">
         <span className="text-text-primary text-sm font-mono font-semibold tracking-tight">
-          SwarmX
+          Yap Engine
         </span>
         <span className="text-[8px] font-mono text-text-muted/60 tracking-widest uppercase">
           OS v6

@@ -48,7 +48,7 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
       return "Live telemetry stream disconnected. Operator metrics may be stale.";
     }
     if (connectionStatus === "connecting") {
-      return "Connecting to the SwarmX event stream.";
+      return "Connecting to the Yap Engine event stream.";
     }
     return "Telemetry has gone stale. Validate the API before acting on these metrics.";
   }, [connectionStatus]);

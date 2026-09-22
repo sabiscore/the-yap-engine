@@ -114,7 +114,7 @@ export function getRuntimeGuidance({
   if (apiOnline === false) {
     return {
       tone: "critical",
-      title: "SwarmX API unavailable",
+      title: "Yap Engine API unavailable",
       detail: "The dashboard cannot reach the local API, so live job and runtime state may be stale.",
       recoveryHint: "Confirm the API is running on port 3001, then refresh this dashboard.",
       blocksSubmission: true,

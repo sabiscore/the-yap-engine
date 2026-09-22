@@ -155,7 +155,7 @@ export function XTerminal({ sessionId, agentId, active }: XTerminalProps) {
       }
     };
 
-    ws.onerror = () => setError("WebSocket connection failed. Is the SwarmX API running?");
+    ws.onerror = () => setError("WebSocket connection failed. Is the Yap Engine API running?");
     ws.onclose = () => setReady(false);
 
     // Forward terminal input → WebSocket — backend expects raw string
