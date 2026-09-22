@@ -115,7 +115,7 @@ export function NavRail() {
           aria-label="Yap Engine overview"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border-accent bg-[var(--color-accent-dim)] font-mono text-[10px] font-black text-accent">
-            SX
+            YE
           </span>
           {expanded && (
             <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-text-primary">

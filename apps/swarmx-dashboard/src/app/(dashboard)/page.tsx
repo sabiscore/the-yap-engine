@@ -498,7 +498,7 @@ function SystemResourcePanel() {
         critical={85}
       />
       <ResourceGauge
-        label="SwarmX Slice"
+        label="Yap Engine Slice"
         value={metrics.memory.swarmxSliceMb}
         max={metrics.memory.totalMb * 0.5}
         unit=" MB"

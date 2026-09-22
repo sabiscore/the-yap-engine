@@ -38,7 +38,7 @@ import { useEventsStore } from "@/stores/events";
 import { useVideoStore } from "../../../stores/video";
 import { VideoJobForm } from "../../../components/video/VideoJobForm";
 import { VideoJobCard } from "../../../components/video/VideoJobCard";
-import type { VideoJob } from "../../../lib/video-dashboard";
+import { formatActiveJobPrompt, type VideoJob } from "../../../lib/video-dashboard";
 
 // ─── Skeleton loading row ─────────────────────────────────────────────────────
 
@@ -147,7 +147,7 @@ function LiveQueuePulse({ jobs }: { jobs: VideoJob[] }) {
     >
       <span className="status-dot" data-status="running" aria-hidden="true" />
       <span className="truncate">
-        Making <span className="font-medium text-text-primary">{active.request.prompt.slice(0, 42)}</span>
+        Making <span className="font-medium text-text-primary">{formatActiveJobPrompt(active.request.prompt)}</span>
         <span className="text-text-muted"> · {stageLabel} · {active.overallProgress}%</span>
       </span>
     </div>

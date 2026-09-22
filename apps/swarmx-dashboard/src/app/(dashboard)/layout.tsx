@@ -83,7 +83,7 @@ function DashboardShell({ children }: { readonly children: React.ReactNode }) {
 
 function useBreadcrumb(): string {
   const pathname = usePathname();
-  return BREADCRUMB_MAP[pathname] ?? "SwarmX";
+  return BREADCRUMB_MAP[pathname] ?? "The Yap Engine";
 }
 
 export default function DashboardLayout({

@@ -196,7 +196,7 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
     >
       {/* Left — Logo + breadcrumb */}
       <div className="flex items-center gap-3 min-w-0">
-        <SwarmXLogo />
+        <YapEngineLogo />
         <span className="text-text-muted text-xs font-mono select-none">▸</span>
         <span className="text-text-secondary text-xs font-mono truncate">
           {breadcrumb}
@@ -296,7 +296,7 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
               "text-[10px] font-mono tabular-nums",
               getScsColorClass(scsScore)
             )}
-            title="V5 Swarm Coherence Score"
+            title="V5 Coherence Score"
             aria-label={`SCS: ${(scsScore * 100).toFixed(0)}%`}
           >
             SCS {(scsScore * 100).toFixed(0)}%
@@ -413,9 +413,9 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
   );
 }
 
-function SwarmXLogo() {
+function YapEngineLogo() {
   return (
-    <div className="flex items-center gap-2 select-none" aria-label="Yap Engine OS">
+    <div className="flex items-center gap-2 select-none" aria-label="The Yap Engine OS">
       <svg
         className="swarm-logo-mark"
         width="24"
@@ -451,7 +451,7 @@ function SwarmXLogo() {
       </svg>
       <div className="flex flex-col leading-none gap-0.5">
         <span className="text-text-primary text-sm font-mono font-semibold tracking-tight">
-          Yap Engine
+          The Yap Engine
         </span>
         <span className="text-[8px] font-mono text-text-muted/60 tracking-widest uppercase">
           OS v6

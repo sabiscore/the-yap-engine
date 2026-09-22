@@ -102,7 +102,7 @@ describe("getRuntimeGuidance", () => {
     expect(guidance?.recoveryHint).toContain("canonical model set");
   });
 
-  it("blocks full-pipeline submission when CPU load exceeds the safe ceiling", () => {
+  it("does not block full-pipeline submission even when CPU load is at 100%", () => {
     const guidance = getRuntimeGuidance({
       apiOnline: true,
       ollamaOnline: true,
@@ -113,12 +113,7 @@ describe("getRuntimeGuidance", () => {
       cpuCoreCount: 4,
     });
 
-    expect(guidance).toMatchObject({
-      tone: "critical",
-      title: "Full video pipeline blocked",
-      blocksSubmission: true,
-    });
-    expect(guidance?.detail).toContain("CPU load is 100% across 4 cores");
+    expect(guidance).toBeNull();
   });
 
   it("does not block on normal CPU load or absent CPU telemetry", () => {

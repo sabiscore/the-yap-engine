@@ -480,3 +480,27 @@ export function errorCodeNextAction(code: string): string {
       return "Open operator view, inspect trace and stage logs, then decide between retry or resubmit.";
   }
 }
+
+/**
+ * Format active job prompt for status pill display.
+ * Strips redundant leading imperative verbs (e.g., "Create a...", "Make a...", "Generate a...")
+ * so interpolating with "Making " does not awkwardly duplicate verbs (e.g. "Making Create a...").
+ */
+export function formatActiveJobPrompt(prompt: string, maxLength = 42): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) {
+    return "video";
+  }
+
+  // Strip leading action verbs like "Create", "Make", "Generate", "Build", "Produce", "Creating", "Making", "Generating"
+  // optionally followed by colon or whitespace.
+  // Preserves subsequent articles ("a", "an", "the") so e.g. "Create a 30s video" becomes "a 30s video",
+  // reading cleanly as "Making a 30s video...".
+  const stripped = trimmed.replace(
+    /^(?:(?:create|make|generate|build|produce|creating|making|generating)[\s:]+\s*)+/i,
+    "",
+  );
+
+  const display = stripped.length > 0 ? stripped : trimmed;
+  return display.slice(0, maxLength);
+}

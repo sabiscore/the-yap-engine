@@ -174,7 +174,7 @@ export function sanitizeApiError(err: unknown, fallback = "Something went wrong.
   }
   // Network-level or unknown errors — guard message access; some TypeError subclasses omit it.
   if (err instanceof TypeError && typeof err.message === "string" && err.message.toLowerCase().includes("fetch")) {
-    return "Unable to reach the SwarmX API. Check that the API is running on port 3001.";
+    return "Unable to reach the Yap Engine API. Check that the API is running on port 3001.";
   }
   return fallback;
 }

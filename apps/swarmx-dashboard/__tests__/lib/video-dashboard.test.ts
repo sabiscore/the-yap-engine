@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorCodeHint, errorCodeNextAction, normalizeVideoJob } from "@/lib/video-dashboard";
+import { errorCodeHint, errorCodeNextAction, formatActiveJobPrompt, normalizeVideoJob } from "@/lib/video-dashboard";
 
 describe("video dashboard normalization", () => {
   it("preserves certification blockers from completed job output", () => {
@@ -99,5 +99,41 @@ describe("video dashboard normalization", () => {
     expect(errorCodeNextAction("PRESSURE_CRITICAL")).toContain("Free RAM");
     expect(errorCodeNextAction("FFMPEG_UNAVAILABLE")).toContain("Install ffmpeg");
     expect(errorCodeNextAction("UNKNOWN")).toContain("inspect trace");
+  });
+
+  describe("formatActiveJobPrompt", () => {
+    it("strips leading 'Create a' so pill does not say 'Making Create a...'", () => {
+      const result = formatActiveJobPrompt("Create a 30-second faceless TikTok video about AI");
+      expect(result).toBe("a 30-second faceless TikTok video about AI");
+      expect(`Making ${result}`).not.toContain("Making Create");
+    });
+
+    it("strips leading action verbs like Make, Generate, Build, Produce, Creating", () => {
+      expect(formatActiveJobPrompt("Make a product showcase")).toBe("a product showcase");
+      expect(formatActiveJobPrompt("Generate an explainer on finance")).toBe("an explainer on finance");
+      expect(formatActiveJobPrompt("Build a tutorial video")).toBe("a tutorial video");
+      expect(formatActiveJobPrompt("Creating a viral reel")).toBe("a viral reel");
+      expect(formatActiveJobPrompt("Create: 10 tips for productivity")).toBe("10 tips for productivity");
+    });
+
+    it("strips chained redundant verbs", () => {
+      expect(formatActiveJobPrompt("Making Create a 30s video")).toBe("a 30s video");
+    });
+
+    it("preserves non-verb prompts without modification", () => {
+      expect(formatActiveJobPrompt("3 AI workflow mistakes costing you hours")).toBe("3 AI workflow mistakes costing you hours");
+    });
+
+    it("truncates prompt to maxLength when specified", () => {
+      const longPrompt = "Create a 30-second video about the history of artificial intelligence from Turing to transformers";
+      const result = formatActiveJobPrompt(longPrompt, 20);
+      expect(result.length).toBeLessThanOrEqual(20);
+      expect(result).toBe("a 30-second video ab");
+    });
+
+    it("returns 'video' fallback for empty or whitespace prompts", () => {
+      expect(formatActiveJobPrompt("")).toBe("video");
+      expect(formatActiveJobPrompt("   ")).toBe("video");
+    });
   });
 });

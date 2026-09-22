@@ -44,9 +44,6 @@ function formatAvailableMemory(availableMb: number | null | undefined): string {
 
 const DEFAULT_FULL_PIPELINE_MIN_AVAILABLE_MB = 6_170;
 
-/** Block new submissions when load1m / coreCount reaches this fraction. */
-const CPU_LOAD_CEILING = 0.85;
-
 function formatGbFromMb(valueMb: number): string {
   return `${(valueMb / 1024).toFixed(1)} GB`;
 }
@@ -90,8 +87,6 @@ export function getRuntimeGuidance({
   voiceBenchmarkRecommendedProviderId,
   voiceFallbackWarning,
   fullPipelineMinAvailableMb = DEFAULT_FULL_PIPELINE_MIN_AVAILABLE_MB,
-  cpuLoad,
-  cpuCoreCount,
 }: RuntimeGuidanceInput): RuntimeGuidance | null {
   const memorySuffix = formatAvailableMemory(availableMb);
   const memoryConstrained = pressureLevel === "high" || pressureLevel === "critical";
@@ -101,15 +96,10 @@ export function getRuntimeGuidance({
     Number.isFinite(runtimeAvailableMb) &&
     runtimeAvailableMb < fullPipelineMinAvailableMb;
   const runtimeBlockerCount = runtimeBlockers?.length ?? 0;
-  const cpuOverloaded =
-    cpuLoad != null &&
-    cpuCoreCount != null &&
-    cpuCoreCount > 0 &&
-    cpuLoad / cpuCoreCount >= CPU_LOAD_CEILING;
   const pipelineHealthBlocked =
     apiOnline === true &&
     ollamaOnline !== false &&
-    (modelReadinessDetail !== null || runtimeBelowFullPipeline || runtimeBlockerCount > 0 || cpuOverloaded);
+    (modelReadinessDetail !== null || runtimeBelowFullPipeline || runtimeBlockerCount > 0);
 
   if (apiOnline === false) {
     return {
@@ -133,10 +123,6 @@ export function getRuntimeGuidance({
     }
     if (runtimeBlockerCount > 0) {
       details.push(`${runtimeBlockerCount} runtime profile blocker${runtimeBlockerCount === 1 ? " is" : "s are"} active.`);
-    }
-    if (cpuOverloaded && cpuLoad != null && cpuCoreCount != null) {
-      const pct = Math.round((cpuLoad / cpuCoreCount) * 100);
-      details.push(`CPU load is ${pct}% across ${cpuCoreCount} core${cpuCoreCount === 1 ? "" : "s"}; pipeline stages will time out. Free CPU before submitting.`);
     }
     if (voiceBenchmarkRecommendedProviderId == null && healthStatus === "degraded") {
       details.push("Voice benchmark recommendation is missing.");
