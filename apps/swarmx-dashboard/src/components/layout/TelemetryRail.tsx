@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DisclosureModeBadge } from "@/components/ui/disclosure-mode-badge";
 import { Cpu, MemoryStick, HardDrive, Network, Bot, AlertCircle, Zap, Gauge, Sparkles, X } from "lucide-react";
 import { resolveOperatorName, formatOperatorLabel } from "@swarmx/types/operator-map";
+import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
+
 
 // ── Micro sparkline (bar chart) ───────────────────────────────────────────────
 
@@ -344,6 +346,7 @@ export function TelemetryRail() {
   const lastEventAt = useEventsStore((s) => s.lastEventAt);
   const drawerOpen = useUIStore((s) => s.telemetryDrawerOpen);
   const closeDrawer = useUIStore((s) => s.closeTelemetryDrawer);
+  const telemetryRailVisible = useUIStore((s) => s.telemetryRailVisible);
   const drawerDialogRef = React.useRef<HTMLDialogElement | null>(null);
 
   React.useEffect(() => {
@@ -361,6 +364,18 @@ export function TelemetryRail() {
       }
     };
   }, [drawerOpen]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches && drawerOpen) {
+        closeDrawer();
+      }
+    };
+    mql.addEventListener("change", handleMediaChange);
+    return () => mql.removeEventListener("change", handleMediaChange);
+  }, [drawerOpen, closeDrawer]);
 
   const lastUpdated = React.useMemo(() => {
     if (!lastEventAt) return null;
@@ -396,18 +411,10 @@ export function TelemetryRail() {
     memSparkColor = "var(--color-resource-warn)";
   }
 
-  const rail = (
-    <aside
-      className={cn(
-        "row-start-2 col-start-3 flex flex-col",
-        "bg-bg-surface border-l border-border",
-        "w-(--telemetry-width) overflow-hidden",
-        "z-20 rail-enter"
-      )}
-      aria-label="Live telemetry"
-    >
+  const renderContent = (isDrawer: boolean) => (
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest">
             Telemetry
@@ -425,14 +432,27 @@ export function TelemetryRail() {
               {lastUpdated}
             </span>
           ) : null}
+          {isDrawer && (
+            <button
+              type="button"
+              className="rounded p-1 text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ml-1"
+              aria-label="Close telemetry drawer"
+              onClick={closeDrawer}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className={cn("px-3 py-3 space-y-4 transition-[opacity,filter] duration-500", isStale && "stale-dim")}>
+          {/* Real-time System Telemetry Overview */}
+          <TelemetryWidget className="p-2.5" />
 
           {/* Agent Fleet */}
           <section>
+
             <SectionLabel icon={Bot} label="Agent Fleet" />
             <div className="mt-1.5">
               <AgentFleetSummary />
@@ -561,12 +581,25 @@ export function TelemetryRail() {
           <div className="h-2" />
         </div>
       </ScrollArea>
-    </aside>
+    </>
   );
 
   return (
     <>
-      <div className="hidden lg:contents">{rail}</div>
+      <div className="hidden lg:contents">
+        <aside
+          className={cn(
+            "row-start-2 col-start-3 flex flex-col",
+            "bg-bg-surface border-l border-border",
+            "w-(--telemetry-width) overflow-hidden h-full",
+            "z-20 rail-enter",
+            !telemetryRailVisible && "hidden"
+          )}
+          aria-label="Live telemetry"
+        >
+          {renderContent(false)}
+        </aside>
+      </div>
       {drawerOpen && (
         <dialog
           ref={drawerDialogRef}
@@ -580,21 +613,16 @@ export function TelemetryRail() {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/65"
+            className="absolute inset-0 bg-black/65 transition-opacity backdrop-blur-[2px]"
             aria-label="Close telemetry drawer"
             onClick={closeDrawer}
           />
-          <div className="relative ml-auto flex h-dvh w-full max-w-[22rem] flex-col border-l border-border bg-bg-surface shadow-[0_24px_48px_rgba(0,0,0,0.55)]">
-            <button
-              type="button"
-              className="absolute right-2 top-2 z-10 rounded p-1 text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-              aria-label="Close telemetry drawer"
-              onClick={closeDrawer}
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-            {rail}
-          </div>
+          <aside
+            className="relative ml-auto flex h-dvh w-full max-w-[22rem] flex-col border-l border-border bg-bg-surface shadow-[0_24px_48px_rgba(0,0,0,0.55)] z-10 overflow-hidden rail-enter"
+            aria-label="Live telemetry drawer"
+          >
+            {renderContent(true)}
+          </aside>
         </dialog>
       )}
     </>

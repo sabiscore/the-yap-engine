@@ -14,7 +14,9 @@ import { cn, formatPct, formatBps } from "@/lib/utils";
 import { useEventsStore } from "@/stores/events";
 import { useApiHealth } from "@/hooks/useApiHealth";
 import { RouteDegradedBanner } from "@/components/layout/RouteDegradedBanner";
+import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
 import type { AgentState, LogEntry } from "@swarmx/types";
+
 import { Zap, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, Brain } from "lucide-react";
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
@@ -917,7 +919,11 @@ export default function OverviewPage() {
       {/* AI Insight strip */}
       <InsightStrip />
 
+      {/* Real-time High-Contrast Telemetry Observability */}
+      <TelemetryWidget />
+
       {/* Bento top strip: Health Radar + 4 quick stats */}
+
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="md:col-span-1 bg-bg-surface border border-border rounded-lg px-4 py-3 card-interactive panel-enter">
           <div className="text-[10px] font-mono text-text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">

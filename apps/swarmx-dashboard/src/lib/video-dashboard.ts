@@ -32,6 +32,27 @@ export function isTerminalVideoStatus(status: VideoJobStatus): boolean {
   return VIDEO_TERMINAL_STATUSES.includes(status as (typeof VIDEO_TERMINAL_STATUSES)[number]);
 }
 
+export const ACTIVE_VIDEO_STATUSES = [
+  "running",
+  "classifying",
+  "scripting",
+  "staging",
+  "generating",
+  "interpolating",
+  "encoding",
+  "reviewing",
+  "publishing",
+] as const;
+
+export type ActiveVideoJobStatus = (typeof ACTIVE_VIDEO_STATUSES)[number];
+
+export function isActiveVideoStatus(status: unknown): status is ActiveVideoJobStatus {
+  return (
+    typeof status === "string" &&
+    (ACTIVE_VIDEO_STATUSES as readonly string[]).includes(status)
+  );
+}
+
 export function isIsoTimestampNewerOrEqual(incoming: string, current: string): boolean {
   const incomingMs = Date.parse(incoming);
   const currentMs = Date.parse(current);

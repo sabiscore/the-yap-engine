@@ -3,6 +3,8 @@
 import { Sparkles, WandSparkles } from "lucide-react";
 import { VideoJobForm } from "@/components/video/VideoJobForm";
 import { PRODUCT_BRAND } from "@/lib/brand";
+import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
+
 
 
 const CREATIVE_PRINCIPLES = [
@@ -53,7 +55,9 @@ export default function VideoStudioPage() {
           </section>
 
           <aside className="flex flex-col gap-4">
+            <TelemetryWidget />
             <div className="rounded-2xl border border-border bg-bg-elevated/65 p-5">
+
               <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">
                 Creative system
               </p>

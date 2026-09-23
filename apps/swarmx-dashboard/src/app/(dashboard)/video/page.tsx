@@ -31,6 +31,8 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { useApiHealth } from "@/hooks/useApiHealth";
 import { getRuntimeGuidance, type RuntimeGuidance } from "@/lib/runtime-guidance";
 import { formatSubmissionBlockReason } from "@/lib/video-runtime-messaging";
@@ -38,7 +40,7 @@ import { useEventsStore } from "@/stores/events";
 import { useVideoStore } from "../../../stores/video";
 import { VideoJobForm } from "../../../components/video/VideoJobForm";
 import { VideoJobCard } from "../../../components/video/VideoJobCard";
-import { formatActiveJobPrompt, type VideoJob } from "../../../lib/video-dashboard";
+import { formatActiveJobPrompt, isActiveVideoStatus, type VideoJob } from "../../../lib/video-dashboard";
 
 // ─── Skeleton loading row ─────────────────────────────────────────────────────
 
@@ -162,8 +164,10 @@ export default function VideoPage() {
   const startupSummary = useEventsStore((s) => s.startupSummary);
   const systemMetrics = useEventsStore((s) => s.systemMetrics);
   const apiHealth = useApiHealth();
-  const { fetchJobs, listJobs, isLoading, listError, selectedJobId, reorderQueue, retryFromStage } =
+  const { fetchJobs, listJobs, isLoading, listError, selectedJobId, reorderQueue, retryFromStage, cancelJob } =
     useVideoStore();
+  type QueueTab = "all" | "active" | "queued" | "failed" | "history";
+  const [selectedTab, setSelectedTab] = useState<QueueTab>("all");
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [showFailedOnly, setShowFailedOnly] = useState(false);
   const [showDeadLetterOnly, setShowDeadLetterOnly] = useState(false);
@@ -179,23 +183,43 @@ export default function VideoPage() {
   );
 
   const jobs = listJobs();
-  const deadLetterJobs = jobs.filter(
+  const activeJobs = jobs.filter((j) => isActiveVideoStatus(j.status));
+  const queuedJobs = jobs.filter((j) => j.status === "queued");
+  const failedJobs = jobs.filter((j) => j.status === "failed");
+  const deadLetterJobs = failedJobs.filter(
     (job) =>
-      job.status === "failed" &&
       job.maxRetries !== undefined &&
       job.retryCount >= job.maxRetries,
   );
-  const visibleJobs = showDeadLetterOnly
-    ? deadLetterJobs
-    : showFailedOnly
-      ? jobs.filter((j) => j.status === "failed")
-      : jobs;
-  const hasJobs = jobs.length > 0;
-  const runningCount = jobs.filter((j) => j.status === "running").length;
-  const queuedCount = jobs.filter((j) => j.status === "queued").length;
-  const doneCount = jobs.filter((j) => j.status === "completed").length;
-  const failedCount = jobs.filter((j) => j.status === "failed").length;
+  const doneJobs = jobs.filter((j) => j.status === "completed" || j.status === "done");
+  const historyJobs = jobs.filter(
+    (j) => j.status === "completed" || j.status === "done" || j.status === "cancelled",
+  );
+  const activeCount = activeJobs.length;
+  const queuedCount = queuedJobs.length;
+  const failedCount = failedJobs.length;
   const deadLetterCount = deadLetterJobs.length;
+  const doneCount = doneJobs.length;
+  const historyCount = historyJobs.length;
+  const runningCount = activeCount;
+  const hasJobs = jobs.length > 0;
+
+  const visibleJobs =
+    selectedTab === "active"
+      ? activeJobs
+      : selectedTab === "queued"
+        ? queuedJobs
+        : selectedTab === "failed"
+          ? showDeadLetterOnly
+            ? deadLetterJobs
+            : failedJobs
+          : selectedTab === "history"
+            ? historyJobs
+            : showDeadLetterOnly
+              ? deadLetterJobs
+              : showFailedOnly
+                ? failedJobs
+                : jobs;
   const queuedJobIds = jobs.filter((job) => job.status === "queued").map((job) => job.id);
   const pressureLevel = governorState?.pressureLevel ?? startupSummary?.pressureLevel;
   const availableMb = governorState?.availableMb ?? startupSummary?.availableMb ?? null;
@@ -321,51 +345,87 @@ export default function VideoPage() {
           <VideoRuntimeBanner guidance={videoRuntimeGuidance} />
 
           <div className="flex flex-col gap-2" aria-busy={isLoading}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
-                <GripVertical className="h-3.5 w-3.5 text-text-muted" aria-hidden="true" />
-                Queue
+            <Tabs
+              value={selectedTab}
+              onValueChange={(val) => {
+                setSelectedTab(val as QueueTab);
+                if (val !== "failed") {
+                  setShowFailedOnly(false);
+                  setShowDeadLetterOnly(false);
+                }
+              }}
+              className="w-full"
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+                    <GripVertical className="h-3.5 w-3.5 text-text-muted" aria-hidden="true" />
+                    Queue
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {deadLetterCount > 0 && selectedTab === "failed" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={showDeadLetterOnly ? "default" : "outline"}
+                        onClick={() => setShowDeadLetterOnly((s) => !s)}
+                        aria-pressed={showDeadLetterOnly}
+                        aria-label={showDeadLetterOnly ? "Show all failed jobs" : "Show retry-exhausted jobs only"}
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                        {showDeadLetterOnly ? "All Failed" : `Dead Letter (${deadLetterCount})`}
+                      </Button>
+                    )}
+                    {queuedCount > 1 && selectedTab === "queued" && (
+                      <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">
+                        Drag or use card controls to reorder
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-b border-border pb-1">
+                  <TabsList className="flex w-full overflow-x-auto scrollbar-none border-b-0">
+                    <TabsTrigger value="all" className="gap-1.5 shrink-0">
+                      All
+                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
+                        {jobs.length}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="active" className="gap-1.5 shrink-0">
+                      {activeCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-status-active animate-pulse" aria-hidden="true" />}
+                      Active
+                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
+                        {activeCount}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="queued" className="gap-1.5 shrink-0">
+                      Queued
+                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
+                        {queuedCount}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="failed" className="gap-1.5 shrink-0">
+                      Failed
+                      <span
+                        className={cn(
+                          "ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums",
+                          failedCount > 0 ? "bg-status-error/15 text-status-error font-medium" : "bg-bg-surface text-text-muted",
+                        )}
+                      >
+                        {failedCount}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="gap-1.5 shrink-0">
+                      History
+                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
+                        {historyCount}
+                      </span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {failedCount > 0 && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={showFailedOnly && !showDeadLetterOnly ? "default" : "outline"}
-                    onClick={() => {
-                      setShowDeadLetterOnly(false);
-                      setShowFailedOnly((s) => !s);
-                    }}
-                    aria-pressed={showFailedOnly && !showDeadLetterOnly}
-                    aria-label={showFailedOnly && !showDeadLetterOnly ? "Show all jobs" : "Show failed jobs only"}
-                  >
-                    <Filter className="h-3.5 w-3.5" aria-hidden="true" />
-                    {showFailedOnly && !showDeadLetterOnly ? "All Jobs" : `Failed (${failedCount})`}
-                  </Button>
-                )}
-                {deadLetterCount > 0 && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={showDeadLetterOnly ? "default" : "outline"}
-                    onClick={() => {
-                      setShowFailedOnly(false);
-                      setShowDeadLetterOnly((s) => !s);
-                    }}
-                    aria-pressed={showDeadLetterOnly}
-                    aria-label={showDeadLetterOnly ? "Show all jobs" : "Show retry-exhausted jobs only"}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                    {showDeadLetterOnly ? "All Jobs" : `Dead Letter (${deadLetterCount})`}
-                  </Button>
-                )}
-                {queuedCount > 1 && !showFailedOnly && (
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">
-                    Drag or use move controls to reorder
-                  </span>
-                )}
-              </div>
-            </div>
+            </Tabs>
 
             {isLoading && (
               <>
@@ -448,6 +508,12 @@ export default function VideoPage() {
                         job={job}
                         onSelect={(jobId) => router.push(`/video/${jobId}`)}
                         isSelected={selectedJobId === job.id}
+                        onRetry={(jobId) => void handleRetry(jobId)}
+                        onCancel={(jobId) => void cancelJob(jobId)}
+                        onMoveUp={(jobId) => void handleMoveQueuedJob(jobId, "up")}
+                        onMoveDown={(jobId) => void handleMoveQueuedJob(jobId, "down")}
+                        canMoveUp={queuedIndex > 0}
+                        canMoveDown={queuedIndex >= 0 && queuedIndex < queuedJobIds.length - 1}
                       />
                       {canMoveQueued && (
                         <div className="mt-2 grid grid-cols-2 gap-2" aria-label="Queue reorder controls">

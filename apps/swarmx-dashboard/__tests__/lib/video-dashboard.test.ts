@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { errorCodeHint, errorCodeNextAction, formatActiveJobPrompt, normalizeVideoJob } from "@/lib/video-dashboard";
+import {
+  ACTIVE_VIDEO_STATUSES,
+  errorCodeHint,
+  errorCodeNextAction,
+  formatActiveJobPrompt,
+  isActiveVideoStatus,
+  normalizeVideoJob,
+} from "@/lib/video-dashboard";
 
 describe("video dashboard normalization", () => {
   it("preserves certification blockers from completed job output", () => {
@@ -134,6 +141,28 @@ describe("video dashboard normalization", () => {
     it("returns 'video' fallback for empty or whitespace prompts", () => {
       expect(formatActiveJobPrompt("")).toBe("video");
       expect(formatActiveJobPrompt("   ")).toBe("video");
+    });
+  });
+
+  describe("isActiveVideoStatus", () => {
+    it("identifies all 9 active video pipeline statuses", () => {
+      expect(ACTIVE_VIDEO_STATUSES).toHaveLength(9);
+      for (const status of ACTIVE_VIDEO_STATUSES) {
+        expect(isActiveVideoStatus(status)).toBe(true);
+      }
+    });
+
+    it("returns false for non-active statuses and invalid values", () => {
+      expect(isActiveVideoStatus("queued")).toBe(false);
+      expect(isActiveVideoStatus("done")).toBe(false);
+      expect(isActiveVideoStatus("completed")).toBe(false);
+      expect(isActiveVideoStatus("failed")).toBe(false);
+      expect(isActiveVideoStatus("cancelled")).toBe(false);
+      expect(isActiveVideoStatus("")).toBe(false);
+      expect(isActiveVideoStatus(null)).toBe(false);
+      expect(isActiveVideoStatus(undefined)).toBe(false);
+      expect(isActiveVideoStatus(123)).toBe(false);
+      expect(isActiveVideoStatus({})).toBe(false);
     });
   });
 });

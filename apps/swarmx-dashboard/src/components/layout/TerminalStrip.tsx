@@ -90,38 +90,37 @@ export function TerminalStrip() {
       className={cn(
         "col-span-3 row-start-3 flex flex-col",
         "h-(--terminal-strip-height)",
-        "bg-bg-base border-t border-border",
+        "bg-bg-base",
+        terminalVisible ? "border-t border-border" : "border-t-0",
         "overflow-hidden",
         "transition-[height] duration-(--duration-panel) ease-snap",
         terminalVisible
-          ? "[--terminal-strip-height:var(--terminal-height)]"
+          ? "[--terminal-strip-height:0px] md:[--terminal-strip-height:var(--terminal-height)]"
           : "[--terminal-strip-height:0px]",
         !terminalVisible && "pointer-events-none"
       )}
+      aria-hidden={!terminalVisible ? "true" : undefined}
+      inert={!terminalVisible ? true : undefined}
     >
-      {terminalVisible && (
-        <>
-          <TerminalTabBar
-            tabs={terminalTabs}
-            activeId={activeTerminalTabId}
-            onTabClick={setActiveTerminalTab}
-            onTabClose={removeTerminalTab}
-            onAddTab={() => addTerminalTab()}
-            onToggle={toggleTerminal}
-            onToggleFullscreen={toggleTerminalFullscreen}
-            isFullscreen={false}
+      <TerminalTabBar
+        tabs={terminalTabs}
+        activeId={activeTerminalTabId}
+        onTabClick={setActiveTerminalTab}
+        onTabClose={removeTerminalTab}
+        onAddTab={() => addTerminalTab()}
+        onToggle={toggleTerminal}
+        onToggleFullscreen={toggleTerminalFullscreen}
+        isFullscreen={false}
+      />
+      <div className="relative flex-1 overflow-hidden">
+        {terminalTabs.map((tab) => (
+          <TerminalInstance
+            key={tab.id}
+            tab={tab}
+            active={tab.id === activeTerminalTabId}
           />
-          <div className="relative flex-1 overflow-hidden">
-            {terminalTabs.map((tab) => (
-              <TerminalInstance
-                key={tab.id}
-                tab={tab}
-                active={tab.id === activeTerminalTabId}
-              />
-            ))}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

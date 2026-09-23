@@ -1,10 +1,24 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { AlertTriangle, Clapperboard, Info, Loader2, Sparkles, Volume2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  Clapperboard,
+  Cpu,
+  Info,
+  Loader2,
+  Palette,
+  Sparkles,
+  Volume2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { QUICK_START_PRESETS, mapQuickStartPresetToDraft, type QuickStartPreset } from "@/lib/video-form-presets";
+import {
+  QUICK_START_PRESETS,
+  mapQuickStartPresetToDraft,
+  type QuickStartPreset,
+} from "@/lib/video-form-presets";
 import { useVideoStore } from "../../stores/video";
 import type { VideoJobRequest } from "../../lib/video-dashboard";
 
@@ -40,6 +54,21 @@ function playPreview(src: string): void {
   if (typeof Audio === "undefined") return;
   void new Audio(src).play();
 }
+
+/** Canonical 11-option template taxonomy (None + 10 canonical video templates) */
+const TEMPLATE_OPTIONS: SelectOption<TemplateFamilyRoute>[] = [
+  { value: "none", label: "Auto (let engine decide)", help: "Lets the planner choose beat structure freely." },
+  { value: "myth-vs-fact", label: "Myth vs Fact", help: "Debunk a belief with a proof-led reveal." },
+  { value: "list/countdown", label: "List / Countdown", help: "Escalate through a numbered value ladder." },
+  { value: "mystery/reveal", label: "Mystery / Reveal", help: "Anomaly hook, clue progression, and answer reveal." },
+  { value: "product-demo", label: "Product Demo", help: "Pain point hook, demonstrated solution, outcome." },
+  { value: "quote-to-insight", label: "Quote to Insight", help: "Striking quote, contextual breakdown, viewer takeaway." },
+  { value: "chart/data", label: "Chart / Data", help: "Striking stat, trend visualization, practical implication." },
+  { value: "motivational", label: "Motivational", help: "Moment of defeat, strategic pivot, triumph resolution." },
+  { value: "series-recap", label: "Series Recap", help: "Cliffhanger reminder, plot blitz, next episode tease." },
+  { value: "pov-immersion", label: "POV Immersion", help: "First-person real-time sensory immersion." },
+  { value: "reddit-story", label: "Reddit Story", help: "Found-story readaloud with narrator aside and punchline." },
+];
 
 function Select<T extends string>({
   id,
@@ -109,7 +138,7 @@ function Select<T extends string>({
   );
 }
 
-interface VideoJobFormProps {
+export interface VideoJobFormProps {
   onSubmitted?: (jobId: string) => void;
   submissionBlocked?: boolean;
   submissionBlockReason?: string | null;
@@ -139,7 +168,12 @@ export function VideoJobForm({
   const [voice, setVoice] = useState<NonNullable<VideoJobRequest["voice"]>>("default");
   const [voiceProfileId, setVoiceProfileId] = useState<NonNullable<VideoJobRequest["voiceProfileId"]>>("auto");
   const [storyMode, setStoryMode] = useState<NonNullable<VideoJobRequest["storyMode"]>>("single_narrator");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Progressive disclosure section states
+  const [modelSectionOpen, setModelSectionOpen] = useState(false);
+  const [voiceSectionOpen, setVoiceSectionOpen] = useState(false);
+  const [creativeSectionOpen, setCreativeSectionOpen] = useState(false);
+
   const [lastQueuedId, setLastQueuedId] = useState<string | null>(null);
 
   const trimmedPrompt = prompt.trim();
@@ -187,7 +221,9 @@ export function VideoJobForm({
     setVoiceProfileId(draft.voiceProfileId);
     setStoryMode(draft.storyMode);
     setAudience(draft.audience);
-    setShowAdvanced(true);
+    // Expand creative and voice sections so user can inspect preset choices
+    setCreativeSectionOpen(true);
+    setVoiceSectionOpen(true);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -258,6 +294,7 @@ export function VideoJobForm({
         </div>
       )}
 
+      {/* Prompt input and quick-start presets */}
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor={`${formId}-prompt`}
@@ -327,6 +364,7 @@ export function VideoJobForm({
         </p>
       </div>
 
+      {/* Essentials section with deduplicated template selector */}
       <section className="rounded border border-border/60 bg-bg-surface/30 p-3" aria-label="Essentials">
         <div className="mb-2 text-[10px] font-mono uppercase tracking-wide text-text-muted">Essentials</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -349,13 +387,7 @@ export function VideoJobForm({
             value={templateFamily}
             onChange={setTemplateFamily}
             disabled={isSubmitting}
-            options={[
-              { value: "none", label: "Auto (let engine decide)", help: "Lets the planner choose beat structure freely." },
-              { value: "myth-vs-fact", label: "Myth vs Fact", help: "Debunk a belief with a proof-led reveal." },
-              { value: "pov-immersion", label: "POV Immersion", help: "Put the viewer inside a specific moment and perspective shift." },
-              { value: "list/countdown", label: "Countdown", help: "Escalate through a numbered value ladder." },
-              { value: "reddit-story", label: "Reddit Story", help: "Open on the twist, then reconstruct the story." },
-            ]}
+            options={TEMPLATE_OPTIONS}
           />
           <Select
             id={`${formId}-duration`}
@@ -388,20 +420,153 @@ export function VideoJobForm({
         </div>
       </section>
 
-      <section className="rounded border border-border/60 bg-bg-surface/30 p-3" aria-label="Advanced options">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced((value) => !value)}
-          className="flex w-full items-center justify-between text-[10px] font-mono uppercase tracking-wide text-text-muted"
-          aria-expanded={showAdvanced}
-          aria-controls={`${formId}-advanced-grid`}
-        >
-          <span>Advanced</span>
-          <span aria-hidden="true">{showAdvanced ? "▴" : "▾"}</span>
-        </button>
+      {/* Progressive Disclosure Group 1: Model Tier & Execution */}
+      <details
+        open={modelSectionOpen}
+        onToggle={(e) => setModelSectionOpen(e.currentTarget.open)}
+        className="group rounded border border-border/60 bg-bg-surface/30 transition-all duration-200"
+      >
+        <summary className="flex cursor-pointer select-none items-center justify-between p-3 text-xs font-medium text-text-primary hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-3.5 w-3.5 text-text-secondary group-hover:text-accent transition-colors" aria-hidden="true" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary group-hover:text-text-primary">
+              Model Tier & Execution
+            </span>
+            <span className={cn(
+              "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide",
+              modelRoute === "auto"
+                ? "border-border bg-bg-elevated text-text-muted"
+                : "border-status-warning/40 bg-status-warning/10 text-status-warning"
+            )}>
+              {modelRoute === "auto" ? "Auto (Safe)" : `Override: ${modelRoute}`}
+            </span>
+          </div>
+          <ChevronDown className="h-3.5 w-3.5 text-text-muted transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+        </summary>
 
-        {showAdvanced && (
-          <div id={`${formId}-advanced-grid`} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="border-t border-border/60 p-3 flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select
+              id={`${formId}-model`}
+              label="Model Tier"
+              value={modelRoute}
+              onChange={setModelRoute}
+              disabled={isSubmitting}
+              options={[
+                { value: "auto", label: "Auto (recommended)", help: "Safe auto-route: Pilot-lite on low-RAM hosts, 7B on unconstrained hosts." },
+                { value: "fast", label: "Fast (3.8B)", help: "Uses Pilot-lite for every text stage. Fastest generation." },
+                { value: "worker", label: "Worker (7B)", help: "Qwen 2.5 7B for richer planning & scripting. Needs ≥6.2 GB free." },
+                { value: "supervisor", label: "Supervisor (7B)", help: "DeepSeek-R1 7B for reasoning & planning. Needs ≥6.2 GB free." },
+                { value: "reasoner", label: "Reasoner (7B)", help: "DeepSeek-R1 7B with virality scoring." },
+              ]}
+            />
+          </div>
+
+          {modelRoute !== "auto" && (
+            <div className="flex items-start gap-2 rounded border border-status-warning/30 bg-status-warning/8 px-3 py-2 text-xs text-status-warning" role="alert">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <p>
+                Model overrides apply to every text stage. If free RAM falls below 6.2 GB, the pipeline falls back to Pilot-lite to prevent OOM.
+              </p>
+            </div>
+          )}
+
+          {/* Integrated Model Tier Reference */}
+          <div className="rounded border border-border/50 bg-bg-input/40 p-2.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1.5">
+              <Info className="h-3 w-3 text-text-muted" aria-hidden="true" />
+              <span>Model Tier Reference</span>
+            </div>
+            <ul className="space-y-1 text-[10px] leading-4 text-text-muted">
+              <li>
+                <strong className="text-text-secondary">Auto</strong> — Pipeline selects the safest model for current available RAM. On low-RAM hosts (&lt;6.2 GB free), all text stages execute on Pilot-lite (3.8B Q4) to guarantee zero OOM aborts.
+              </li>
+              <li>
+                <strong className="text-text-secondary">Fast (3.8B)</strong> — Forces Pilot-lite for all stages. Requires ~3.3 GB RAM. Minimal latency and rapid scene generation.
+              </li>
+              <li>
+                <strong className="text-text-secondary">Worker / Supervisor / Reasoner (7B)</strong> — 7B tiers for deeper scripts and structural reasoning. Requires ≥6.2 GB free RAM. Fallback to Pilot-lite activates automatically if host RAM is constrained.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </details>
+
+      {/* Progressive Disclosure Group 2: Voice & Audio Settings */}
+      <details
+        open={voiceSectionOpen}
+        onToggle={(e) => setVoiceSectionOpen(e.currentTarget.open)}
+        className="group rounded border border-border/60 bg-bg-surface/30 transition-all duration-200"
+      >
+        <summary className="flex cursor-pointer select-none items-center justify-between p-3 text-xs font-medium text-text-primary hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded">
+          <div className="flex items-center gap-2">
+            <Volume2 className="h-3.5 w-3.5 text-text-secondary group-hover:text-accent transition-colors" aria-hidden="true" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary group-hover:text-text-primary">
+              Voice & Audio Settings
+            </span>
+            <span className="rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-text-muted">
+              {voiceProfileId === "auto" ? "Profile: Auto" : voiceProfileId.replace("kokoro_", "")} · {storyMode === "single_narrator" ? "Single" : "Dialogue"}
+            </span>
+          </div>
+          <ChevronDown className="h-3.5 w-3.5 text-text-muted transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+        </summary>
+
+        <div className="border-t border-border/60 p-3 flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select
+              id={`${formId}-voice-profile`}
+              label="Voice Profile"
+              value={voiceProfileId}
+              onChange={setVoiceProfileId}
+              disabled={isSubmitting}
+              options={[
+                { value: "auto", label: "Auto", help: "Uses benchmark ranking unless a Kokoro profile is pinned." },
+                { value: "kokoro_warm", label: "Kokoro Warm", help: "Pins the warm Kokoro speaker across repeat submissions.", previewSrc: previewAsset("kokoro_warm"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
+                { value: "kokoro_narrator", label: "Kokoro Narrator", help: "Pins a measured narrator voice for explainers and cinematic shorts.", previewSrc: previewAsset("kokoro_narrator"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
+                { value: "kokoro_energetic", label: "Kokoro Energetic", help: "Pins a faster speaker for urgent and kinetic text formats.", previewSrc: previewAsset("kokoro_energetic"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
+                { value: "kokoro_contrarian", label: "Kokoro Contrarian", help: "Pins a sharper speaker for myth-busting and disagreement hooks.", previewSrc: previewAsset("kokoro_contrarian"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
+                { value: "kokoro_storytime_dual", label: "Kokoro Storytime Dual", help: "Pins narrator plus a second Kokoro speaker for quoted storytime lines.", previewSrc: previewAsset("kokoro_storytime_dual"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
+              ]}
+            />
+            <Select
+              id={`${formId}-story-mode`}
+              label="Story Mode"
+              value={storyMode}
+              onChange={setStoryMode}
+              disabled={isSubmitting}
+              options={[
+                { value: "single_narrator", label: "Single Narrator", help: "Single consistent voice-over across all scenes." },
+                { value: "dialogue_storytime", label: "Dialogue Storytime", help: "Routes dialogue or quoted lines to an alternate Kokoro voice." },
+              ]}
+            />
+          </div>
+          <p className="text-[10px] leading-4 text-text-muted">
+            Voice Profile locks consistent persona across repeat renders. Story Mode enables dynamic multi-speaker dialogue routing when script quotes are identified.
+          </p>
+        </div>
+      </details>
+
+      {/* Progressive Disclosure Group 3: Creative Parameters */}
+      <details
+        open={creativeSectionOpen}
+        onToggle={(e) => setCreativeSectionOpen(e.currentTarget.open)}
+        className="group rounded border border-border/60 bg-bg-surface/30 transition-all duration-200"
+      >
+        <summary className="flex cursor-pointer select-none items-center justify-between p-3 text-xs font-medium text-text-primary hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded">
+          <div className="flex items-center gap-2">
+            <Palette className="h-3.5 w-3.5 text-text-secondary group-hover:text-accent transition-colors" aria-hidden="true" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary group-hover:text-text-primary">
+              Creative & Visual Parameters
+            </span>
+            <span className="rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-text-muted">
+              {niche} · {tone} · {style}
+            </span>
+          </div>
+          <ChevronDown className="h-3.5 w-3.5 text-text-muted transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+        </summary>
+
+        <div className="border-t border-border/60 p-3 flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Select
               id={`${formId}-niche`}
               label="Niche"
@@ -415,20 +580,6 @@ export function VideoJobForm({
                 { value: "facts", label: "Facts", help: "Uses colder, cleaner accents so explainers read as evidence-led." },
                 { value: "true_crime", label: "True Crime", help: "Desaturates the accent and darkens the palette for a colder reveal tone." },
                 { value: "other", label: "Other", help: "Uses the tone palette with only a small neutral adjustment." },
-              ]}
-            />
-            <Select
-              id={`${formId}-model`}
-              label="Model"
-              value={modelRoute}
-              onChange={setModelRoute}
-              disabled={isSubmitting}
-              options={[
-                { value: "auto", label: "Auto (recommended)" },
-                { value: "fast", label: "Fast (3.8B)" },
-                { value: "worker", label: "Worker (7B)" },
-                { value: "supervisor", label: "Supervisor (7B)" },
-                { value: "reasoner", label: "Reasoner (7B)" },
               ]}
             />
             <Select
@@ -463,26 +614,6 @@ export function VideoJobForm({
               ]}
             />
             <Select
-              id={`${formId}-template-family`}
-              label="Template"
-              value={templateFamily}
-              onChange={setTemplateFamily}
-              disabled={isSubmitting}
-              options={[
-                { value: "none", label: "None (auto)", help: "Lets the planner choose beat structure freely, without a fixed template." },
-                { value: "myth-vs-fact", label: "Myth vs Fact", help: "Hook states the myth, body reveals the surprising fact, resolution explains why it persisted." },
-                { value: "list/countdown", label: "List / Countdown", help: "Hook sets the stakes, body cycles through 3-5 items fast, resolution synthesizes the takeaway." },
-                { value: "mystery/reveal", label: "Mystery / Reveal", help: "Hook presents an anomaly, body drops clues, resolution reveals the answer." },
-                { value: "product-demo", label: "Product Demo", help: "Hook is the pain point, body demonstrates the solution, resolution shows the outcome." },
-                { value: "quote-to-insight", label: "Quote to Insight", help: "Hook drops a quote, body analyzes its meaning, resolution applies it to the viewer." },
-                { value: "chart/data", label: "Chart / Data", help: "Hook is a striking stat, body visualizes the trend, resolution explains the implication." },
-                { value: "motivational", label: "Motivational", help: "Hook is a moment of defeat, body shows the pivot, resolution delivers the triumph." },
-                { value: "series-recap", label: "Series Recap", help: "Hook reminds the cliffhanger, body blitzes plot points, resolution teases the next episode." },
-                { value: "pov-immersion", label: "POV Immersion", help: "First-person, real-time sensory beats — drops the viewer directly into the moment." },
-                { value: "reddit-story", label: "Reddit Story", help: "Found-story readaloud framing with a narrator's aside and a punchline resolution." },
-              ]}
-            />
-            <Select
               id={`${formId}-caption-style`}
               label="Captions"
               value={captionStyle}
@@ -494,89 +625,43 @@ export function VideoJobForm({
                 { value: "minimal", label: "Minimal", help: "Smaller caption box with lighter backing for sparse visual treatments." },
               ]}
             />
-            <Select
-              id={`${formId}-voice-profile`}
-              label="Voice Profile"
-              value={voiceProfileId}
-              onChange={setVoiceProfileId}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor={`${formId}-audience`}
+                className="text-[10px] font-mono uppercase tracking-wide text-text-muted"
+              >
+                Target Audience
+              </label>
+              <span className="font-mono text-[10px] text-text-muted tabular-nums">
+                {audience.length}/160
+              </span>
+            </div>
+            <input
+              id={`${formId}-audience`}
+              value={audience}
+              onChange={(event) => setAudience(event.target.value)}
+              maxLength={160}
               disabled={isSubmitting}
-              options={[
-                { value: "auto", label: "Auto", help: "Uses benchmark ranking unless a Kokoro profile is pinned." },
-                { value: "kokoro_warm", label: "Kokoro Warm", help: "Pins the warm Kokoro speaker across repeat submissions.", previewSrc: previewAsset("kokoro_warm"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
-                { value: "kokoro_narrator", label: "Kokoro Narrator", help: "Pins a measured narrator voice for explainers and cinematic shorts.", previewSrc: previewAsset("kokoro_narrator"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
-                { value: "kokoro_energetic", label: "Kokoro Energetic", help: "Pins a faster speaker for urgent and kinetic text formats.", previewSrc: previewAsset("kokoro_energetic"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
-                { value: "kokoro_contrarian", label: "Kokoro Contrarian", help: "Pins a sharper speaker for myth-busting and disagreement hooks.", previewSrc: previewAsset("kokoro_contrarian"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
-                { value: "kokoro_storytime_dual", label: "Kokoro Storytime Dual", help: "Pins narrator plus a second Kokoro speaker for quoted storytime lines.", previewSrc: previewAsset("kokoro_storytime_dual"), previewUnavailable: !VOICE_PREVIEW_ASSETS_READY },
-              ]}
-            />
-            <Select
-              id={`${formId}-story-mode`}
-              label="Story Mode"
-              value={storyMode}
-              onChange={setStoryMode}
-              disabled={isSubmitting}
-              options={[
-                { value: "single_narrator", label: "Single Narrator" },
-                { value: "dialogue_storytime", label: "Dialogue Storytime" },
-              ]}
+              placeholder="Busy founders, new creators, students..."
+              className={cn(
+                "h-9 w-full rounded border border-border bg-bg-input px-2.5 text-sm text-text-primary",
+                "placeholder:text-text-muted transition-colors duration-(--duration-micro)",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
             />
           </div>
-        )}
-      </section>
 
-      {showAdvanced && (
-        <p className="text-[10px] leading-4 text-text-muted">
-          Tone controls palette/motion mood, style controls shot grammar and pacing, and voice profile pins how narration should sound across repeat uploads.
-        </p>
-      )}
-
-      <details className="group rounded border border-border/60 bg-bg-surface/40 px-3 py-2">
-        <summary className="flex cursor-pointer list-none items-center justify-between text-[10px] font-mono uppercase tracking-wider text-text-muted transition-colors hover:text-text-secondary">
-          <span>Model tier reference</span>
-          <span className="text-[10px] text-text-muted transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
-        </summary>
-        <ul className="mt-2 space-y-1 text-[10px] leading-4 text-text-muted">
-          <li><strong className="text-text-secondary">Auto</strong> — pipeline picks the safe model for current RAM. On LOW_RAM hosts (&lt;6.2 GB free), all four text stages use Pilot-lite (3.8 B Q4). Cold load ~120 s, warm ~8 min end-to-end.</li>
-          <li><strong className="text-text-secondary">Fast</strong> — Pilot-lite for every stage. Needs ~3.3 GB. Best latency; simpler narrative.</li>
-          <li><strong className="text-text-secondary">Worker / Supervisor / Reasoner</strong> — 7 B tiers for richer planning &amp; scripting. Need ≥ 6.2 GB free. <em>Silently ignored in LOW_RAM_MODE</em>: the pipeline falls back to Pilot-lite instead of failing admission.</li>
-        </ul>
-      </details>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <label
-            htmlFor={`${formId}-audience`}
-            className="text-[10px] font-mono uppercase tracking-wide text-text-muted"
-          >
-            Audience
-          </label>
-          <input
-            id={`${formId}-audience`}
-            value={audience}
-            onChange={(event) => setAudience(event.target.value)}
-            maxLength={160}
-            disabled={isSubmitting}
-            placeholder="Busy founders, new creators, students..."
-            className={cn(
-              "h-9 w-full rounded border border-border bg-bg-input px-2.5 text-sm text-text-primary",
-              "placeholder:text-text-muted transition-colors duration-(--duration-micro)",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
-          />
-        </div>
-      </div>
-
-      {modelRoute !== "auto" && (
-        <div className="flex items-start gap-2 rounded border border-status-warning/30 bg-status-warning/8 px-3 py-2 text-xs text-status-warning">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <p>
-            Model overrides apply to every text stage. Use Auto for the controlled low-RAM video path.
+          <p className="text-[10px] leading-4 text-text-muted">
+            Tone controls palette and motion mood; style controls shot pacing and visual composition; niche tunes color grading; audience tailors the script terminology.
           </p>
         </div>
-      )}
+      </details>
 
-      {/* Submission status region — live for screen readers */}
+      {/* Screen reader live region */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {submissionBlocked ? "Video job submission is blocked by runtime readiness." : null}
         {isSubmitting ? "Queuing video job…" : null}

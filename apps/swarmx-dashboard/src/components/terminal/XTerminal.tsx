@@ -126,7 +126,16 @@ export function XTerminal({ sessionId, agentId, active }: XTerminalProps) {
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
-    fitAddon.fit();
+    if (
+      containerRef.current.clientWidth > 0 &&
+      containerRef.current.clientHeight > 0
+    ) {
+      try {
+        fitAddon.fit();
+      } catch {
+        // Guard against transient zero-dimension layout calculations
+      }
+    }
 
     termRef.current = term;
     fitRef.current = fitAddon;
@@ -177,15 +186,29 @@ export function XTerminal({ sessionId, agentId, active }: XTerminalProps) {
     setReady(true);
   }, [sessionId]);
 
+  const safeFit = useCallback(() => {
+    if (
+      containerRef.current &&
+      containerRef.current.clientWidth > 0 &&
+      containerRef.current.clientHeight > 0
+    ) {
+      try {
+        fitRef.current?.fit();
+      } catch {
+        // Guard against zero-dimension layout calculations
+      }
+    }
+  }, []);
+
   // ResizeObserver to fit terminal on container resize
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(() => {
-      fitRef.current?.fit();
+      safeFit();
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [safeFit]);
 
   // Mount/unmount lifecycle
   useEffect(() => {
@@ -203,11 +226,11 @@ export function XTerminal({ sessionId, agentId, active }: XTerminalProps) {
 
     const animationFrameId = globalThis.requestAnimationFrame(() => {
       termRef.current?.focus();
-      fitRef.current?.fit();
+      safeFit();
     });
 
     return () => globalThis.cancelAnimationFrame(animationFrameId);
-  }, [active]);
+  }, [active, safeFit]);
 
   const handleRetry = () => {
     setError(null);

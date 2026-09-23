@@ -153,6 +153,25 @@ The Yap Engine provides 10 structured creative templates (`VIDEO_TEMPLATE_FAMILY
 
 Integrations: FFmpeg/FFprobe (>= 6.0), server-side VoiceProvider adapters (Kokoro TTS, Piper, `espeak-ng` fallback), ComfyUI, Modal GPU cloud backend, pressure-aware stage gating, and graceful degradation paths. Dashboard: `/video` route with job list, creative brief controls, package/certification state, and detail timeline. For the exact route and payload contract, see [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md).
 
+---
+
+## Dashboard Architecture & Visual Design
+
+The Yap Engine dashboard (`apps/swarmx-dashboard`) is built on **Next.js 15 (App Router)**, **React 19**, and **Tailwind CSS v4** with a container-query-driven layout tailored for local, resource-constrained environments:
+
+- **Container-Query Layout Architecture**: Uses a 4-zone responsive CSS Grid (`AppShell.tsx`) with container query variants (`@container` on `<main>`). Supports collapsible navigation (60px / 240px), non-destructive terminal retention across viewport shifts, and a collapsible/floating telemetry drawer.
+- **High-Contrast Telemetry Module (`TelemetryWidget.tsx`)**: High-contrast, semantic status readouts (`text-status-active`, `text-status-warning`, `text-status-error`) for CPU load, ZRAM utilization, active agent fleet fanout, and Ollama model warming states. Includes accessible `aria-live="polite"` regions and WCAG 2.1 AA compliant contrast.
+- **Progressive Disclosure Video Studio (`VideoJobForm.tsx`)**: Form inputs are organized into 3 domain-specific collapsible groups (`<details>`/`<summary>`):
+  1. *Model Tier & Execution*: Deduplicated template selection and inline model tier architecture reference.
+  2. *Voice & Audio Settings*: Kokoro voice selection, audio previews, and pacing.
+  3. *Creative & Visual Parameters*: Niche, tone, visual style, caption formatting, and audience targeting.
+- **Tabbed Queue Management (`video/page.tsx`)**: Radix UI tabs provide structured queue triage across 4 dedicated views:
+  - **Active**: Real-time rendering stages with emerald status borders, glow, and motion-safe pulse.
+  - **Queued**: Drag-and-drop and one-click reordering controls.
+  - **Failed**: Focused dead-letter triage and stage-level retry affordances.
+  - **History**: Completed video renders with direct download and playback actions.
+- **Contextual Card Quick Actions (`VideoJobCard.tsx`)**: Hover and `focus-within` floating toolbar supporting instant Retry, Cancel, Move Up/Down, Download, and Error Inspection with accessible keyboard focus rings and `stopPropagation` click isolation.
+
 Operational note: the compiled Fastify entrypoint resolves to `apps/swarmx-api/dist/apps/swarmx-api/src/server.js` because the API TypeScript build uses the monorepo root as `rootDir`.
 
 ---

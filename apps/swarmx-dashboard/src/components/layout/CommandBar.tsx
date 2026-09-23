@@ -131,16 +131,35 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
   const terminalVisible = useUIStore((s) => s.terminalVisible);
   const toggleTelemetryRail = useUIStore((s) => s.toggleTelemetryRail);
   const toggleTelemetryDrawer = useUIStore((s) => s.toggleTelemetryDrawer);
+  const closeTelemetryDrawer = useUIStore((s) => s.closeTelemetryDrawer);
   const telemetryRailVisible = useUIStore((s) => s.telemetryRailVisible);
+  const telemetryDrawerOpen = useUIStore((s) => s.telemetryDrawerOpen);
   const operatorViewMode = useUIStore((s) => s.operatorViewMode);
   const toggleOperatorViewMode = useUIStore((s) => s.toggleOperatorViewMode);
+
+  const [isCompact, setIsCompact] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsCompact(!mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+
   const handleTelemetryToggle = () => {
     if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
       toggleTelemetryDrawer();
       return;
     }
+    if (telemetryDrawerOpen) {
+      closeTelemetryDrawer();
+    }
     toggleTelemetryRail();
   };
+
+  const isTelemetryActive = isCompact ? telemetryDrawerOpen : telemetryRailVisible;
   const startupBadge = startupSummary ? getStartupBadge(startupSummary) : null;
   const pressureLevel = governorState?.pressureLevel ?? startupSummary?.pressureLevel;
   const availableMb = governorState?.availableMb ?? startupSummary?.availableMb;
@@ -367,14 +386,14 @@ export function CommandBar({ breadcrumb = "Overview", apiHealth }: CommandBarPro
         <button
           type="button"
           onClick={handleTelemetryToggle}
-          title={telemetryRailVisible ? "Toggle telemetry panel (⌘⇧T)" : "Show telemetry panel (⌘⇧T)"}
-          aria-label="Toggle telemetry panel"
-          aria-pressed={telemetryRailVisible}
+          title={isTelemetryActive ? "Hide telemetry panel (⌘⇧T)" : "Show telemetry panel (⌘⇧T)"}
+          aria-label={isTelemetryActive ? "Hide telemetry panel" : "Show telemetry panel"}
+          aria-pressed={isTelemetryActive}
           className={cn(
             "flex items-center justify-center h-5 w-5 rounded",
             "transition-colors duration-(--duration-micro)",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
-            telemetryRailVisible
+            isTelemetryActive
               ? "text-accent hover:text-accent/80"
               : "text-text-muted hover:text-text-secondary"
           )}

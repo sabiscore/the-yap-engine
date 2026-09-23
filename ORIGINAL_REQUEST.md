@@ -79,3 +79,64 @@ The active job status pill at the top shows awkwardly interpolated text (e.g., "
 - [ ] The active job progress pill text does not awkwardly duplicate verbs (e.g., it shouldn't say "Making Create a...").
 - [ ] Next.js project builds successfully without type errors.
 </USER_REQUEST>
+
+## Follow-up — 2026-09-23T00:08:48Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Full multi-agent team
+
+Implement the comprehensive UI/UX overhaul of The Yap Engine dashboard into a modern, high-contrast, visually cohesive creativity hub with container-query responsive layouts, upgraded telemetry observability widgets, semantic typography hierarchy, and interactive video pipeline UX affordances.
+
+Working directory: /home/scar/Documents/theyapengine
+Integrity mode: development
+
+## Requirements
+
+### R1. Responsive Information Architecture & Layout Overhaul
+Restructure the dashboard layout (`AppShell.tsx`, `(dashboard)/layout.tsx`) into a container-query driven layout. Support smooth collapsible sidebar navigation and a floating/collapsible telemetry drawer on constrained viewports while preserving xterm.js terminal integration and layout state.
+
+### R2. High-Contrast Observability & Telemetry Module
+Create and integrate a high-contrast, modern `TelemetryWidget` component displaying CPU load, ZRAM usage, agent fleet fanout, and Ollama warming status with semantic CSS theme variables (`text-status-active`, `text-status-warning`, `text-status-error`, `bg-bg-elevated`) and accessible `aria-live` regions.
+
+### R3. Interactive Video Pipeline UX & Queue Triage
+Overhaul the video pipeline and studio page (`video/page.tsx`, `VideoJobForm.tsx`, queue views) to feature:
+- Progressive disclosure for advanced parameters (model tiers, voice settings) using modern semantic details/disclosure patterns.
+- Consolidated tabbed queue management (Active, Queued, Failed / Dead-letter triage).
+- Quick actions (retry, cancel, move) revealed smoothly on hover and focus-within.
+- High-contrast visual indicators for active rendering states (subtle pulse and status highlights).
+
+### R4. Documentation, Quality Gate, and Release
+Update user-facing and architectural documentation (`README.md`, `DESIGN_OVERHAUL_STRATEGY.md`) to document the new UI architecture and layout system. Verify all vitest suites, TypeScript compilation, and Next.js production builds pass without errors, then commit and push to `main`.
+
+## Verification Resources
+- Vitest test suite: `pnpm -F swarmx-dashboard vitest run`
+- TypeScript compilation: `pnpm -F swarmx-dashboard tsc --noEmit`
+- Production Next.js build: `pnpm -F swarmx-dashboard next build`
+- Monorepo invariant checks per `AGENTS.md` (no `console.*` in services/routes, no legacy `-scar` tags)
+
+## Acceptance Criteria
+
+### Layout & Responsiveness
+- [ ] Dashboard layout seamlessly adapts across desktop, tablet, and compact container widths.
+- [ ] Navigation rail cleanly expands and collapses without content clipping or terminal canvas desync.
+- [ ] Telemetry drawer can be toggled or floated cleanly.
+
+### Telemetry Observability
+- [ ] Telemetry widget distinctly separates CPU load, ZRAM pressure, and agent fanout using high-contrast status tokens.
+- [ ] Real-time updates utilize accessible `aria-live="polite"` regions and screen-reader safe labels.
+
+### Pipeline UX & Queue Management
+- [ ] Advanced video job options are collapsed by default via progressive disclosure and expand smoothly.
+- [ ] Queues provide tabbed triage between active jobs, queued jobs, and dead-letter/failed jobs.
+- [ ] Quick actions (retry/cancel) are accessible via keyboard focus (`focus-within`) as well as mouse hover.
+
+### Build & Release Integrity
+- [ ] `pnpm -F swarmx-dashboard tsc --noEmit` exits with code 0.
+- [ ] All vitest test suites in `apps/swarmx-dashboard` pass.
+- [ ] `pnpm -F swarmx-dashboard next build` compiles cleanly across all routes.
+- [ ] Changes committed cleanly and pushed to `origin/main`.
+</USER_REQUEST>

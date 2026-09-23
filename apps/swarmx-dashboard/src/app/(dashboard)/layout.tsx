@@ -56,7 +56,7 @@ function DashboardShell({ children }: { readonly children: React.ReactNode }) {
 
       {/* Row 2, Col 2 — scrollable content zone */}
       <main
-        className="row-start-2 col-start-2 overflow-hidden flex flex-col bg-bg-base"
+        className="@container row-start-2 col-start-2 overflow-hidden flex flex-col bg-bg-base"
         id="main-content"
         tabIndex={-1}
       >
