@@ -1,0 +1,62 @@
+// Reference only. Keep secrets out of this file.
+{
+  models: {
+    providers: {
+      ollama: {
+        baseUrl: "http://127.0.0.1:11434",
+        api: "ollama",
+        apiKey: "ollama-local",
+        timeoutSeconds: 300,
+        models: [
+          {
+            id: "code-qwen25-pro-q5km-prod",
+            name: "Forge / Qwen2.5 7B Q5_K_M",
+            reasoning: false,
+            input: ["text"],
+            contextTokens: 6144,
+            params: {
+              num_ctx: 6144,
+              keep_alive: "0s",
+            },
+          },
+          {
+            id: "qwen3-vl:4b",
+            name: "Vision worker / Qwen3-VL 4B",
+            reasoning: true,
+            input: ["text", "image"],
+            contextTokens: 32768,
+            params: {
+              num_ctx: 8192,
+              keep_alive: "0s",
+            },
+          },
+        ],
+      },
+    },
+  },
+
+  agents: {
+    defaults: {
+      model: {
+        primary: "ollama/code-qwen25-pro-q5km-prod",
+        fallbacks: ["ollama/instruct-phi4-lite-q4km-prod"],
+      },
+      timeoutSeconds: 360,
+    },
+  },
+
+  tools: {
+    toolSearch: true,
+  },
+
+  skills: {
+    entries: {
+      "coding-agent": false,
+      "swarmx-creative-director": true,
+      "swarmx-virality-critic": true,
+      "swarmx-doctor": true,
+      "swarmx-vision-storyboard": true,
+      "swarmx-virality-cheatbook": true,
+    },
+  },
+}
