@@ -320,3 +320,16 @@ pnpm -F @swarmx/api run test:video:smoke   # smoke render test
 ## Philosophy
 
 *The incision is precise.* The Yap Engine (powered by SwarmXQ) rejects ornamental complexity. Every layer — naming, orchestration, pressure governance, video pipeline — answers a specific failure mode observed on real constrained hardware. When something feels over-engineered, it's because the alternative crashed.
+
+## OpenClaw coding-agent integration
+
+OpenClaw is an optional outer control plane for human-facing missions and local coding work. It does not replace SwarmXQ's `ModelOrchestrator`, pressure governor, or Operator registry.
+
+- Reference configuration: `integrations/openclaw/config.json5`
+- Architecture and promotion policy: `docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md`
+- Local coding-agent benchmark: `benchmarks/coding-agent/`
+- Integration validation: `pnpm validate:openclaw`
+- Benchmark baseline: `pnpm bench:coding-agent --model code-qwen25-pro-q5km-prod`
+
+Production video inference remains behind SwarmXQ orchestration. OpenClaw must not start a second Ollama daemon, increase inference parallelism, bypass pressure controls, or promote experimental models without local evidence.
+\n
