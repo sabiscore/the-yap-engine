@@ -350,7 +350,7 @@ The Cheatbook Writer must:
 
 ## 12. OpenClaw tool policy
 
-OpenClaw's current local-model architecture supports Ollama as a managed/external local backend and provides Tool Search, lean local-model mode, tool allow/deny policy, and agent sandboxing. Keep those controls explicit rather than relying on onboarding defaults. Local models do not inherit hosted-provider safety filtering; tool-enabled sessions therefore require a narrow blast radius and appropriate sandboxing. citeturn0search4turn0search5
+OpenClaw's current local-model architecture supports Ollama as a managed/external local backend and provides Tool Search, lean local-model mode, tool allow/deny policy, and agent sandboxing. Keep those controls explicit rather than relying on onboarding defaults. Local models do not inherit hosted-provider safety filtering; tool-enabled sessions therefore require a narrow blast radius and appropriate sandboxing.
 
 The repository reference configuration uses the `coding` profile, `localModelLean`, non-main Docker sandboxing, and an explicit deny list. The sandbox is a defense-in-depth boundary; it is not a substitute for SwarmX's own fail-closed policy.
 
