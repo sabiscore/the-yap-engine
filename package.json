@@ -8,8 +8,8 @@
     "lint": "pnpm --filter @swarmx/dashboard lint && ${PYTHON:-.venv/bin/python} -m ruff check .",
     "test": "pnpm --filter @swarmx/dashboard test && pnpm --filter @swarmx/api test",
     "typecheck": "pnpm --filter @swarmx/types typecheck && pnpm --filter @swarmx/api typecheck && pnpm --filter @swarmx/dashboard typecheck",
-    "validate:openclaw": "python scripts/validate-openclaw-integration.py",
-    "bench:coding-agent": "python benchmarks/coding-agent/run.py"
+    "validate:openclaw": "${PYTHON:-python3} scripts/validate-openclaw-integration.py",
+    "bench:coding-agent": "${PYTHON:-python3} benchmarks/coding-agent/run.py"
   },
   "packageManager": "pnpm@11.9.0"
 }

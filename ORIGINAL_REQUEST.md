@@ -140,3 +140,64 @@ Update user-facing and architectural documentation (`README.md`, `DESIGN_OVERHAU
 - [ ] `pnpm -F swarmx-dashboard next build` compiles cleanly across all routes.
 - [ ] Changes committed cleanly and pushed to `origin/main`.
 </USER_REQUEST>
+
+## Follow-up — 2026-09-24T09:46:50Z
+
+<USER_REQUEST>
+OpenClaw × SwarmXQ APEX-17 r8 Local Coding-Agent, Multimodal Intelligence & Creative Systems Engineering Directive implementation across The Yap Engine repository.
+
+Working directory: /home/scar/Documents/theyapengine
+Integrity mode: development
+
+## Requirements
+
+### R1. Harden OpenClaw Integration Boundaries & Static Invariant Validation
+- Ensure OpenClaw operates strictly as an outer human-facing control plane and bounded coding worker, never a second orchestrator.
+- Maintain static validation (scripts/validate-openclaw-integration.py) preserving ModelOrchestrator authority, SINGLE-7B lock, and gated production deployments.
+- Ensure package script pnpm validate:openclaw executes correctly across environments with Python 3 resolution.
+
+### R2. Deterministic Bounded Coding-Agent Baseline Harness
+- Maintain deterministic local benchmark harness at benchmarks/coding-agent/ with bounded tool surface (list_files, read_file, search_repo, write_file, run_validation).
+- Validate harness robustness against Python executable variations and record baseline for code-qwen25-pro-q5km-prod (Forge) under CPU-only memory constraints.
+- Multi-dimensional reporting: pass rate, first-pass rate, tool-call validity, latency, and host memory footprint (MemAvailable).
+
+### R3. Bounded Multimodal Vision Worker Integration
+- Keep vision capability (qwen3-vl:4b) strictly bounded and advisory for storyboard inspection, OCR, safe-zone analysis, and composition critique.
+- Ensure deterministic render and QC code remain authoritative; no permanent co-residency of vision models on constrained hardware.
+
+### R4. Creative Intelligence System Integration
+- Integrate bounded creative workflows: Creative Director, Virality Critic, Vision Critic, and Virality Cheatbook Writer.
+- Preserve 10-family template taxonomy, explicit hook grammars, and enforce max 1 critique + 1 revision pass (no unbounded loops).
+- Maintain evidence-backed cheatbook entries with explicit observation, hypothesis, and causal separation.
+
+### R5. Non-Negotiable Runtime Invariants & Monorepo Health
+- Enforce SINGLE-7B LOCK, MAX_CONCURRENT_JOBS=1, OLLAMA_NUM_PARALLEL=1, RAM_CRITICAL_MB=800.
+- Zero console.* in API services and routes; all environment reads through loadEnv().
+- Canonical tag resolution for all operators (@swarmx/types/operator-map).
+- Full monorepo typecheck, lint, and test suite green.
+
+## Acceptance Criteria
+
+### Security & Invariants
+- [ ] OpenClaw reference configuration enforces localModelLean: true, non-main docker sandboxing, and denies unapproved network/browser tools.
+- [ ] pnpm validate:openclaw exits cleanly with code 0.
+- [ ] Zero console.* statements across apps/swarmx-api/src/services/ and apps/swarmx-api/src/routes/.
+- [ ] Zero legacy -scar tags in active production code.
+
+### Coding-Agent Benchmark Contract
+- [ ] Benchmark runner (benchmarks/coding-agent/run.py) executes cleanly with python3/venv support.
+- [ ] Validation commands in benchmarks/coding-agent/cases.jsonl execute deterministically in isolated workspaces.
+- [ ] Multi-dimensional metrics contract captured (pass rate, first-pass rate, tool validity, memory delta).
+
+### Creative Intelligence & Vision
+- [ ] 5 OpenClaw skills present and verified in integrations/openclaw/skills/.
+- [ ] Creative loop strictly bounded to 1 critique and 1 revision pass.
+- [ ] Virality cheatbook maintains structured schema with verified evidence.
+
+### Monorepo Verification
+- [ ] pnpm -F @swarmx/types typecheck exits 0.
+- [ ] pnpm -F @swarmx/api typecheck exits 0.
+- [ ] pnpm -F @swarmx/dashboard typecheck exits 0.
+- [ ] pnpm -F @swarmx/dashboard test passes with all suites green.
+- [ ] pnpm -F @swarmx/api test passes.
+</USER_REQUEST>

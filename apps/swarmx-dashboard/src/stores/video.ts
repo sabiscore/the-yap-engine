@@ -58,6 +58,8 @@ export interface VideoActions {
   fetchJobDetail: (jobId: string) => Promise<void>;
   submitJob: (request: VideoJobRequest) => Promise<string | null>;
   cancelJob: (jobId: string) => Promise<void>;
+  dismissJob: (jobId: string) => Promise<boolean>;
+  clearDeadLetter: () => Promise<number>;
   publishJob: (jobId: string, input: { platform: "tiktok" | "reels" | "shorts" | "generic"; scheduledAt?: string }) => Promise<PublishResult | null>;
   recordJobSseStream: (jobId: string) => (() => void) | void;
   retryFromStage: (jobId: string, stage: string) => Promise<boolean>;
@@ -316,6 +318,79 @@ export const useVideoStore = create<VideoStore>()(
             false,
             "video/cancel/error",
           );
+        }
+      },
+
+      // ── dismissJob ───────────────────────────────────────────────────────────
+      dismissJob: async (jobId) => {
+        try {
+          await apiFetch(`/api/video/jobs/${jobId}`, { method: "DELETE" });
+          set(
+            (state) => {
+              const jobs = new Map(state.jobs);
+              jobs.delete(jobId);
+              const selectedJobId = state.selectedJobId === jobId ? null : state.selectedJobId;
+              return { jobs, selectedJobId };
+            },
+            false,
+            "video/dismiss"
+          );
+          return true;
+        } catch {
+          // If network / endpoint fails, still dismiss locally so UI stays responsive
+          set(
+            (state) => {
+              const jobs = new Map(state.jobs);
+              jobs.delete(jobId);
+              const selectedJobId = state.selectedJobId === jobId ? null : state.selectedJobId;
+              return { jobs, selectedJobId };
+            },
+            false,
+            "video/dismiss/local"
+          );
+          return true;
+        }
+      },
+
+      // ── clearDeadLetter ──────────────────────────────────────────────────────
+      clearDeadLetter: async () => {
+        try {
+          const res = await apiFetch<{ clearedCount?: number }>(`/api/video/jobs/dead-letter/clear`, { method: "POST" });
+          let count = res?.clearedCount ?? 0;
+          set(
+            (state) => {
+              const jobs = new Map(state.jobs);
+              for (const [id, job] of jobs.entries()) {
+                if (job.status === "failed" && job.maxRetries !== undefined && job.retryCount >= job.maxRetries) {
+                  jobs.delete(id);
+                  count++;
+                }
+              }
+              const selectedJobId = state.selectedJobId && !jobs.has(state.selectedJobId) ? null : state.selectedJobId;
+              return { jobs, selectedJobId };
+            },
+            false,
+            "video/clearDeadLetter"
+          );
+          return count;
+        } catch {
+          let count = 0;
+          set(
+            (state) => {
+              const jobs = new Map(state.jobs);
+              for (const [id, job] of jobs.entries()) {
+                if (job.status === "failed" && job.maxRetries !== undefined && job.retryCount >= job.maxRetries) {
+                  jobs.delete(id);
+                  count++;
+                }
+              }
+              const selectedJobId = state.selectedJobId && !jobs.has(state.selectedJobId) ? null : state.selectedJobId;
+              return { jobs, selectedJobId };
+            },
+            false,
+            "video/clearDeadLetter/local"
+          );
+          return count;
         }
       },
 

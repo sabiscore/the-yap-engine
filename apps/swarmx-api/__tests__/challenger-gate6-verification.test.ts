@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Fastify from "fastify";
 import {
   VIDEO_TEMPLATE_FAMILY_VALUES,
@@ -12,12 +12,21 @@ import {
   AudioMasteringError,
 } from "../src/services/audio-mastering.js";
 
+import { videoRoutes } from "../src/routes/video.js";
+
 // Mock child_process for unit-level assertion of command arguments without needing host binaries
 vi.mock("node:child_process", async () => {
   const actual = await vi.importActual<typeof import("node:child_process")>("node:child_process");
   return {
     ...actual,
     spawnSync: vi.fn(),
+    execFile: vi.fn((file: string, args: unknown, options: unknown, callback?: unknown) => {
+      const cb = typeof options === "function" ? options : typeof callback === "function" ? callback : undefined;
+      if (typeof cb === "function") {
+        cb(new Error(`spawn ${file} ENOENT`));
+      }
+      return {} as any;
+    }),
   };
 });
 
@@ -263,9 +272,12 @@ describe("Gate 6 Challenger Verification Suite", () => {
     let server: ReturnType<typeof Fastify>;
 
     beforeEach(async () => {
-      const { videoRoutes } = await import("../src/routes/video.js");
       server = Fastify({ logger: false });
       await server.register(videoRoutes, { prefix: "/api/video" });
+    });
+
+    afterEach(async () => {
+      await server.close();
     });
 
     it("rejects invalid templateFamily with 400 validation error", async () => {

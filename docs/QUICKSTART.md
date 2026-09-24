@@ -121,31 +121,57 @@ Expected duration on this CPU-only host: **3–8 minutes** per video.
 
 ---
 
-## 6 — Run tests
+## 6 — Run tests & benchmarks
 
 ```bash
 # TypeScript type check
-pnpm -F @swarmx/types typecheck
-pnpm -F @swarmx/api typecheck
-pnpm -F @swarmx/dashboard typecheck
-# (or from root: pnpm typecheck)
+pnpm typecheck
 
 # Unit tests
 pnpm -F @swarmx/api test              # 377 passing (26 test files)
-pnpm -F @swarmx/dashboard test        # 69 passing (9 test files)
-# (or from root: pnpm test)
+pnpm -F @swarmx/dashboard test        # 89 passing (10 test files)
+# (or from root: pnpm test — 466 total passing)
 
-# Video regression assertions
-pnpm -F @swarmx/api run test:video
+# Video pipeline tests
+pnpm -F @swarmx/api run test:video:smoke   # FFmpeg 720x1280 MP4 smoke render
+pnpm -F @swarmx/api run test:video         # Video state machine & pipeline regression
 
-# Python
+# OpenClaw static validation & local coding benchmark
+pnpm validate:openclaw                     # Verify boundaries & single-7B lock
+pnpm bench:coding-agent --model code-qwen25-pro-q5km-prod  # Run Forge control baseline
+
+# Python brain tests
 source .venv/bin/activate
 python -m pytest
 ```
 
 ---
 
-## 7 — Stop the stack
+## 7 — Direct API Video Generation
+
+You can submit jobs directly via HTTP curl:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/video/jobs \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev-token" \
+  -d '{
+    "prompt": "Why multitasking is a cognitive myth that kills focus",
+    "templateFamily": "myth-vs-fact",
+    "platform": "tiktok",
+    "targetDurationSeconds": 15
+  }'
+```
+
+Inspect job status:
+
+```bash
+curl http://127.0.0.1:3001/api/video/jobs/<job-id>
+```
+
+---
+
+## 8 — Stop the stack
 
 Press `Ctrl-C` in the terminal running `startup-enhanced.sh`, or kill stale processes:
 
@@ -162,4 +188,5 @@ pkill -f "next start"
 - [INSTALL.md](INSTALL.md) — model installation, Modelfile setup, Redis
 - [CONFIG_REFERENCE.md](CONFIG_REFERENCE.md) — full environment variable reference
 - [VIDEO-GENERATION.md](VIDEO-GENERATION.md) — video pipeline API contract and template taxonomy
+- [OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md](OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md) — OpenClaw control plane and coding agent engineering contract
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — `swarm doctor`, common errors, debug flags

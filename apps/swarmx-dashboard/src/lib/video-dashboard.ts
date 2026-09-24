@@ -525,3 +525,53 @@ export function formatActiveJobPrompt(prompt: string, maxLength = 42): string {
   const display = stripped.length > 0 ? stripped : trimmed;
   return display.slice(0, maxLength);
 }
+
+/**
+ * Extract a concise, human-readable headline/topic from a prompt for status pills and headers.
+ * Avoids verbose boilerplate like "a 30-second faceless TikTok video about fo..."
+ * and awkward mid-word cuts.
+ */
+export function formatActiveJobHeadline(prompt: string, maxLength = 48): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) return "video";
+
+  // Try extracting quoted title first: '3 habits to improve focus' or "Top 5 AI tools"
+  const quotedMatch = /["'“]([^"'“”]{3,60})["'”]/.exec(trimmed);
+  if (quotedMatch && quotedMatch[1]) {
+    return quotedMatch[1].trim();
+  }
+
+  // Try extracting "titled ..." or "about ..." or "... on ..."
+  const topicMatch = /(?:titled|entitled|about|exploring|\b(?:video|short|reel)\s+on)\s+([^,.;\n]{3,60})/i.exec(trimmed);
+  if (topicMatch && topicMatch[1]) {
+    const topic = topicMatch[1].trim();
+    if (topic.length <= maxLength) return topic;
+  }
+
+  // Strip leading action verbs
+  let clean = trimmed.replace(
+    /^(?:(?:create|make|generate|build|produce|creating|making|generating)[\s:]+\s*)+/i,
+    "",
+  );
+
+  // Strip common prompt boilerplate: "a 30s faceless TikTok(-style)? video/short about/titled/on "
+  clean = clean.replace(
+    /^(?:an?|the)?\s*(?:\d+[- ]?(?:second|seconds|s|sec|min|minute))?\s*(?:faceless|cinematic|kinetic|explainer)?\s*(?:tiktok|shorts?|reels?|youtube|video)?(?:-style)?\s*(?:video|short|reel)?\s*(?:about|titled|on)?\s*:?\s*/i,
+    "",
+  );
+
+  clean = clean.trim() || trimmed;
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  // Truncate at word boundary
+  const sliced = clean.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(" ");
+  if (lastSpace > maxLength * 0.6) {
+    return `${sliced.slice(0, lastSpace)}…`;
+  }
+  return `${sliced}…`;
+}
+

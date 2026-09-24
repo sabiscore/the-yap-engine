@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -89,7 +90,10 @@ class Sampler:
 
 def validation(case: dict[str, Any], workspace: Path) -> tuple[bool, str]:
     logs: list[str] = []
-    for command in case["validation"]:
+    for raw_command in case["validation"]:
+        command = raw_command
+        if command.startswith("python ") and shutil.which("python") is None:
+            command = f"{sys.executable} {command[7:]}"
         proc = subprocess.run(
             command,
             cwd=workspace,
@@ -264,7 +268,10 @@ def main() -> int:
     if not cases:
         raise SystemExit("No benchmark cases selected.")
 
-    model_meta = http_json(args.base_url, "/api/show", {"name": args.model}, timeout=30)
+    try:
+        model_meta = http_json(args.base_url, "/api/show", {"name": args.model}, timeout=30)
+    except Exception as exc:
+        raise SystemExit(f"Error: Unable to connect to Ollama at {args.base_url}: {exc}. Please verify Ollama is running.")
     results = []
     for repeat in range(max(args.repeat, 1)):
         for case in cases:
@@ -283,7 +290,7 @@ def main() -> int:
         "schema_version": 1,
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "git_head": subprocess.run(["git","rev-parse","HEAD"], cwd=ROOT, text=True, capture_output=True).stdout.strip(),
-        "model": model, "base_url": args.base_url, "model_show": model_meta,
+        "model": args.model, "base_url": args.base_url, "model_show": model_meta,
         "summary": {
             "cases": n, "pass_rate": passed/n, "first_pass_rate": first/n,
             "tool_call_success_rate": 1-(malformed/total_tools) if total_tools else 1.0,

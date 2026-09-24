@@ -375,6 +375,60 @@ export function cancelJob(id: string): boolean {
 }
 
 /**
+ * Permanently delete / dismiss a job from the queue registry and durable snapshot.
+ * If the job is active/running, cancels it before removing.
+ * Returns false if job was not found.
+ */
+export function deleteJob(id: string): boolean {
+  const job = registry.get(id);
+  if (!job) return false;
+
+  if (!isTerminalStatus(job.status)) {
+    cancelJob(id);
+  }
+
+  registry.delete(id);
+  writeSnapshot("video-jobs", [...registry.values()]);
+  return true;
+}
+
+/**
+ * Remove all retry-exhausted dead-letter jobs from the queue registry and durable snapshot.
+ * Returns the count of jobs purged.
+ */
+export function clearDeadLetterJobs(): number {
+  let count = 0;
+  for (const [id, job] of registry.entries()) {
+    if (job.status === "failed" && job.maxRetries !== undefined && job.retryCount >= job.maxRetries) {
+      registry.delete(id);
+      count++;
+    }
+  }
+  if (count > 0) {
+    writeSnapshot("video-jobs", [...registry.values()]);
+  }
+  return count;
+}
+
+/**
+ * Remove all failed jobs from the queue registry and durable snapshot.
+ * Returns the count of jobs purged.
+ */
+export function clearFailedJobs(): number {
+  let count = 0;
+  for (const [id, job] of registry.entries()) {
+    if (job.status === "failed") {
+      registry.delete(id);
+      count++;
+    }
+  }
+  if (count > 0) {
+    writeSnapshot("video-jobs", [...registry.values()]);
+  }
+  return count;
+}
+
+/**
  * Pick the next queued job that fits concurrency limits.
  * Returns undefined if nothing is available or concurrency is saturated.
  */

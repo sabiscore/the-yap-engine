@@ -3,6 +3,7 @@ import {
   ACTIVE_VIDEO_STATUSES,
   errorCodeHint,
   errorCodeNextAction,
+  formatActiveJobHeadline,
   formatActiveJobPrompt,
   isActiveVideoStatus,
   normalizeVideoJob,
@@ -141,6 +142,43 @@ describe("video dashboard normalization", () => {
     it("returns 'video' fallback for empty or whitespace prompts", () => {
       expect(formatActiveJobPrompt("")).toBe("video");
       expect(formatActiveJobPrompt("   ")).toBe("video");
+    });
+  });
+
+  describe("formatActiveJobHeadline", () => {
+    it("extracts quoted titles cleanly", () => {
+      expect(
+        formatActiveJobHeadline(
+          "Create a 30-second faceless TikTok-style video titled '3 habits that improve focus'",
+        ),
+      ).toBe("3 habits that improve focus");
+    });
+
+    it("extracts 'about' topics cleanly without boilerplate", () => {
+      expect(
+        formatActiveJobHeadline(
+          "Create a 30-second faceless TikTok video about focus",
+        ),
+      ).toBe("focus");
+    });
+
+    it("strips boilerplate when no topic keyword is present", () => {
+      expect(
+        formatActiveJobHeadline("Create a 30s TikTok short on productivity"),
+      ).toBe("productivity");
+    });
+
+    it("truncates at word boundary without awkward word splitting", () => {
+      const longPrompt = "How to automate your entire business with local AI agents and autonomous workflows";
+      const result = formatActiveJobHeadline(longPrompt, 35);
+      expect(result.length).toBeLessThanOrEqual(36);
+      expect(result.endsWith("…")).toBe(true);
+      expect(result).not.toContain("busines…");
+    });
+
+    it("returns 'video' fallback for empty prompts", () => {
+      expect(formatActiveJobHeadline("")).toBe("video");
+      expect(formatActiveJobHeadline("   ")).toBe("video");
     });
   });
 

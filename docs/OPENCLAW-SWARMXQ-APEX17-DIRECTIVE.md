@@ -58,6 +58,7 @@ OpenClaw may:
 OpenClaw must not:
 - call Ollama directly for SwarmX production stages;
 - bypass `ModelOrchestrator`;
+- violate the SINGLE-7B LOCK (never allow two 7B models active or resident simultaneously);
 - mutate `MODEL_OPERATOR_MAP` ad hoc;
 - start a second Ollama daemon;
 - raise `OLLAMA_NUM_PARALLEL`;

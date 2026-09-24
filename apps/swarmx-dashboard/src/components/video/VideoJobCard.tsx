@@ -60,6 +60,7 @@ export interface VideoJobCardProps {
   isSelected?: boolean;
   onRetry?: (jobId: string) => void;
   onCancel?: (jobId: string) => void;
+  onDismiss?: (jobId: string) => void;
   onMoveUp?: (jobId: string) => void;
   onMoveDown?: (jobId: string) => void;
   canMoveUp?: boolean;
@@ -261,6 +262,7 @@ export function VideoJobCard({
   isSelected,
   onRetry,
   onCancel,
+  onDismiss,
   onMoveUp,
   onMoveDown,
   canMoveUp = true,
@@ -268,6 +270,7 @@ export function VideoJobCard({
   className = "",
 }: VideoJobCardProps) {
   const cancelJob = useVideoStore((s) => s.cancelJob);
+  const dismissJob = useVideoStore((s) => s.dismissJob);
   const retryFromStage = useVideoStore((s) => s.retryFromStage);
   const router = useRouter();
 
@@ -289,6 +292,15 @@ export function VideoJobCard({
       onCancel(job.id);
     } else {
       void cancelJob(job.id);
+    }
+  };
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDismiss) {
+      onDismiss(job.id);
+    } else {
+      void dismissJob(job.id);
     }
   };
 
@@ -604,6 +616,33 @@ export function VideoJobCard({
             </span>
           )}
         </div>
+
+        {/* Action Row for Failed or Dead-Letter Jobs */}
+        {isFailed && (
+          <div
+            className="mt-1 flex items-center gap-2 pt-2 border-t border-border/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="flex items-center gap-1.5 rounded border border-status-warning/40 bg-status-warning/10 px-2.5 py-1 text-xs font-medium text-status-warning hover:bg-status-warning/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-warning transition-colors"
+              aria-label={`Retry failed job: ${promptSnippet}`}
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              Retry from Failed Stage
+            </button>
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="flex items-center gap-1.5 rounded border border-border bg-bg-surface px-2.5 py-1 text-xs text-text-muted hover:border-status-error/40 hover:bg-status-error/10 hover:text-status-error focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-error transition-colors"
+              aria-label={`Dismiss failed job: ${promptSnippet}`}
+            >
+              <X className="h-3 w-3" aria-hidden="true" />
+              Dismiss
+            </button>
+          </div>
+        )}
       </button>
 
       {/* Contextual Quick Actions Toolbar */}
@@ -722,6 +761,23 @@ export function VideoJobCard({
             "
             title="Cancel job"
             aria-label={`Cancel job: ${promptSnippet}`}
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* Dismiss / Remove (Terminal states: failed, cancelled, completed, done) */}
+        {(isFailed || job.status === "cancelled" || isComplete) && (
+          <button
+            type="button"
+            onClick={handleDismiss}
+            className="
+              rounded p-1 text-text-muted hover:bg-status-error/10 hover:text-status-error
+              transition-colors duration-150
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error
+            "
+            title="Dismiss job from queue"
+            aria-label={`Dismiss job from queue: ${promptSnippet}`}
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>

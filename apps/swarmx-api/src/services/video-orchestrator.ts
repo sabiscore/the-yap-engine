@@ -1797,6 +1797,7 @@ function creativeBriefLines(req: VideoJobRequest): string {
 const TEMPLATE_FAMILY_STRUCTURES: Record<string, string> = {
   "myth-vs-fact": "Structure as a direct debunking. Hook states the myth, Body provides the surprising fact, Resolution explains why the myth persisted.",
   "list/countdown": "Structure as a rapid-fire list. Hook introduces the topic/stakes, Body cycles through 3-5 items quickly, Resolution synthesizes the takeaway.",
+  "listicle-countdown": "Structure as a rapid countdown. Hook states the stakes and payoff, Body moves through 3–5 escalating items, Resolution lands the strongest takeaway and save-worthy CTA.",
   "mystery/reveal": "Structure as a narrative puzzle. Hook presents an anomaly, Body drops breadcrumbs/clues, Resolution reveals the surprising answer.",
   "product-demo": "Structure as a problem/solution showcase. Hook highlights a visceral pain point, Body demonstrates the solution in action, Resolution highlights the outcome.",
   "quote-to-insight": "Structure around a powerful quote. Hook drops the quote, Body analyzes its non-obvious meaning, Resolution applies it to the viewer's life.",

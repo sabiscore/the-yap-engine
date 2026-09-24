@@ -49,14 +49,16 @@ import { loadEnv } from "../lib/env.js";
 // legacy single-dash `-version` (FFmpeg 6+ builds reject `--version`), while
 // espeak-ng and most GNU tools accept `--version`. Pass the correct flag per
 // command instead of assuming a single convention works for all.
-const execFileAsync = promisify(execFile);
-async function commandAvailable(cmd: string, versionFlag = "--version"): Promise<boolean> {
-  try {
-    await execFileAsync(cmd, [versionFlag], { timeout: 3_000 });
-    return true;
-  } catch {
-    return false;
-  }
+function commandAvailable(cmd: string, versionFlag = "--version"): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      execFile(cmd, [versionFlag], { timeout: 3_000 }, (error) => {
+        resolve(!error);
+      });
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 const PublishRequestSchema = {
@@ -611,7 +613,52 @@ export async function videoRoutes(
       preHandler: requireVideoWriteAuth,
       schema: { params: JobIdParamSchema },
     },
-    async (request, reply) => cancelVideoJob(request, reply, broadcast),
+    async (request, reply) => {
+      const job = queue.getJob(request.params.id);
+      if (!job) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: `Video job ${request.params.id} not found`,
+        });
+      }
+
+      const previousStatus = job.status;
+      if (isTerminalStatus(previousStatus)) {
+        queue.deleteJob(request.params.id);
+        broadcast({
+          type: "video:cancelled",
+          timestamp: new Date().toISOString(),
+          data: {
+            jobId: job.id,
+            cancelledAt: new Date().toISOString(),
+            requestedBy: "user",
+            ...(job.currentStage !== undefined ? { stage: job.currentStage } : {}),
+          },
+        });
+        return reply.send({
+          jobId: job.id,
+          deleted: true,
+          previousStatus,
+          message: "Job dismissed",
+        });
+      }
+
+      return cancelVideoJob(request, reply, broadcast);
+    },
+  );
+
+  fastify.post(
+    "/jobs/dead-letter/clear",
+    {
+      preHandler: requireVideoWriteAuth,
+    },
+    async (_request, reply) => {
+      const clearedCount = queue.clearDeadLetterJobs();
+      return reply.send({
+        clearedCount,
+        message: `Cleared ${clearedCount} dead-letter jobs`,
+      });
+    },
   );
 
   fastify.post<{ Params: { id: string }; Body: { fromStage: string } }>(

@@ -50,3 +50,6 @@ AGENTS.md
 
 # AI agent session workspaces — ephemeral orchestration artifacts, not source
 .agents/teamwork_preview_*/
+.agents/sentinel_*/
+.agents/handoff.md
+.agents/ORIGINAL_REQUEST.md

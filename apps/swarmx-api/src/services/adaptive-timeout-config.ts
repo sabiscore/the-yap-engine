@@ -59,20 +59,24 @@ export type { OperationKey, PressureLevel };
 
 // ─── Adaptive timeout matrix (ms) ────────────────────────────────────────────
 
+// CPU-only hardware timeout matrix (HP EliteBook 850 G3, ~5 tok/s on Q4_K_M).
+// All inference operations are calibrated for CPU inference; on GPU these would
+// be 10–50× shorter. The "low" pressure column is the primary path on this host
+// since RAM is typically >4 GB free when no 7B model is loaded.
 const TIMEOUT_MATRIX: Record<OperationKey, Record<PressureLevel, number>> = {
-  intent_classify:     { low: 4_000,   normal: 3_000,  high: 2_000,  critical: 1_500  },
-  routing:             { low: 6_000,   normal: 5_000,  high: 4_000,  critical: 3_000  },
-  fast_chat:           { low: 15_000,  normal: 12_000, high: 8_000,  critical: 6_000  },
-  tool_execution:      { low: 35_000,  normal: 28_000, high: 20_000, critical: 15_000 },
-  supervisor_planning: { low: 60_000,  normal: 50_000, high: 35_000, critical: 25_000 },
-  code_generation:     { low: 55_000,  normal: 45_000, high: 32_000, critical: 22_000 },
-  deep_reasoning:      { low: 120_000, normal: 90_000, high: 60_000, critical: 45_000 },
-  critic_audit:        { low: 100_000, normal: 75_000, high: 55_000, critical: 40_000 },
-  evolver_observe:     { low: 90_000,  normal: 75_000, high: 55_000, critical: 40_000 },
-  evolver_critique:    { low: 150_000, normal: 120_000,high: 90_000, critical: 60_000 },
-  evolver_mutate:      { low: 120_000, normal: 90_000, high: 70_000, critical: 50_000 },
-  evolver_validate:    { low: 150_000, normal: 120_000,high: 90_000, critical: 60_000 },
-  health_probe:        { low: 2_000,   normal: 2_000,  high: 1_500,  critical: 1_000  },
+  intent_classify:     { low: 600_000,  normal: 480_000,  high: 360_000,  critical: 240_000  },
+  routing:             { low: 180_000,  normal: 150_000,  high: 120_000,  critical: 90_000   },
+  fast_chat:           { low: 600_000,  normal: 480_000,  high: 360_000,  critical: 240_000  },
+  tool_execution:      { low: 600_000,  normal: 480_000,  high: 360_000,  critical: 240_000  },
+  supervisor_planning: { low: 900_000,  normal: 720_000,  high: 540_000,  critical: 360_000  },
+  code_generation:     { low: 900_000,  normal: 720_000,  high: 540_000,  critical: 360_000  },
+  deep_reasoning:      { low: 1_800_000,normal: 1_440_000,high: 1_080_000,critical: 720_000  },
+  critic_audit:        { low: 1_200_000,normal: 960_000,  high: 720_000,  critical: 480_000  },
+  evolver_observe:     { low: 900_000,  normal: 720_000,  high: 540_000,  critical: 360_000  },
+  evolver_critique:    { low: 1_800_000,normal: 1_440_000,high: 1_080_000,critical: 720_000  },
+  evolver_mutate:      { low: 1_200_000,normal: 960_000,  high: 720_000,  critical: 480_000  },
+  evolver_validate:    { low: 1_800_000,normal: 1_440_000,high: 1_080_000,critical: 720_000  },
+  health_probe:        { low: 5_000,    normal: 5_000,    high: 3_000,    critical: 2_000    },
 };
 
 const PRESSURE_THRESHOLDS_MB = {
