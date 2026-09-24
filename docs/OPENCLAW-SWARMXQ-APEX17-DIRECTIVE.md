@@ -350,6 +350,10 @@ The Cheatbook Writer must:
 
 ## 12. OpenClaw tool policy
 
+OpenClaw's current local-model architecture supports Ollama as a managed/external local backend and provides Tool Search, lean local-model mode, tool allow/deny policy, and agent sandboxing. Keep those controls explicit rather than relying on onboarding defaults. Local models do not inherit hosted-provider safety filtering; tool-enabled sessions therefore require a narrow blast radius and appropriate sandboxing. citeturn0search4turn0search5
+
+The repository reference configuration uses the `coding` profile, `localModelLean`, non-main Docker sandboxing, and an explicit deny list. The sandbox is a defense-in-depth boundary; it is not a substitute for SwarmX's own fail-closed policy.
+
 OpenClaw gets a small, explicit tool surface:
 
 **Read-only**
@@ -378,7 +382,29 @@ Use sandboxing and strict tool allowlists for smaller local models. OpenClaw's o
 
 ---
 
-## 13. Research protocol
+## 13. Coding-agent benchmark gate
+
+Run `benchmarks/coding-agent/run.py` against the current Forge baseline before changing the production coding model.
+
+The harness uses isolated fixtures and five bounded tools:
+`list_files`, `read_file`, `search_repo`, `write_file`, and fixed `run_validation`.
+
+Capture at minimum:
+
+- pass rate;
+- first-pass rate;
+- structured tool-call validity;
+- validation failures;
+- wall-clock latency;
+- generated-token count when reported by Ollama;
+- minimum host MemAvailable;
+- maximum resident model footprint from Ollama `/api/ps`;
+- exact model metadata;
+- Git SHA.
+
+Never promote on aggregate score alone. A candidate that improves quality while violating memory, tool-safety or regression constraints is rejected.
+
+## 14. Research protocol
 
 For every external claim:
 
@@ -395,7 +421,7 @@ Never fill a missing benchmark cell with an estimate.
 
 ---
 
-## 14. RISC-V roadmap
+## 15. RISC-V roadmap
 
 Treat RISC-V as a **future accelerator track**, not a current dependency.
 
@@ -416,7 +442,7 @@ Future procurement criteria:
 
 ---
 
-## 15. Execution contract
+## 16. Execution contract
 
 For every implementation mission emit:
 
