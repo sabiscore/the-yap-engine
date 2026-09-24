@@ -67,3 +67,43 @@ export OLLAMA_KEEP_ALIVE=0
 Only one 7B-class operator may be inference-active at a time. The second loaded
 slot is reserved for the smaller Pilot/Relay class model residency, not
 parallel 7B inference.
+
+
+---
+
+## OpenClaw Integration Policy
+
+OpenClaw is an outer control plane for chat-driven missions and bounded coding/research work. It shares the local Ollama endpoint but **does not own model lifecycle**. SwarmXQ's `ModelOrchestrator`, pressure governor and execution gates remain authoritative.
+
+Canonical local endpoint:
+
+```bash
+SWARMX_OLLAMA_URL=http://127.0.0.1:11434
+SWARMX_API_URL=http://127.0.0.1:3001
+OLLAMA_NUM_PARALLEL=1
+```
+
+Do not hard-code competing `OLLAMA_MAX_LOADED_MODELS` or keep-alive policies in OpenClaw; the existing host profile/governor owns them.
+
+### Quantization admission
+
+Representative llama.cpp 7–8B footprints are approximately:
+- Q4_K_M: ~4.9 bpw / ~4.6 GiB;
+- Q5_K_M: ~5.7 bpw / ~5.3 GiB;
+- Q6_K: ~6.56 bpw / ~6.1 GiB;
+- Q8_0: ~8.5 bpw / ~8.0 GiB;
+- IQ4_XS: ~4.25 bpw.
+
+Use Q4_K_M as the compact baseline and Q5_K_M/Q6_K for quality-sensitive coding/reasoning when measured headroom permits. Importance-matrix calibration is required for quality-sensitive IQ candidates.
+
+Do not publish universal percentage-of-quality claims for quantization. Evaluate quality loss on the Yap Engine task set.
+
+### MoE warning
+
+MoE active parameters do not equal resident weight memory. Large-total-parameter candidates such as Qwen3-Coder-Next or Gemma 4 26B A4B remain experimental until the complete GGUF/runtime footprint is measured on the target host with KV-cache and pressure headroom.
+
+### Vision policy
+
+Vision is serialized with heavyweight text inference on the CPU-only baseline. Bound frame count and pixel budget, convert results into structured observations, release the vision model, then resume the next stage. Never create a second resident model lifecycle.
+
+Promotion evidence must be local and reproducible; vendor benchmarks alone are insufficient.
