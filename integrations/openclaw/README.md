@@ -50,7 +50,7 @@ openclaw onboard --auth-choice ollama --non-interactive --accept-risk --skip-hea
 
 For a local-only installation, keep cloud models disabled and use OpenClaw's tool allowlist/sandbox.
 
-The checked-in `config.json5` is a **reference profile**, not a secret-bearing production configuration.
+The checked-in `config.json5` is a **reference profile**, not a secret-bearing production configuration. It uses OpenClaw's `coding` tool profile, lean local-model mode, and Docker sandboxing for non-main sessions. The sandbox keeps tool execution isolated while the Gateway/provider remains on-host. Keep `workspaceAccess: "rw"` only for a dedicated coding workspace; never bind a home directory or credential directory.
 
 ## Guardrails
 
@@ -73,3 +73,22 @@ The checked-in `config.json5` is a **reference profile**, not a secret-bearing p
 - Virality Cheatbook Writer
 
 They are deliberately bounded and composable; none can mutate protected SwarmX invariants.
+
+
+## Benchmark before model promotion
+
+Run the repository-owned baseline:
+
+```bash
+pnpm bench:coding-agent --model code-qwen25-pro-q5km-prod --output benchmarks/coding-agent/results/baseline.json
+```
+
+The harness uses isolated fixtures and a fixed tool surface. It records pass rate, first-pass rate, tool-call validity, latency and memory pressure. Candidate models must be compared against the same cases and hardware profile.
+
+## Verification
+
+```bash
+pnpm validate:openclaw
+```
+
+The validator is deliberately static. It does not start Ollama, change concurrency, or mutate production model state.
