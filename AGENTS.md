@@ -227,3 +227,51 @@ grep -rn '\-scar' apps/ packages/ src/                                          
 ❌ AbortController listeners without { once: true }
 ❌ modelsUsed[stage] set in runStage() rather than inside the stage function
 ```
+
+
+---
+
+## OPENCLAW CONTROL-PLANE CONTRACT
+
+OpenClaw is an **outer human-facing control plane and bounded coding/research worker**. It is not a second SwarmXQ orchestrator.
+
+OpenClaw may:
+- call documented local SwarmXQ API/CLI boundaries;
+- inspect health, status and job events;
+- invoke reviewed repository-local AgentSkills;
+- run substantial coding work in isolated Git worktrees;
+- run tests/typechecks/lint and prepare reviewable patches.
+
+OpenClaw must never:
+- instantiate or replace `ModelOrchestrator`;
+- call Ollama load/unload/eviction directly;
+- bypass execution gates;
+- change RAM pressure thresholds or `MAX_CONCURRENT_JOBS`;
+- write SwarmXQ persistence directly;
+- run two 7B-class inference workloads;
+- silently alter canonical Operator identity;
+- execute unreviewed third-party skills;
+- expose credentials or unnecessary private media.
+
+### OpenClaw skill security
+
+Treat every `SKILL.md` as executable agent instructions. Review repository-local skills before enabling them. Keep skills narrowly scoped, explicit about stop conditions, and bounded to the public API/CLI and approved worktrees.
+
+For background coding-agent work:
+- use an isolated worktree;
+- classify the source ref as trusted or untrusted;
+- never use permission-bypassed workers on untrusted contributor refs;
+- capture a real notification route;
+- verify the resulting diff and tests before completion.
+
+### Model promotion gate
+
+New Ollama/GGUF candidates are experimental until measured on the target host for resident weight footprint, KV-cache, peak RAM, latency, tokens/sec, structured-output validity, tool-call success, task quality and pressure-tier failure behavior.
+
+Active-parameter count for an MoE is **not** a residency guarantee. Do not promote an MoE solely because its active parameter count appears to fit the host.
+
+The canonical upgrade mission and repository-local OpenClaw skills live in:
+- `.agents/OPENCLAW_YAP_ENGINE_UPGRADE_PROMPT.md`
+- `docs/OPENCLAW_INTEGRATION.md`
+- `.agents/skills/openclaw-*/SKILL.md`
+
