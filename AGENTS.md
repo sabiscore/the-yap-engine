@@ -227,3 +227,41 @@ grep -rn '\-scar' apps/ packages/ src/                                          
 ❌ AbortController listeners without { once: true }
 ❌ modelsUsed[stage] set in runStage() rather than inside the stage function
 ```
+
+---
+
+## OPENCLAW CONTROL-PLANE BOUNDARY
+
+OpenClaw is an **outer human-facing control plane and coding-agent shell**. It is not a replacement
+for SwarmXQ's ModelOrchestrator or Operator registry.
+
+For OpenClaw work, read:
+- `docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md`
+- `integrations/openclaw/README.md`
+- `integrations/openclaw/config.json5`
+- the relevant `integrations/openclaw/skills/*/SKILL.md`
+
+### OpenClaw invariants
+
+1. Production SwarmX inference remains behind `ModelOrchestrator`.
+2. OpenClaw must not call Ollama directly for production video stages.
+3. `OLLAMA_NUM_PARALLEL=1` remains mandatory.
+4. The SINGLE-7B lock remains mandatory.
+5. 8 GB hosts use one loaded model; 16 GB hosts may use bounded residency only after pressure checks.
+6. Experimental vision models are on-demand workers and are not production Operators until they have formal registry contracts and local eval evidence.
+7. Cloud routing is disabled for local-only missions.
+8. Production deploys, model promotion, protected constants, and destructive actions remain human-gated.
+9. Smaller/heavily quantized local models require sandboxing and strict tool allowlists.
+10. Model replacement decisions require measured task success, tool reliability, latency, peak RSS, RAM headroom, and regression evidence — not leaderboard scores alone.
+
+## CODING-AGENT BENCHMARK BOUNDARY
+
+Use `benchmarks/coding-agent/` for model comparisons. The harness uses isolated fixture workspaces and a fixed tool surface. It must remain independent of production SwarmX state.
+
+- Baseline: `code-qwen25-pro-q5km-prod`
+- Run: `pnpm bench:coding-agent --model <model>`
+- Validate integration: `pnpm validate:openclaw`
+- Do not promote a model from a benchmark aggregate alone.
+- Preserve the same case corpus, context budget, concurrency and hardware profile when comparing variants.
+- Never place secrets or production repository data into benchmark fixtures.
+\n
