@@ -254,4 +254,14 @@ For OpenClaw work, read:
 9. Smaller/heavily quantized local models require sandboxing and strict tool allowlists.
 10. Model replacement decisions require measured task success, tool reliability, latency, peak RSS, RAM headroom, and regression evidence — not leaderboard scores alone.
 
+## CODING-AGENT BENCHMARK BOUNDARY
 
+Use `benchmarks/coding-agent/` for model comparisons. The harness uses isolated fixture workspaces and a fixed tool surface. It must remain independent of production SwarmX state.
+
+- Baseline: `code-qwen25-pro-q5km-prod`
+- Run: `pnpm bench:coding-agent --model <model>`
+- Validate integration: `pnpm validate:openclaw`
+- Do not promote a model from a benchmark aggregate alone.
+- Preserve the same case corpus, context budget, concurrency and hardware profile when comparing variants.
+- Never place secrets or production repository data into benchmark fixtures.
+\n
