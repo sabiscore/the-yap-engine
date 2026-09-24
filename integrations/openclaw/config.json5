@@ -42,11 +42,39 @@
         fallbacks: ["ollama/instruct-phi4-lite-q4km-prod"],
       },
       timeoutSeconds: 360,
+      experimental: {
+        // Keeps local-agent prompts/tool catalogs small on constrained hosts.
+        localModelLean: true,
+      },
+      sandbox: {
+        // Group/channel sessions are sandboxed; the Gateway/provider remains on-host.
+        mode: "non-main",
+        backend: "docker",
+        scope: "agent",
+        workspaceAccess: "rw",
+      },
     },
   },
 
   tools: {
+    profile: "coding",
     toolSearch: true,
+    deny: [
+      "browser",
+      "web_search",
+      "web_fetch",
+      "gateway",
+      "cron",
+      "nodes",
+      "image_generate",
+      "music_generate",
+      "video_generate",
+    ],
+    sandbox: {
+      tools: {
+        deny: ["gateway", "browser", "web_search", "web_fetch", "nodes", "cron"],
+      },
+    },
   },
 
   skills: {
