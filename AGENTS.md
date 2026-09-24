@@ -228,40 +228,50 @@ grep -rn '\-scar' apps/ packages/ src/                                          
 ❌ modelsUsed[stage] set in runStage() rather than inside the stage function
 ```
 
+
 ---
 
-## OPENCLAW CONTROL-PLANE BOUNDARY
+## OPENCLAW CONTROL-PLANE CONTRACT
 
-OpenClaw is an **outer human-facing control plane and coding-agent shell**. It is not a replacement
-for SwarmXQ's ModelOrchestrator or Operator registry.
+OpenClaw is an **outer human-facing control plane and bounded coding/research worker**. It is not a second SwarmXQ orchestrator.
 
-For OpenClaw work, read:
-- `docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md`
-- `integrations/openclaw/README.md`
-- `integrations/openclaw/config.json5`
-- the relevant `integrations/openclaw/skills/*/SKILL.md`
+OpenClaw may:
+- call documented local SwarmXQ API/CLI boundaries;
+- inspect health, status and job events;
+- invoke reviewed repository-local AgentSkills;
+- run substantial coding work in isolated Git worktrees;
+- run tests/typechecks/lint and prepare reviewable patches.
 
-### OpenClaw invariants
+OpenClaw must never:
+- instantiate or replace `ModelOrchestrator`;
+- call Ollama load/unload/eviction directly;
+- bypass execution gates;
+- change RAM pressure thresholds or `MAX_CONCURRENT_JOBS`;
+- write SwarmXQ persistence directly;
+- run two 7B-class inference workloads;
+- silently alter canonical Operator identity;
+- execute unreviewed third-party skills;
+- expose credentials or unnecessary private media.
 
-1. Production SwarmX inference remains behind `ModelOrchestrator`.
-2. OpenClaw must not call Ollama directly for production video stages.
-3. `OLLAMA_NUM_PARALLEL=1` remains mandatory.
-4. The SINGLE-7B lock remains mandatory.
-5. 8 GB hosts use one loaded model; 16 GB hosts may use bounded residency only after pressure checks.
-6. Experimental vision models are on-demand workers and are not production Operators until they have formal registry contracts and local eval evidence.
-7. Cloud routing is disabled for local-only missions.
-8. Production deploys, model promotion, protected constants, and destructive actions remain human-gated.
-9. Smaller/heavily quantized local models require sandboxing and strict tool allowlists.
-10. Model replacement decisions require measured task success, tool reliability, latency, peak RSS, RAM headroom, and regression evidence — not leaderboard scores alone.
+### OpenClaw skill security
 
-## CODING-AGENT BENCHMARK BOUNDARY
+Treat every `SKILL.md` as executable agent instructions. Review repository-local skills before enabling them. Keep skills narrowly scoped, explicit about stop conditions, and bounded to the public API/CLI and approved worktrees.
 
-Use `benchmarks/coding-agent/` for model comparisons. The harness uses isolated fixture workspaces and a fixed tool surface. It must remain independent of production SwarmX state.
+For background coding-agent work:
+- use an isolated worktree;
+- classify the source ref as trusted or untrusted;
+- never use permission-bypassed workers on untrusted contributor refs;
+- capture a real notification route;
+- verify the resulting diff and tests before completion.
 
-- Baseline: `code-qwen25-pro-q5km-prod`
-- Run: `pnpm bench:coding-agent --model <model>`
-- Validate integration: `pnpm validate:openclaw`
-- Do not promote a model from a benchmark aggregate alone.
-- Preserve the same case corpus, context budget, concurrency and hardware profile when comparing variants.
-- Never place secrets or production repository data into benchmark fixtures.
-\n
+### Model promotion gate
+
+New Ollama/GGUF candidates are experimental until measured on the target host for resident weight footprint, KV-cache, peak RAM, latency, tokens/sec, structured-output validity, tool-call success, task quality and pressure-tier failure behavior.
+
+Active-parameter count for an MoE is **not** a residency guarantee. Do not promote an MoE solely because its active parameter count appears to fit the host.
+
+The canonical upgrade mission and repository-local OpenClaw skills live in:
+- `.agents/OPENCLAW_YAP_ENGINE_UPGRADE_PROMPT.md`
+- `docs/OPENCLAW_INTEGRATION.md`
+- `.agents/skills/openclaw-*/SKILL.md`
+
