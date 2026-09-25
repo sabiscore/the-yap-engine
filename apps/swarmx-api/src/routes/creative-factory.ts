@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type {
   AudiencePersona,
+  BackgroundRecipe,
   BrandKit,
   ConceptCandidate,
   ConceptTournament,
@@ -437,7 +438,7 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
           id: parsed.data.id,
           creativeDnaId: parsed.data.creativeDnaId,
           scenes: parsed.data.scenes,
-          backgroundRecipes: parsed.data.backgroundRecipes as never,
+          backgroundRecipes: parsed.data.backgroundRecipes as BackgroundRecipe,
           ...(audioTiming ? { audioTiming } : {}),
           changed: parsed.data.changed,
           rendererVersion: parsed.data.rendererVersion,
