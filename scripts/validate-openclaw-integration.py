@@ -22,13 +22,16 @@ REQUIRED_SKILLS = {
 }
 REQUIRED_STRINGS = (
     'baseUrl: "http://127.0.0.1:11434"',
-    'primary: "ollama/code-qwen25-pro-q5km-prod"',
+    'primary: "ollama/qwen3:8b"',
+    'fallbacks: ["ollama/qwen3:4b"]',
+    'primary: "ollama/qwen3-vl:4b"',
     'localModelLean: true',
     'mode: "non-main"',
     'profile: "coding"',
     '"browser"',
     '"web_search"',
     '"gateway"',
+    'maxConcurrent: 1',
 )
 FORBIDDEN_DIRECT_RUNTIME = (
     "ollama serve",
