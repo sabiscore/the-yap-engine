@@ -1,32 +1,67 @@
-// Reference only. Keep secrets out of this file.
+// OpenClaw reference configuration for The Yap Engine.
+// Keep secrets out of this file. Local Ollama only; SwarmXQ remains the
+// production video/model lifecycle authority.
+//
+// Local agent stack:
+//   primary  qwen3:8b                Q4_K_M · ~5.2 GB · coding/reasoning
+//   utility  qwen3:4b                Q4_K_M · ~2.6 GB · routing/short tasks
+//   vision   qwen3-vl:4b             Q4_K_M · ~3.3 GB · serialized visual QA
+//
+// OpenClaw may use these models for its bounded coding/research control-plane
+// work. It must not call Ollama directly for SwarmX production video stages.
+
 {
   models: {
     providers: {
       ollama: {
+        // Native Ollama API. Do not append /v1.
         baseUrl: "http://127.0.0.1:11434",
         api: "ollama",
         apiKey: "ollama-local",
         timeoutSeconds: 300,
         models: [
           {
-            id: "code-qwen25-pro-q5km-prod",
-            name: "Forge / Qwen2.5 7B Q5_K_M",
-            reasoning: false,
+            id: "qwen3:8b",
+            name: "Forge / Qwen3 8B Q4_K_M",
+            reasoning: true,
             input: ["text"],
+            contextWindow: 40960,
             contextTokens: 6144,
             params: {
               num_ctx: 6144,
+              num_predict: 768,
+              temperature: 0.2,
+              top_p: 0.90,
+              keep_alive: "0s",
+            },
+          },
+          {
+            id: "qwen3:4b",
+            name: "Relay / Qwen3 4B Q4_K_M",
+            reasoning: true,
+            input: ["text"],
+            contextWindow: 40960,
+            contextTokens: 4096,
+            params: {
+              num_ctx: 4096,
+              num_predict: 384,
+              temperature: 0.1,
+              top_p: 0.90,
               keep_alive: "0s",
             },
           },
           {
             id: "qwen3-vl:4b",
-            name: "Vision worker / Qwen3-VL 4B",
+            name: "Vision / Qwen3-VL 4B Q4_K_M",
             reasoning: true,
             input: ["text", "image"],
-            contextTokens: 32768,
+            contextWindow: 262144,
+            contextTokens: 4096,
             params: {
-              num_ctx: 8192,
+              num_ctx: 4096,
+              num_predict: 384,
+              temperature: 0.2,
+              top_p: 0.90,
               keep_alive: "0s",
             },
           },
@@ -38,10 +73,16 @@
   agents: {
     defaults: {
       model: {
-        primary: "ollama/code-qwen25-pro-q5km-prod",
-        fallbacks: ["ollama/instruct-phi4-lite-q4km-prod"],
+        primary: "ollama/qwen3:8b",
+        fallbacks: ["ollama/qwen3:4b"],
+      },
+      utilityModel: "ollama/qwen3:4b",
+      imageModel: {
+        primary: "ollama/qwen3-vl:4b",
       },
       timeoutSeconds: 360,
+      maxConcurrent: 1,
+      modelSelectionScope: "session",
       experimental: {
         // Keeps local-agent prompts/tool catalogs small on constrained hosts.
         localModelLean: true,
@@ -79,12 +120,12 @@
 
   skills: {
     entries: {
-      "coding-agent": false,
-      "swarmx-creative-director": true,
-      "swarmx-virality-critic": true,
-      "swarmx-doctor": true,
-      "swarmx-vision-storyboard": true,
-      "swarmx-virality-cheatbook": true,
+      "coding-agent": { enabled: true },
+      "swarmx-creative-director": { enabled: true },
+      "swarmx-virality-critic": { enabled: true },
+      "swarmx-doctor": { enabled: true },
+      "swarmx-vision-storyboard": { enabled: true },
+      "swarmx-virality-cheatbook": { enabled: true },
     },
   },
 }

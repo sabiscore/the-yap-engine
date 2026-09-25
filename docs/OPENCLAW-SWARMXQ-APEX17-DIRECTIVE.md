@@ -56,7 +56,7 @@ OpenClaw may:
 - persist operator-facing notes and playbooks.
 
 OpenClaw must not:
-- call Ollama directly for SwarmX production stages;
+- call Ollama directly for SwarmX production video stages;
 - bypass `ModelOrchestrator`;
 - violate the SINGLE-7B LOCK (never allow two 7B models active or resident simultaneously);
 - mutate `MODEL_OPERATOR_MAP` ad hoc;
@@ -68,6 +68,28 @@ OpenClaw must not:
 - enable cloud fallback when the mission is marked local-only.
 
 ---
+
+## 3A. OpenClaw control-plane local model stack
+
+OpenClaw's bounded coding/research worker uses a separate local model selection from
+SwarmXQ production video inference:
+
+| Purpose | Model | Quant | Approx. Ollama artifact |
+|---|---|---|---:|
+| Primary coding/reasoning | qwen3:8b | Q4_K_M | ~5.2 GB |
+| Utility/fallback | qwen3:4b | Q4_K_M | ~2.6 GB |
+| Serialized vision | qwen3-vl:4b | Q4_K_M | ~3.3 GB |
+
+This is an OpenClaw control-plane configuration, not a production Operator migration.
+SwarmXQ's existing production registry remains unchanged until local benchmark evidence
+supports promotion.
+
+OpenClaw uses the native Ollama API, zero keep-alive and maxConcurrent=1. The active
+context is capped at 6,144 for the 8B model, 4,096 for the 4B utility model and 4,096
+for vision. Vision is released before the next heavyweight text stage.
+
+Qwen3-Coder 30B-A3B remains outside the target hardware envelope: its current Ollama
+Q4_K_M artifact is approximately 19 GB despite its sparse active-parameter count.
 
 ## 3. Hardware profiles
 

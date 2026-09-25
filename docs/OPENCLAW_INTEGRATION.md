@@ -1,7 +1,7 @@
 # OpenClaw Integration Contract — The Yap Engine
 
 **Status:** additive / fail-closed / local-first  
-**Revision:** 2026-09-24
+**Revision:** 2026-09-25
 
 ## Purpose
 
@@ -50,21 +50,31 @@ OLLAMA_NUM_PARALLEL=1
 
 The existing host profile and governor remain authoritative for `OLLAMA_MAX_LOADED_MODELS`, keep-alive, context and pressure behavior. Do not hard-code competing values in OpenClaw.
 
-Minimal OpenClaw local model selection:
+### OpenClaw coding/research stack
 
-```json5
-{
-  agents: {
-    defaults: {
-      model: {
-        primary: "ollama/instruct-phi4-pro-q8-prod"
-      }
-    }
-  }
-}
-```
+OpenClaw's bounded coding/research worker uses a separate local model selection from
+SwarmXQ's production video stages:
 
-Use the installed OpenClaw version's provider/config schema when applying this snippet; do not copy an obsolete schema blindly.
+| Purpose | Model | Quant | Approx. artifact size | Context cap |
+|---|---|---|---:|---:|
+| Primary coding/reasoning | `qwen3:8b` | Q4_K_M | ~5.2 GB | 6,144 |
+| Utility / fallback | `qwen3:4b` | Q4_K_M | ~2.6 GB | 4,096 |
+| Serialized vision | `qwen3-vl:4b` | Q4_K_M | ~3.3 GB | 4,096 |
+
+These are OpenClaw control-plane models, not replacements for the SwarmXQ production
+Operator registry. OpenClaw still must not call Ollama directly for SwarmX production
+video stages.
+
+The reference configuration uses the native Ollama API, `maxConcurrent: 1), zero
+keep-alive, and session-scoped model selection. This keeps model residency bounded
+on 8 GB systems and prevents OpenClaw from creating its own parallel inference pool.
+
+Ollama currently lists Qwen3 8B Q4_K_M at ~5.2 GB, Qwen3 4B Q4_K_M at ~2.6 GB,
+and Qwen3-VL 4B Q4_K_M at ~3.3 GB. Advertised context windows are substantially
+larger, but this integration intentionally caps active context to the values above
+for CPU-only 8–16 GB hosts.
+
+Use the installed OpenClaw version's provider/config schema when applying this configuration; do not copy an obsolete schema blindly.
 
 ## Model admission
 
