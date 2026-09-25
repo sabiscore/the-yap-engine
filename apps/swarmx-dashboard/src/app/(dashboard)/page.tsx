@@ -16,6 +16,7 @@ import { useApiHealth } from "@/hooks/useApiHealth";
 import { RouteDegradedBanner } from "@/components/layout/RouteDegradedBanner";
 import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
 import { LocalAgentStack } from "@/components/overview/LocalAgentStack";
+import { CreativeCommandCenter } from "@/components/overview/CreativeCommandCenter";
 import type { AgentState, LogEntry } from "@swarmx/types";
 
 import { Zap, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, Brain } from "lucide-react";
@@ -925,6 +926,9 @@ export default function OverviewPage() {
 
       {/* Operator-facing local AI stack: model, quantization and memory envelope. */}
       <LocalAgentStack />
+
+      {/* Creative production control plane: concept, visual, audio and review actions. */}
+      <CreativeCommandCenter />
 
       {/* Bento top strip: Health Radar + 4 quick stats */}
 
