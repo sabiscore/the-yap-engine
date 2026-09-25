@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type {
   AssetLicense,
@@ -14,9 +14,11 @@ import type {
   VoiceProviderState,
   VoiceSynthesisRequest,
   VoiceQualityTier,
+  WordBoundary,
 } from "@swarmx/types/video-types";
 import { loadEnv } from "../lib/env.js";
 import { rankAvailableProviders, readVoiceBenchmarkReport } from "./voice-benchmark-report.js";
+import { masterAudio } from "./audio-mastering.js";
 
 const VOICE_COMMAND_TIMEOUT_MS = 120_000;
 const COMMAND_MAX_BUFFER_BYTES = 1024 * 1024;
@@ -223,6 +225,74 @@ export function normalizeScriptForSpeech(text: string): string {
   return withoutQuoteDebris.slice(0, 1_200);
 }
 
+export interface ParsedSsmlSegment {
+  type: "speech" | "pause";
+  text?: string;
+  durationSeconds?: number;
+  speed?: number;
+}
+
+export function parseSsmlProsody(text: string, baseSpeed = 1.0): ParsedSsmlSegment[] {
+  const tagRe = /\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|\/emphasis)\]/gi;
+  const parts = text.split(tagRe);
+  const segments: ParsedSsmlSegment[] = [];
+  let currentSpeed = baseSpeed;
+  let inEmphasis = false;
+
+  for (const part of parts) {
+    if (!part) continue;
+    const lower = part.toLowerCase().trim();
+    if (lower.startsWith("pause:")) {
+      const valStr = lower.slice(6).trim();
+      let pauseSec = 0.5;
+      if (valStr.endsWith("ms")) {
+        pauseSec = parseFloat(valStr.slice(0, -2)) / 1000;
+      } else if (valStr.endsWith("s")) {
+        pauseSec = parseFloat(valStr.slice(0, -1));
+      } else {
+        pauseSec = parseFloat(valStr);
+      }
+      if (!Number.isNaN(pauseSec) && pauseSec > 0) {
+        segments.push({ type: "pause", durationSeconds: Math.min(5, Math.max(0.05, pauseSec)) });
+      }
+    } else if (lower.startsWith("speed:")) {
+      const spd = parseFloat(lower.slice(6).trim());
+      if (!Number.isNaN(spd) && spd >= 0.5 && spd <= 2.0) {
+        currentSpeed = spd;
+      }
+    } else if (lower === "emphasis") {
+      inEmphasis = true;
+    } else if (lower === "/emphasis") {
+      inEmphasis = false;
+    } else {
+      const clean = part.replace(/\s+/g, " ").trim();
+      if (clean) {
+        segments.push({
+          type: "speech",
+          text: clean,
+          speed: inEmphasis ? currentSpeed * 0.88 : currentSpeed,
+        });
+      }
+    }
+  }
+
+  return segments.length > 0 ? segments : [{ type: "speech", text, speed: baseSpeed }];
+}
+
+export function normalizeScriptForSpeechWithSsml(text: string): string {
+  const ssmlTags: string[] = [];
+  const tagRe = /\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|\/emphasis)\]/gi;
+  const withPlaceholders = text.replace(tagRe, (match) => {
+    ssmlTags.push(match);
+    return ` SSMLTAGTOKEN${ssmlTags.length - 1}ENDTOKEN `;
+  });
+
+  const normalized = normalizeScriptForSpeech(withPlaceholders);
+
+  return normalized.replace(/SSMLTAGTOKEN(\d+)ENDTOKEN/g, (_, idx) => ssmlTags[Number(idx)] ?? "");
+}
+
+
 async function probeAudio(path: string): Promise<{ sampleRateHz: number; channels: number; durationSeconds: number }> {
   const { stdout } = await execFileChecked("ffprobe", [
     "-v", "error",
@@ -297,6 +367,7 @@ abstract class BaseVoiceProvider implements VoiceProvider {
     generationLatencyMs: number,
     fallbackReason?: string,
     prosodySegments?: VoiceProsodySegment[],
+    wordBoundaries?: WordBoundary[],
   ): Promise<VoiceArtifact> {
     const probe = await probeAudio(outputPath);
     return {
@@ -322,6 +393,7 @@ abstract class BaseVoiceProvider implements VoiceProvider {
       sha256: await sha256File(outputPath),
       generationLatencyMs,
       ...(prosodySegments && prosodySegments.length > 0 ? { prosodySegments } : {}),
+      ...(wordBoundaries && wordBoundaries.length > 0 ? { wordBoundaries } : {}),
       ...(fallbackReason ? { fallbackReason } : {}),
       lineage: {
         sourceKind: "generated",
@@ -432,7 +504,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
     speed: number,
     outputPath: string,
     signal?: AbortSignal,
-  ): Promise<{ mode: "http" | "cli" }> {
+  ): Promise<{ mode: "http" | "cli"; durationMs?: number; wordBoundaries?: WordBoundary[] }> {
     const env = loadEnv();
     let httpFailure: string | undefined;
     try {
@@ -451,12 +523,27 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const body = await response.json() as { wav_b64?: unknown };
+      const body = (await response.json()) as {
+        wav_b64?: unknown;
+        duration_ms?: number;
+        word_boundaries?: Array<{ word: string; start_ms: number; end_ms: number }>;
+      };
       if (typeof body.wav_b64 !== "string" || body.wav_b64.length === 0) {
         throw new Error("response did not include wav_b64");
       }
       await writeFile(outputPath, Buffer.from(body.wav_b64, "base64"));
-      return { mode: "http" };
+      const wordBoundaries = Array.isArray(body.word_boundaries)
+        ? body.word_boundaries.map((wb) => ({
+            word: String(wb.word),
+            startMs: Number(wb.start_ms),
+            endMs: Number(wb.end_ms),
+          }))
+        : undefined;
+      return {
+        mode: "http",
+        ...(body.duration_ms !== undefined ? { durationMs: body.duration_ms } : {}),
+        ...(wordBoundaries ? { wordBoundaries } : {}),
+      };
     } catch (error) {
       if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
       httpFailure = error instanceof Error ? error.message : String(error);
@@ -468,12 +555,38 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
         cause: httpFailure,
       });
     });
-    return { mode: "cli" };
+
+    let wordBoundaries: WordBoundary[] | undefined;
+    let durationMs: number | undefined;
+    try {
+      const alignmentFile = outputPath.replace(/\.wav$/i, "") + ".alignment.json";
+      const content = await readFile(alignmentFile, "utf8");
+      const parsed = JSON.parse(content) as {
+        duration_ms?: number;
+        word_boundaries?: Array<{ word: string; start_ms: number; end_ms: number }>;
+      };
+      durationMs = parsed.duration_ms;
+      if (Array.isArray(parsed.word_boundaries)) {
+        wordBoundaries = parsed.word_boundaries.map((wb) => ({
+          word: String(wb.word),
+          startMs: Number(wb.start_ms),
+          endMs: Number(wb.end_ms),
+        }));
+      }
+    } catch {
+      // Non-critical fallback
+    }
+
+    return {
+      mode: "cli",
+      ...(durationMs !== undefined ? { durationMs } : {}),
+      ...(wordBoundaries ? { wordBoundaries } : {}),
+    };
   }
 
   async synthesize(request: VoiceSynthesisRequest, outputPath: string, signal?: AbortSignal): Promise<VoiceArtifact> {
     await mkdir(outputPath.split("/").slice(0, -1).join("/") || ".", { recursive: true });
-    const normalizedText = normalizeScriptForSpeech(request.text);
+    const normalizedText = normalizeScriptForSpeechWithSsml(request.text);
     const requestedVoiceStyle = resolveVoiceStyle(request);
     const voiceId = KOKORO_VOICE_MAP[requestedVoiceStyle] ?? requestedVoiceStyle;
     const voices = await this.listVoices(request.locale);
@@ -486,6 +599,20 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       outputPath,
       signal,
     );
+
+    // Audio Normalization: -14 LUFS, -1.0 dBFS peak via ffmpeg-loudnorm
+    try {
+      const masteredTemp = `${outputPath}.mastered.wav`;
+      await masterAudio({
+        inputPath: outputPath,
+        outputPath: masteredTemp,
+        platform: "tiktok",
+      });
+      await rename(masteredTemp, outputPath);
+    } catch {
+      // Non-fatal if loudnorm pass fails; raw WAV remains
+    }
+
     return this.artifactBase(
       request,
       outputPath,
@@ -494,6 +621,8 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       normalizedText,
       Date.now() - started,
       result.mode === "cli" ? "Kokoro HTTP endpoint unavailable; direct Python CLI fallback used" : undefined,
+      undefined,
+      result.wordBoundaries,
     );
   }
 
@@ -515,7 +644,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       .map((segment, index) => ({
         ...segment,
         index,
-        text: normalizeScriptForSpeech(segment.text),
+        text: normalizeScriptForSpeechWithSsml(segment.text),
         voiceId: segment.section === "DIALOGUE" ? KOKORO_DIALOGUE_VOICE_ID : baseVoiceId,
       }))
       .filter((segment) => segment.text.length > 0);
@@ -528,18 +657,34 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
 
     const segmentArtifacts: VoiceProsodySegment[] = [];
     const segmentPaths: string[] = [];
+    const allWordBoundaries: WordBoundary[] = [];
+    let cumulativeDurationMs = 0;
     let cliFallbackUsed = false;
+
     for (const segment of normalizedSegments) {
       const segmentPath = `${outputPath}.segment-${segment.index}.wav`;
-      const mode = await this.synthesizeKokoroWav(
+      const result = await this.synthesizeKokoroWav(
         segment.text,
         segment.voiceId,
         segment.speakingRate,
         segmentPath,
         signal,
       );
-      cliFallbackUsed ||= mode.mode === "cli";
+      cliFallbackUsed ||= result.mode === "cli";
       const probe = await probeAudio(segmentPath);
+      const segDurationMs = Math.round(probe.durationSeconds * 1000);
+
+      if (result.wordBoundaries && result.wordBoundaries.length > 0) {
+        for (const wb of result.wordBoundaries) {
+          allWordBoundaries.push({
+            word: wb.word,
+            startMs: wb.startMs + cumulativeDurationMs,
+            endMs: wb.endMs + cumulativeDurationMs,
+          });
+        }
+      }
+
+      cumulativeDurationMs += segDurationMs;
       segmentPaths.push(segmentPath);
       segmentArtifacts.push({
         section: segment.section,
@@ -562,6 +707,19 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       outputPath,
     ], signal);
 
+    // Audio Normalization: -14 LUFS, -1.0 dBFS peak via ffmpeg-loudnorm
+    try {
+      const masteredTemp = `${outputPath}.mastered.wav`;
+      await masterAudio({
+        inputPath: outputPath,
+        outputPath: masteredTemp,
+        platform: "tiktok",
+      });
+      await rename(masteredTemp, outputPath);
+    } catch {
+      // Non-fatal if loudnorm pass fails
+    }
+
     return this.artifactBase(
       request,
       outputPath,
@@ -571,6 +729,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       Date.now() - started,
       cliFallbackUsed ? "One or more Kokoro segments used the direct Python CLI fallback" : undefined,
       segmentArtifacts,
+      allWordBoundaries,
     );
   }
 }

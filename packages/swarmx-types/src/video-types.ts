@@ -424,6 +424,12 @@ export interface VoiceSynthesisRequest {
   requestedSampleRateHz: number;
 }
 
+export interface WordBoundary {
+  word: string;
+  startMs: number;
+  endMs: number;
+}
+
 export interface VoiceArtifact {
   providerId: string;
   providerVersion?: string;
@@ -446,6 +452,7 @@ export interface VoiceArtifact {
   peakDbfs?: number;
   integratedLufs?: number;
   prosodySegments?: VoiceProsodySegment[];
+  wordBoundaries?: WordBoundary[];
   outputPath: string;
   sha256: string;
   generationLatencyMs: number;

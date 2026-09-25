@@ -35,9 +35,11 @@ from __future__ import annotations
 import argparse
 import base64
 import io
+import re
 import time
 from typing import TYPE_CHECKING
 
+import numpy as np
 import structlog
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -128,6 +130,12 @@ def get_pipeline() -> KPipeline:
 
 
 # ── Request/response models ───────────────────────────────────────────────────
+class WordBoundary(BaseModel):
+    word: str = Field(..., description="Spoken word")
+    start_ms: int = Field(..., description="Start timestamp in milliseconds")
+    end_ms: int = Field(..., description="End timestamp in milliseconds")
+
+
 class TTSRequest(BaseModel):
     text: str = Field(..., description="Narration text to synthesize")
     voice: str = Field("am_michael", description="Kokoro voice ID or tone name")
@@ -141,6 +149,9 @@ class TTSResponse(BaseModel):
     engine: str = Field("kokoro", description="TTS engine used")
     voice: str = Field(..., description="Voice ID actually used")
     sample_rate: int = Field(24000, description="Sample rate of the output WAV")
+    word_boundaries: list[WordBoundary] = Field(
+        default_factory=list, description="Word-level alignment timestamps"
+    )
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -162,6 +173,56 @@ async def health():
 @app.get("/voices")
 async def voices():
     return {"voices": AVAILABLE_VOICES, "tone_map": TONE_VOICE_MAP}
+
+
+def parse_ssml_chunks(raw_text: str, base_speed: float) -> list[dict]:
+    """Parse text containing [pause:0.5s], [speed:1.1], [emphasis] tags into typed chunks."""
+    tag_re = re.compile(
+        r"\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|/emphasis)\]",
+        re.IGNORECASE,
+    )
+    parts = tag_re.split(raw_text)
+
+    chunks: list[dict] = []
+    current_speed = base_speed
+    in_emphasis = False
+
+    for part in parts:
+        if not part:
+            continue
+        lower_part = part.lower().strip()
+        if lower_part.startswith("pause:"):
+            val_str = lower_part.split(":", 1)[1].strip()
+            try:
+                if val_str.endswith("ms"):
+                    pause_s = float(val_str[:-2]) / 1000.0
+                elif val_str.endswith("s"):
+                    pause_s = float(val_str[:-1])
+                else:
+                    pause_s = float(val_str)
+                chunks.append({"type": "pause", "duration_s": max(0.05, min(pause_s, 5.0))})
+            except ValueError:
+                pass
+        elif lower_part.startswith("speed:"):
+            try:
+                current_speed = max(0.5, min(float(lower_part.split(":", 1)[1].strip()), 2.0))
+            except ValueError:
+                pass
+        elif lower_part == "emphasis":
+            in_emphasis = True
+        elif lower_part == "/emphasis":
+            in_emphasis = False
+        else:
+            text = part.strip()
+            if text:
+                effective_speed = current_speed * 0.88 if in_emphasis else current_speed
+                chunks.append({
+                    "type": "speech",
+                    "text": text,
+                    "speed": effective_speed,
+                })
+
+    return chunks
 
 
 @app.post("/tts", response_model=TTSResponse)
@@ -187,40 +248,75 @@ async def synthesize(req: TTSRequest):
 
     try:
         pipeline = get_pipeline()
-        segments: list[bytes] = []
         sample_rate = 24000
+        arrays: list[np.ndarray] = []
+        word_boundaries: list[WordBoundary] = []
+        current_time_ms = 0
+
+        chunks = parse_ssml_chunks(req.text, effective_speed)
+        if not chunks:
+            chunks = [{"type": "speech", "text": req.text, "speed": effective_speed}]
 
         log.info(
             "tts_start",
             voice=voice_id,
             speed=effective_speed,
+            chunks_count=len(chunks),
             text_len=len(req.text),
         )
 
-        # Generate audio segments
-        for _gs, _ps, audio in pipeline(
-            req.text,
-            voice=voice_id,
-            speed=effective_speed,
-            split_pattern=req.split_pattern,
-        ):
-            # Convert numpy array to WAV bytes
-            buf = io.BytesIO()
-            sf.write(buf, audio, sample_rate, format="WAV")  # type: ignore[union-attr]
-            segments.append(buf.getvalue())
+        for chunk in chunks:
+            if chunk["type"] == "pause":
+                pause_samples = int(sample_rate * chunk["duration_s"])
+                if pause_samples > 0:
+                    silence = np.zeros(pause_samples, dtype=np.float32)
+                    arrays.append(silence)
+                    current_time_ms += int(chunk["duration_s"] * 1000)
+            elif chunk["type"] == "speech":
+                speech_text = chunk["text"]
+                chunk_speed = chunk["speed"]
+                chunk_arrays: list[np.ndarray] = []
 
-        if not segments:
+                for _gs, _ps, audio in pipeline(
+                    speech_text,
+                    voice=voice_id,
+                    speed=chunk_speed,
+                    split_pattern=req.split_pattern,
+                ):
+                    chunk_arrays.append(np.asarray(audio, dtype=np.float32))
+
+                if chunk_arrays:
+                    combined_chunk = np.concatenate(chunk_arrays)
+                    arrays.append(combined_chunk)
+                    chunk_duration_ms = int(len(combined_chunk) / sample_rate * 1000)
+
+                    # Estimate word boundaries based on character lengths
+                    words = re.findall(r"\S+", speech_text)
+                    if words:
+                        total_weight = sum(max(len(w), 1) for w in words)
+                        cursor_ms = current_time_ms
+                        for idx, w in enumerate(words):
+                            clean_word = re.sub(r"^[^\w]+|[^\w]+$", "", w) or w
+                            w_weight = max(len(clean_word), 1)
+                            w_duration = int(chunk_duration_ms * (w_weight / total_weight))
+                            end_ms = (
+                                current_time_ms + chunk_duration_ms
+                                if idx == len(words) - 1
+                                else cursor_ms + w_duration
+                            )
+                            word_boundaries.append(
+                                WordBoundary(
+                                    word=clean_word,
+                                    start_ms=cursor_ms,
+                                    end_ms=max(end_ms, cursor_ms + 10),
+                                )
+                            )
+                            cursor_ms = end_ms
+
+                    current_time_ms += chunk_duration_ms
+
+        if not arrays:
             raise ValueError("Kokoro produced no audio segments")
-
-        # Concatenate segments into a single WAV
-        # Re-read all segment buffers as numpy arrays and concatenate
-        import numpy as np  # type: ignore
-
-        arrays = []
-        for seg_bytes in segments:
-            buf = io.BytesIO(seg_bytes)
-            data, _ = sf.read(buf, dtype="float32")  # type: ignore[union-attr]
-            arrays.append(data)
 
         combined = np.concatenate(arrays)
         out_buf = io.BytesIO()
@@ -235,6 +331,7 @@ async def synthesize(req: TTSRequest):
             voice=voice_id,
             duration_ms=duration_ms,
             elapsed_ms=elapsed_ms,
+            word_count=len(word_boundaries),
             rtf=f"{duration_ms / max(elapsed_ms, 1):.2f}x",
         )
 
@@ -244,11 +341,16 @@ async def synthesize(req: TTSRequest):
             engine="kokoro",
             voice=voice_id,
             sample_rate=sample_rate,
+            word_boundaries=word_boundaries,
         )
 
     except Exception as exc:
+        import gc
+
+        gc.collect()
         log.error("tts_error", error=str(exc), voice=voice_id)
         raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {exc}") from exc
+
 
 
 # ── CLI entrypoint ────────────────────────────────────────────────────────────

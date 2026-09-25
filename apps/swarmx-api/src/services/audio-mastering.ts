@@ -77,16 +77,19 @@ export async function masterAudio(req: AudioMasteringRequest): Promise<AudioMast
     `offset=${measured.target_offset}`,
   ].join(":");
 
+  const codecArgs = req.outputPath.endsWith(".wav")
+    ? ["-c:a", "pcm_s16le"]
+    : ["-c:a", "aac", "-b:a", `${bitrate}k`];
+
   const pass2Args = [
     "-i", req.inputPath,
     "-af", normalizedFilter,
     "-ar", String(sampleRate),
     "-ac", String(channels),
-    "-c:a", "aac",
-    "-b:a", `${bitrate}k`,
+    ...codecArgs,
     "-y", req.outputPath,
   ];
-  const pass2 = spawnSync("ffmpeg", pass2Args, { encoding: "utf8" });
+  const pass2 = spawnSync("ffmpeg", pass2Args, { encoding: "utf8", timeout: 60_000 });
   if (pass2.error) throw new AudioMasteringError(`FFmpeg pass 2 failed to start: ${pass2.error.message}`, "AUDIO_MASTERING_PASS2_FAILED");
   if (pass2.status !== 0) throw new AudioMasteringError(`FFmpeg pass 2 exited with code ${pass2.status ?? "null"}`, "AUDIO_MASTERING_PASS2_FAILED");
 

@@ -425,6 +425,23 @@ export class ModelOrchestrator {
     await this._evictModel(resolveCanonicalTag(modelTag));
   }
 
+  /**
+   * Explicitly unload all active Ollama models.
+   * Required before entering Kokoro TTS or heavy FFmpeg render phases on 8 GB RAM profiles
+   * to guarantee zero-overlap memory lifecycle.
+   */
+  async unloadAllModels(): Promise<string[]> {
+    await this.syncFromOllama();
+    const active = Array.from(this.state.activeModels);
+    const unloaded: string[] = [];
+    for (const tag of active) {
+      await this._evictModel(tag);
+      unloaded.push(tag);
+    }
+    await this.syncFromOllama();
+    return unloaded;
+  }
+
   /** Called when Ollama reports a model was unloaded. */
   onModelEvicted(modelTag: string): void {
     const canonicalTag = resolveCanonicalTag(modelTag);
