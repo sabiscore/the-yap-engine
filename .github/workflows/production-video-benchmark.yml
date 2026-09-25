@@ -1,0 +1,78 @@
+name: Production Video Benchmark
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-video-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-benchmark:
+    name: End-to-end CPU render benchmark
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      LOG_LEVEL: warn
+      SWARMX_API_PORT: "3001"
+      SWARMX_API_HOST: "127.0.0.1"
+      REDIS_URL: "redis://127.0.0.1:6379"
+      OLLAMA_HOST: "http://127.0.0.1:11434"
+      SWARMX_VIDEO_USE_BULLMQ: "0"
+      SWARMX_VIDEO_LOW_RAM_MODE: "1"
+      SWARMX_VIDEO_RENDER_BACKEND: "ffmpeg"
+      SWARMX_VIDEO_ALLOW_STUB_RENDER: "0"
+      SWARMX_VIDEO_ALLOW_SILENT_AUDIO: "1"
+      SWARMX_VIDEO_FFMPEG_TIMEOUT_MS: "120000"
+      SWARMX_VIDEO_JOB_LIMIT_PER_HOUR: "10"
+      SWARMX_VIDEO_CAPTION_SCORE_LIMIT_PER_MIN: "10"
+      SWARMX_VIDEO_QUEUE_MAX_SIZE: "20"
+      SWARMX_VIDEO_EXPORT_TTL_DAYS: "7"
+      SWARMX_VIDEO_CLEANUP_INTERVAL_MS: "21600000"
+      SWARMX_WARMUP_STATUS_FILE: "/tmp/swarmxq-warmup.json"
+      NEXT_PUBLIC_SWARMX_VERSION: benchmark
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "11.9.0"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared types
+        run: pnpm --filter @swarmx/types typecheck
+
+      - name: Build API
+        run: pnpm --filter @swarmx/api build
+
+      - name: Creative compiler regression
+        run: pnpm --filter @swarmx/api exec vitest run __tests__/creative-compiler.test.ts
+
+      - name: End-to-end FFmpeg render smoke
+        run: |
+          /usr/bin/time -v pnpm --filter @swarmx/api run test:video:smoke 2>&1 | tee /tmp/video-benchmark.log
+
+      - name: Benchmark evidence
+        if: always()
+        run: |
+          echo "=== benchmark metadata ==="
+          git rev-parse HEAD
+          node --version
+          pnpm --version
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+          echo "=== render smoke output ==="
+          cat /tmp/video-benchmark.log || true
