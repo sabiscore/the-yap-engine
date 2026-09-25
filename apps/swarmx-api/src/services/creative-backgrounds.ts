@@ -44,7 +44,7 @@ export function createBackgroundRecipe(input: {
     id: input.id,
     version: 1,
     family: input.family,
-    palette: PALETTES[input.palette ?? defaults.palette],
+    palette: PALETTES[input.palette ?? defaults.palette]!,
     composition: {
       focalPoint: { x: 0.5, y: 0.42 },
       negativeSpace: "caption-safe",
