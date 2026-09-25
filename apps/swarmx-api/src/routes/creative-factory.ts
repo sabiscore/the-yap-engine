@@ -415,7 +415,7 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
         recipe: createBackgroundRecipe({
           id: parsed.data.id,
           family,
-          seed: parsed.data.seed,
+          ...(parsed.data.seed !== undefined ? { seed: parsed.data.seed } : {}),
           complexity: parsed.data.complexity ?? budget.complexity,
           motionEnergy: parsed.data.motionEnergy ?? budget.motionEnergy,
         }),
@@ -432,13 +432,19 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
       if (!parsed.success) return sendParseError(reply, parsed.error);
       try {
         const audioTiming = parsed.data.audioTiming
-          ? deriveAudioTimingSpine(parsed.data.audioTiming)
+          ? deriveAudioTimingSpine({
+              durationMs: parsed.data.audioTiming.durationMs,
+              words: parsed.data.audioTiming.words,
+              ...(parsed.data.audioTiming.sections !== undefined ? { sections: parsed.data.audioTiming.sections } : {}),
+              ...(parsed.data.audioTiming.beatsMs !== undefined ? { beatsMs: parsed.data.audioTiming.beatsMs } : {}),
+              ...(parsed.data.audioTiming.onsetsMs !== undefined ? { onsetsMs: parsed.data.audioTiming.onsetsMs } : {}),
+            })
           : undefined;
         const artifact = compileCreativeArtifact({
           id: parsed.data.id,
           creativeDnaId: parsed.data.creativeDnaId,
           scenes: parsed.data.scenes,
-          backgroundRecipes: parsed.data.backgroundRecipes as BackgroundRecipe,
+          backgroundRecipes: parsed.data.backgroundRecipes as unknown as BackgroundRecipe[],
           ...(audioTiming ? { audioTiming } : {}),
           changed: parsed.data.changed,
           rendererVersion: parsed.data.rendererVersion,
