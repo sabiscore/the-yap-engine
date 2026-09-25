@@ -361,3 +361,229 @@ The mission is complete when:
 ONE BRIEF → THREE DISTINCT CONCEPTS → ONE BOUNDED REVISION → AUDIO-FIRST TIMELINE →
 INTENTIONAL VISUAL EDIT → DETERMINISTIC QC → VISUAL QA → HUMAN-READY REVIEW →
 SAFE PUBLICATION → MEASURED OUTCOME → BETTER NEXT ITERATION.
+
+
+## 18. Creative Compiler — mandatory production architecture
+
+Treat the Creative Factory as a creative compiler, not a prompt chain:
+
+`BRIEF → CREATIVE DNA → CONCEPTS → SCENE GRAPH → ASSETS → AUDIO TIMING → COMPOSITION → RENDER → QC → MINIMAL PATCH → RELEASE`.
+
+Use the repository's existing Creative Factory and renderer contracts. Do not create a competing orchestrator.
+
+### Creative DNA
+Persist the series-level creative contract:
+- audience promise;
+- emotional objective;
+- narrative/hook family;
+- visual grammar;
+- motion grammar;
+- sound signature;
+- caption personality;
+- CTA style;
+- forbidden clichés;
+- brand constraints;
+- platform adaptations.
+
+### Scene Graph
+Each meaningful scene must have a structured, deterministic specification covering:
+- narrative purpose;
+- semantic intent;
+- spoken text;
+- emotional state;
+- focal point;
+- negative space;
+- caption-safe region;
+- camera framing/movement;
+- background recipe;
+- visual event;
+- transition;
+- audio anchors;
+- caption emphasis.
+
+The scene graph is the contract between creative agents, asset generation, audio timing, composition, rendering and QC.
+
+## 19. Advanced background system
+
+Backgrounds are first-class production assets, not colors.
+
+Use reusable `BackgroundRecipe` families:
+- procedural_2d;
+- shader;
+- gradient_field;
+- plasma;
+- fractal_noise;
+- minimal_grid;
+- editorial_collage;
+- 2_5d_parallax;
+- architectural_2_5d;
+- particle_field;
+- data_space;
+- generative_plate;
+- broll_environment;
+- blender_3d;
+- hybrid.
+
+A recipe controls:
+- palette;
+- focal point;
+- negative space;
+- caption-safe regions;
+- subject separation;
+- depth;
+- parallax;
+- lighting;
+- motion;
+- texture;
+- post-processing;
+- seed;
+- renderer/resource class.
+
+Choose the cheapest renderer capable of satisfying the scene:
+1. CPU-safe procedural/FFmpeg;
+2. optional shader/GPU;
+3. optional 2.5D;
+4. selective 3D hero;
+5. remote generative plate.
+
+Never make expensive 3D/generative rendering a default dependency for an 8–16 GB CPU host.
+
+## 20. Background intelligence
+
+Calculate a per-scene background budget from:
+- caption density;
+- subject salience;
+- visual-event density.
+
+Reduce:
+- complexity;
+- motion;
+- texture;
+- particles;
+- highlights
+
+when the background competes with narration, captions or subject hierarchy.
+
+A visually impressive background that harms readability is a failed background.
+
+## 21. Audio Timing Spine
+
+Derive one reusable timing artifact from measured voice boundaries and optional music analysis.
+
+It must support:
+- word timing;
+- sections;
+- beats;
+- onsets;
+- silence windows;
+- accent points.
+
+Use it to drive:
+- captions;
+- scene transitions;
+- typography emphasis;
+- background motion;
+- visual events;
+- SFX.
+
+Never impose a universal “cut every N seconds” rule.
+
+## 22. Incremental compilation
+
+All expensive creative artifacts must be content-addressable.
+
+Cache keys include:
+- Creative DNA;
+- SceneSpec;
+- background recipes;
+- asset hashes;
+- audio timing;
+- renderer version;
+- seed.
+
+A localized change must invalidate only affected downstream scenes.
+
+Examples:
+- background change → background/composition/scene/final assembly;
+- caption placement → caption/composition/scene/final assembly;
+- audio timing change → dependent scenes;
+- Creative DNA or renderer change → all affected scenes.
+
+Never regenerate an unchanged script, voice track or unrelated scene to repair one visual defect.
+
+## 23. Visual QA
+
+Use deterministic checks for media correctness and vision models for advisory perceptual review.
+
+Vision review covers:
+- composition;
+- subject salience;
+- background competition;
+- caption collision/readability;
+- contrast;
+- continuity;
+- motion coherence;
+- style consistency.
+
+FFmpeg/FFprobe remain authoritative for:
+- container;
+- streams;
+- duration;
+- frame rate;
+- audio;
+- encoding;
+- checksums.
+
+## 24. Bounded revision compiler
+
+When QC fails:
+
+`FAILED GATE → ROOT CAUSE → MINIMAL PATCH → AFFECTED SCENES → RERENDER → RECHECK`
+
+Do not trigger whole-video regeneration for a localized defect.
+
+## 25. Dashboard
+
+The home dashboard must make these actions immediately discoverable:
+- Create video;
+- Background lab;
+- Audio timeline;
+- Visual review;
+- Render preview;
+- Rerender invalidated scenes.
+
+Expose:
+- current model/resource state;
+- creative pipeline state;
+- cache/invalidation state;
+- actionable failures.
+
+## 26. Required repository implementation
+
+The reference implementation includes:
+- shared creative compiler/background contracts in `packages/swarmx-types/src/video-types.ts`;
+- deterministic background recipes in `apps/swarmx-api/src/services/creative-backgrounds.ts`;
+- scene compilation/audio timing/invalidation in `apps/swarmx-api/src/services/creative-compiler.ts`;
+- authenticated Creative Factory endpoints under `/api/video/factory/visual/*`;
+- API regression coverage in `apps/swarmx-api/__tests__/creative-compiler.test.ts`;
+- dashboard Creative Command Center in `apps/swarmx-dashboard/src/components/overview/CreativeCommandCenter.tsx`.
+
+Keep these modules additive and reuse them from the existing Creative Factory instead of duplicating orchestration.
+
+## 27. Definition of done — visual production
+
+A release candidate is not complete merely because it renders.
+
+It must have:
+- coherent Creative DNA;
+- deliberate scene hierarchy;
+- purposeful background selection;
+- measured audio timing;
+- deterministic rendering;
+- localized invalidation;
+- technical QC;
+- visual QC;
+- provenance;
+- human-gated publication.
+
+Never call output a “masterpiece” or “viral” without evidence. Optimize for repeatable quality, not unsupported claims.
