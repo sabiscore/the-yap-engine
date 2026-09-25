@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type {
   AudiencePersona,
+  BackgroundRecipe,
   BrandKit,
   ConceptCandidate,
   ConceptTournament,
@@ -26,6 +27,8 @@ import {
   upsertRegistryRecord,
 } from "../services/creative-factory-registry.js";
 import { runConceptTournament } from "../services/creative-tournament.js";
+import { backgroundFamilies, backgroundBudget, createBackgroundRecipe, selectBackgroundFamily } from "../services/creative-backgrounds.js";
+import { compileCreativeArtifact, deriveAudioTimingSpine } from "../services/creative-compiler.js";
 import { generateRetentionMap } from "../services/retention-map.js";
 import {
   createLearningRecord,
@@ -125,6 +128,79 @@ const ConceptTournamentBodySchema = z.object({
   runId: z.string().min(1).optional(),
   creativeDnaId: z.string().min(1),
   candidates: z.array(ConceptCandidateSchema).min(2).max(12),
+});
+
+
+
+const BackgroundPreviewSchema = z.object({
+  id: z.string().min(1).max(120),
+  family: z.enum([
+    "procedural_2d", "shader", "gradient_field", "plasma", "fractal_noise", "minimal_grid",
+    "editorial_collage", "2_5d_parallax", "architectural_2_5d", "particle_field", "data_space",
+    "generative_plate", "broll_environment", "blender_3d", "hybrid",
+  ]).optional(),
+  visualIntent: z.string().min(1).max(200).optional(),
+  seed: z.number().int().min(0).max(2147483647).optional(),
+  complexity: z.number().min(0).max(1).optional(),
+  motionEnergy: z.number().min(0).max(1).optional(),
+  captionDensity: z.number().min(0).max(1).default(0.35),
+  subjectSalience: z.number().min(0).max(1).default(0.75),
+  visualEventDensity: z.number().min(0).max(1).default(0.35),
+});
+
+const CreativeCompileSchema = z.object({
+  id: z.string().min(1).max(120),
+  creativeDnaId: z.string().min(1).max(120),
+  rendererVersion: z.string().min(1).max(120).optional(),
+  changed: z.array(z.string().min(1).max(160)).max(100).default([]),
+  scenes: z.array(z.object({
+    id: z.string().min(1).max(120),
+    purpose: z.string().min(1).max(200),
+    startSec: z.number().min(0),
+    endSec: z.number().positive(),
+    narrative: z.object({
+      beat: z.string().min(1),
+      semanticIntent: z.string().min(1),
+      spokenText: z.string(),
+      emotionalState: z.string().min(1),
+    }),
+    composition: z.object({
+      shotType: z.string().min(1),
+      focalPoint: z.string().min(1),
+      negativeSpace: z.string().min(1),
+      captionSafeZone: z.string().min(1),
+    }),
+    camera: z.object({ framing: z.string(), movement: z.string(), depth: z.number().min(0).max(1), easing: z.string() }),
+    background: z.object({
+      recipeId: z.string().min(1),
+      complexity: z.number().min(0).max(1),
+      motionEnergy: z.number().min(0).max(1),
+      seed: z.number().int(),
+    }),
+    visual: z.object({ visualEvent: z.string(), transitionIn: z.string(), transitionOut: z.string(), motif: z.string() }),
+    audio: z.object({ beatAnchorsMs: z.array(z.number().min(0)), accentPointsMs: z.array(z.number().min(0)) }),
+    caption: z.object({ style: z.string(), emphasisWords: z.array(z.string()) }),
+  })).min(1).max(200),
+  backgroundRecipes: z.array(z.object({
+    id: z.string(), version: z.number().int(), family: z.string(), palette: z.object({
+      primary: z.string(), secondary: z.string(), accent: z.string(), neutral: z.string(),
+    }), composition: z.object({
+      focalPoint: z.object({x:z.number(),y:z.number()}), negativeSpace:z.string(),
+      captionSafeRegions:z.array(z.string()), subjectSeparation:z.number(),
+    }), depth:z.object({layerCount:z.number().int(),parallaxStrength:z.number()}),
+    lighting:z.object({keyDirection:z.string(),softness:z.number(),intensity:z.number(),volumetricStrength:z.number(),rimStrength:z.number()}),
+    motion:z.object({direction:z.string(),energy:z.number(),frequency:z.number(),drift:z.number()}),
+    texture:z.object({noise:z.number(),grain:z.number(),particles:z.number(),detailDensity:z.number()}),
+    post:z.object({bloom:z.number(),haze:z.number(),vignette:z.number(),grain:z.number()}),
+    seed:z.number().int(), renderer:z.string(), resourceClass:z.enum(["cpu_light","gpu_optional","hero_render","remote_generation"]),
+  })).default([]),
+  audioTiming: z.object({
+    durationMs:z.number().int().min(0),
+    words:z.array(z.object({word:z.string(),startMs:z.number().min(0),endMs:z.number().min(0)})),
+    sections:z.array(z.object({label:z.string(),startMs:z.number(),endMs:z.number()})).optional(),
+    beatsMs:z.array(z.number()).optional(),
+    onsetsMs:z.array(z.number()).optional(),
+  }).optional(),
 });
 
 function sendParseError(reply: FastifyReply, error: z.ZodError): FastifyReply {
@@ -311,6 +387,75 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
         });
       }
       return reply.status(201).send(tournament);
+    },
+  );
+
+
+  server.get("/visual/background-families", async () => ({
+    families: backgroundFamilies(),
+    principle: "Choose the cheapest renderer that satisfies the scene's visual requirement.",
+  }));
+
+  server.post<{ Body: unknown }>(
+    "/visual/background-preview",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const parsed = BackgroundPreviewSchema.safeParse(request.body);
+      if (!parsed.success) return sendParseError(reply, parsed.error);
+      const family = parsed.data.family ?? selectBackgroundFamily({
+        visualIntent: parsed.data.visualIntent ?? "cinematic",
+        resourceClass: "cpu_light",
+      });
+      const budget = backgroundBudget({
+        captionDensity: parsed.data.captionDensity,
+        subjectSalience: parsed.data.subjectSalience,
+        visualEventDensity: parsed.data.visualEventDensity,
+      });
+      return reply.send({
+        recipe: createBackgroundRecipe({
+          id: parsed.data.id,
+          family,
+          ...(parsed.data.seed !== undefined ? { seed: parsed.data.seed } : {}),
+          complexity: parsed.data.complexity ?? budget.complexity,
+          motionEnergy: parsed.data.motionEnergy ?? budget.motionEnergy,
+        }),
+        budget,
+      });
+    },
+  );
+
+  server.post<{ Body: unknown }>(
+    "/visual/compile",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const parsed = CreativeCompileSchema.safeParse(request.body);
+      if (!parsed.success) return sendParseError(reply, parsed.error);
+      try {
+        const audioTiming = parsed.data.audioTiming
+          ? deriveAudioTimingSpine({
+              durationMs: parsed.data.audioTiming.durationMs,
+              words: parsed.data.audioTiming.words,
+              ...(parsed.data.audioTiming.sections !== undefined ? { sections: parsed.data.audioTiming.sections } : {}),
+              ...(parsed.data.audioTiming.beatsMs !== undefined ? { beatsMs: parsed.data.audioTiming.beatsMs } : {}),
+              ...(parsed.data.audioTiming.onsetsMs !== undefined ? { onsetsMs: parsed.data.audioTiming.onsetsMs } : {}),
+            })
+          : undefined;
+        const artifact = compileCreativeArtifact({
+          id: parsed.data.id,
+          creativeDnaId: parsed.data.creativeDnaId,
+          scenes: parsed.data.scenes,
+          backgroundRecipes: parsed.data.backgroundRecipes as unknown as BackgroundRecipe[],
+          ...(audioTiming ? { audioTiming } : {}),
+          changed: parsed.data.changed,
+          ...(parsed.data.rendererVersion !== undefined ? { rendererVersion: parsed.data.rendererVersion } : {}),
+        });
+        return reply.send(artifact);
+      } catch (error) {
+        return reply.status(422).send({
+          error: "creative_compile_failed",
+          message: error instanceof Error ? error.message : "Creative compilation failed",
+        });
+      }
     },
   );
 

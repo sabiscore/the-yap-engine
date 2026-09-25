@@ -1071,3 +1071,102 @@ export interface TemplateQcResult {
   /** Non-expected MEDIUM-severity interpretations — surfaced as warnings, do not block */
   warnings: QcFindingInterpretation[];
 }
+
+
+export type BackgroundFamily =
+  | "procedural_2d"
+  | "shader"
+  | "gradient_field"
+  | "plasma"
+  | "fractal_noise"
+  | "minimal_grid"
+  | "editorial_collage"
+  | "2_5d_parallax"
+  | "architectural_2_5d"
+  | "particle_field"
+  | "data_space"
+  | "generative_plate"
+  | "broll_environment"
+  | "blender_3d"
+  | "hybrid";
+
+export type BackgroundResourceClass = "cpu_light" | "gpu_optional" | "hero_render" | "remote_generation";
+
+export interface BackgroundRecipe {
+  id: string;
+  version: number;
+  family: BackgroundFamily;
+  palette: { primary: string; secondary: string; accent: string; neutral: string };
+  composition: {
+    focalPoint: { x: number; y: number };
+    negativeSpace: string;
+    captionSafeRegions: string[];
+    subjectSeparation: number;
+  };
+  depth: { layerCount: number; parallaxStrength: number };
+  lighting: { keyDirection: string; softness: number; intensity: number; volumetricStrength: number; rimStrength: number };
+  motion: { direction: string; energy: number; frequency: number; drift: number };
+  texture: { noise: number; grain: number; particles: number; detailDensity: number };
+  post: { bloom: number; haze: number; vignette: number; grain: number };
+  seed: number;
+  renderer: string;
+  resourceClass: BackgroundResourceClass;
+}
+
+export interface BackgroundBudget {
+  complexity: number;
+  motionEnergy: number;
+  contrast: number;
+  textureDensity: number;
+  particleDensity: number;
+  highlightDensity: number;
+  captionClearance: number;
+  subjectClearance: number;
+}
+
+export interface SceneSpecV2 {
+  id: string;
+  purpose: string;
+  startSec: number;
+  endSec: number;
+  narrative: {
+    beat: string;
+    semanticIntent: string;
+    spokenText: string;
+    emotionalState: string;
+  };
+  composition: {
+    shotType: string;
+    focalPoint: string;
+    negativeSpace: string;
+    captionSafeZone: string;
+  };
+  camera: { framing: string; movement: string; depth: number; easing: string };
+  background: { recipeId: string; complexity: number; motionEnergy: number; seed: number };
+  visual: { visualEvent: string; transitionIn: string; transitionOut: string; motif: string };
+  audio: { beatAnchorsMs: number[]; accentPointsMs: number[] };
+  caption: { style: string; emphasisWords: string[] };
+}
+
+export interface AudioTimingSpine {
+  version: 1;
+  durationMs: number;
+  words: WordBoundary[];
+  sections: Array<{ label: string; startMs: number; endMs: number }>;
+  beatsMs: number[];
+  onsetsMs: number[];
+  silenceWindowsMs: Array<{ startMs: number; endMs: number }>;
+  accentPointsMs: number[];
+}
+
+export interface CreativeCompilerArtifact {
+  schemaVersion: 1;
+  id: string;
+  creativeDnaId: string;
+  scenes: SceneSpecV2[];
+  backgroundRecipes: BackgroundRecipe[];
+  audioTiming?: AudioTimingSpine;
+  invalidation: { changed: string[]; affectedScenes: string[]; reason: string };
+  cacheKey: string;
+  createdAt: string;
+}
