@@ -167,6 +167,7 @@ const schema = z.object({
 
   SWARMX_INSTAGRAM_USER_ID: z.string().optional(),
   SWARMX_TIKTOK_API_APPROVED: boolFlag,
+  SWARMX_YOUTUBE_API_APPROVED: boolFlag,
 });
 
 type Env = z.infer<typeof schema>;
@@ -175,6 +176,7 @@ export type SecretEnvKey =
   | "SWARMX_VIDEO_API_TOKEN"
   | "SWARMX_TIKTOK_ACCESS_TOKEN"
   | "SWARMX_INSTAGRAM_ACCESS_TOKEN"
+  | "SWARMX_YOUTUBE_ACCESS_TOKEN"
   | "SWARMX_MODAL_RENDER_TOKEN";
 
 let cached: Env | null = null;

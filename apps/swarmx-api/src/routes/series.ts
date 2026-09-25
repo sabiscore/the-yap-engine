@@ -46,6 +46,7 @@ import {
 import * as queue from "../services/video-queue.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
 import { log } from "../lib/logger.js";
+import { CampaignManager, CreateCampaignSchema } from "../services/campaign-manager.js";
 
 // ─── Request body validation ──────────────────────────────────────────────────
 
@@ -452,6 +453,91 @@ export async function seriesRoutes(
         return reply.status(404).send({ error: "not_found", message: `Series ${request.params.id} not found` });
       }
       return reply.status(204).send();
+    },
+  );
+
+  // Mount campaign routes under /campaign alias
+  await fastify.register(campaignRoutes, { prefix: "/campaign", broadcast });
+}
+
+// ─── Campaign Routes (APEX-19 r1 Multi-Video Campaign Manager) ───────────────────
+
+export async function campaignRoutes(
+  fastify: FastifyInstance,
+  options: FastifyPluginOptions & { broadcast?: BroadcastFn },
+): Promise<void> {
+  const broadcast = options.broadcast ?? (() => {});
+
+  // POST / — create multi-video campaign
+  fastify.post(
+    "/",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const parsed = CreateCampaignSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          error: "validation_error",
+          message: "Invalid campaign parameters",
+          issues: parsed.error.issues,
+        });
+      }
+      const campaign = await CampaignManager.getInstance().createCampaign(parsed.data);
+      return reply.status(201).send(campaign);
+    },
+  );
+
+  // GET / — list campaigns
+  fastify.get("/", async (_request, reply) => {
+    const list = CampaignManager.getInstance().listCampaigns();
+    return reply.status(200).send(list);
+  });
+
+  // GET /:id — get campaign
+  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
+    const campaign = CampaignManager.getInstance().getCampaign(request.params.id);
+    if (!campaign) {
+      return reply.status(404).send({ error: "not_found", message: `Campaign ${request.params.id} not found` });
+    }
+    return reply.status(200).send(campaign);
+  });
+
+  // DELETE /:id — delete campaign
+  fastify.delete<{ Params: { id: string } }>(
+    "/:id",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const deleted = CampaignManager.getInstance().deleteCampaign(request.params.id);
+      if (!deleted) {
+        return reply.status(404).send({ error: "not_found", message: `Campaign ${request.params.id} not found` });
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  // POST /:id/episodes/:n/render — render specific episode of campaign
+  fastify.post<{ Params: { id: string; n: string } }>(
+    "/:id/episodes/:n/render",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const episodeNumber = Number.parseInt(request.params.n, 10);
+      if (!Number.isFinite(episodeNumber) || episodeNumber < 1) {
+        return reply.status(400).send({ error: "invalid_episode", message: "Episode number must be positive integer" });
+      }
+
+      try {
+        const result = await CampaignManager.getInstance().renderCampaignEpisode(
+          request.params.id,
+          episodeNumber,
+          broadcast,
+        );
+        return reply.status(202).send(result);
+      } catch (err: unknown) {
+        const errorRecord = err as { code?: string; message?: string };
+        if (errorRecord.code === "CAMPAIGN_NOT_FOUND" || errorRecord.code === "EPISODE_NOT_FOUND") {
+          return reply.status(404).send({ error: errorRecord.code.toLowerCase(), message: errorRecord.message });
+        }
+        throw err;
+      }
     },
   );
 }

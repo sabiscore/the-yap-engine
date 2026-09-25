@@ -26,7 +26,9 @@ export type DurableCollection =
   | "concept-tournaments"
   | "variant-records"
   | "creative-agent-specs"
-  | "creative-blackboard";
+  | "creative-blackboard"
+  | "campaigns"
+  | "publish-tasks";
 
 interface SnapshotEnvelope<T> {
   schemaVersion: 1;

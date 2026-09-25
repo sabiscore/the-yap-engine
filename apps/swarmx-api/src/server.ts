@@ -58,7 +58,7 @@ import { composerRouter } from "./routes/composer.js";
 import { metricsRouter } from "./routes/metrics.js";
 import { registerModelsRoutes } from "./routes/models.js";
 import { videoRoutes } from "./routes/video.js";
-import { seriesRoutes } from "./routes/series.js";
+import { seriesRoutes, campaignRoutes } from "./routes/series.js";
 import { creativeFactoryRoutes } from "./routes/creative-factory.js";
 
 import { startSystemInfoPoller } from "./services/systeminfo.js";
@@ -230,6 +230,7 @@ await server.register(composerRouter,  { prefix: "/api/composer" });
 await server.register(metricsRouter,   { prefix: "/api/metrics" });
 await server.register(videoRoutes,     { prefix: "/api/video" });
 await server.register(seriesRoutes,    { prefix: "/api/video/series" });
+await server.register(campaignRoutes,  { prefix: "/api/video/campaign" });
 await server.register(creativeFactoryRoutes, { prefix: "/api/video/factory" });
 await registerModelsRoutes(server);
 

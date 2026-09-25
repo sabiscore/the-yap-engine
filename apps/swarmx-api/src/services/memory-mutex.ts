@@ -13,7 +13,7 @@
  *   - Enforce RAM_CRITICAL_MB = 800 (protected constant).
  *   - Transitioning LLM -> TTS triggers explicit Ollama unload (keep_alive: 0).
  *   - Transitioning TTS -> Render verifies RSS drops below 2 GB.
- *   - Zero console.* calls — log.* only.
+ *   - Zero direct console output — log.* only.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 

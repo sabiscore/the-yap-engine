@@ -191,4 +191,4 @@ All four core pillars of the design overhaul strategy have been fully implemente
 - **Vitest Suite**: 84 passing tests across 10 test files (`pnpm -F @swarmx/dashboard test`).
 - **TypeScript Compilation**: Zero errors under `tsc --noEmit` across `@swarmx/types`, `@swarmx/api`, and `@swarmx/dashboard`.
 - **Production Build**: Next.js Turbopack build compiled all 14 routes successfully in production mode.
-- **Repository Invariants**: Zero `console.*` in services/routes, zero legacy `-scar` model tags, and dynamic cold-start ETA assertions intact.
+- **Repository Invariants**: Zero `console.*` in services/routes, zero legacy model tags, and dynamic cold-start ETA assertions intact.

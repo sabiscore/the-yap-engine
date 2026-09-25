@@ -11,6 +11,7 @@ import type {
   VoiceProsodySection,
   VoiceArtifact,
   AudioMasteringRequest,
+  WordBoundary,
 } from "@swarmx/types/video-types";
 import type { VideoJobRequest } from "../types/video.js";
 import { outputDir, resolveOutputPath } from "./video-assets.js";
@@ -21,6 +22,7 @@ import { runTemplateQc } from "./template-aware-qc.js";
 import { alignNarrationAudio, type CaptionAlignmentArtifacts } from "./video-caption-alignment-client.js";
 import { createAmbientBed, masterAudioWithBed } from "./audio-mastering.js";
 import { log } from "../lib/logger.js";
+import { MemoryMutex } from "./memory-mutex.js";
 
 const _ffenv = loadEnv();
 const RENDER_COMMAND_TIMEOUT_MS = Math.min(
@@ -620,9 +622,71 @@ interface CardTiming { start: number; end: number }
  *   - the last card ends exactly at `duration`
  *   - card N+1 starts exactly when card N ends (no half-open gap between)
  */
-function computeCardTimings(cards: string[], duration: number): CardTiming[] {
-  const MIN_CARD_SEC = 1.5;
+function computeCardTimings(
+  cards: string[],
+  duration: number,
+  wordBoundaries?: WordBoundary[],
+): CardTiming[] {
+  const MIN_CARD_SEC = 1.2;
   const n = Math.max(1, cards.length);
+
+  // Dynamic Scene Duration: Snap card transitions to nearest spoken word boundary
+  if (wordBoundaries && wordBoundaries.length >= n && n > 1) {
+    const cardWordCounts = cards.map((c) => Math.max(1, c.trim().split(/\s+/).filter(Boolean).length));
+    const totalWords = cardWordCounts.reduce((s, w) => s + w, 0);
+
+    const timings: CardTiming[] = [];
+    let cumulativeCardWords = 0;
+    let prevEnd = 0;
+    let valid = true;
+
+    for (let i = 0; i < n; i += 1) {
+      if (i === 0) {
+        cumulativeCardWords += cardWordCounts[0]!;
+        const targetWordIndex = Math.min(
+          wordBoundaries.length - 1,
+          Math.max(1, Math.round((cumulativeCardWords / totalWords) * wordBoundaries.length)),
+        );
+        const snappedSec = Math.max(
+          MIN_CARD_SEC,
+          Math.round(((wordBoundaries[targetWordIndex]?.startMs ?? 1500) / 1000) * 10) / 10,
+        );
+        if (snappedSec >= duration - (n - 1) * MIN_CARD_SEC) {
+          valid = false;
+          break;
+        }
+        timings.push({ start: 0, end: snappedSec });
+        prevEnd = snappedSec;
+      } else if (i === n - 1) {
+        if (prevEnd >= duration) {
+          valid = false;
+          break;
+        }
+        timings.push({ start: prevEnd, end: duration });
+      } else {
+        cumulativeCardWords += cardWordCounts[i]!;
+        const targetWordIndex = Math.min(
+          wordBoundaries.length - 1,
+          Math.max(1, Math.round((cumulativeCardWords / totalWords) * wordBoundaries.length)),
+        );
+        const nextSnappedSec = Math.max(
+          prevEnd + MIN_CARD_SEC,
+          Math.round(((wordBoundaries[targetWordIndex]?.startMs ?? (prevEnd * 1000 + 1500)) / 1000) * 10) / 10,
+        );
+        const clampedSec = Math.min(duration - (n - 1 - i) * MIN_CARD_SEC, nextSnappedSec);
+        if (clampedSec <= prevEnd) {
+          valid = false;
+          break;
+        }
+        timings.push({ start: prevEnd, end: clampedSec });
+        prevEnd = clampedSec;
+      }
+    }
+
+    if (valid && timings.length === n) {
+      return timings;
+    }
+  }
 
   const rawWeights = cards.map((c) => Math.max(1, c.trim().split(/\s+/).filter(Boolean).length));
   const weightTotal = rawWeights.reduce((s, w) => s + w, 0);
@@ -648,7 +712,20 @@ function computeCardTimings(cards: string[], duration: number): CardTiming[] {
   return timings;
 }
 
-// Build the filter_complex chain: fade in, per-card drawtext, progress bar, fade out.
+/**
+ * Retention Interrupt Cadence:
+ * Injects subtle visual pattern interrupts every 2.8s (within the 2.0-3.5s window)
+ * to maintain high viewer attention and curb algorithmic feed drop-off.
+ */
+function buildRetentionInterruptLayers(accentHex: string): string[] {
+  const accentRgb = accentHex.replace(/^0x/, "");
+  return [
+    `eq=contrast='1+0.06*lt(mod(t,2.8),0.22)':saturation='1+0.08*lt(mod(t,2.8),0.22)':eval=frame`,
+    `drawbox=x=0:y=0:w=iw:h=4:color=${accentRgb}@0.45:t=fill:enable='lt(mod(t,2.8),0.22)'`,
+  ];
+}
+
+// Build the filter_complex chain: background layers, retention interrupts, per-card drawtext, progress bar, fade out.
 /**
  * Caption overlay mode for the render's filter chain:
  *  - "cards": estimated word-weighted drawtext cards (default path).
@@ -706,21 +783,25 @@ function buildFilterComplex(
   // Accent color in hex without the 0x prefix for FFmpeg's color syntax.
   const progressBar = `drawbox=x=0:y=ih-8:w=trunc(iw*t/${duration}):h=8:color=${accentRgb}@0.9:t=fill`;
   const motionLayers = buildBackgroundMotionLayers(rendererTier, accentRgb, request, timings[0]?.end ?? 2);
+  const retentionLayers = buildRetentionInterruptLayers(accentHex);
 
   const subtitleFilter = captionOverlay.mode === "subtitles"
     ? [`subtitles=${captionOverlay.assPath.replaceAll("\\", "/").replaceAll(":", "\\:")}`]
     : [];
 
+  // Non-Static Frame 0: Start immediately with high-contrast hook typography and background motion.
+  // Fading in from black at t=0 is avoided to maximize short-form 0.5s feed retention.
   return [
     "format=yuv420p",
-    `fade=t=in:st=0:d=0.4`,
     ...motionLayers,
+    ...retentionLayers,
     ...textFilters,
     progressBar,
     ...subtitleFilter,
     `fade=t=out:st=${Math.max(0, duration - 0.6)}:d=0.6`,
   ].join(",");
 }
+
 
 function cueTimestamp(seconds: number, separator: "," | "."): string {
   const safe = Math.max(0, seconds);
@@ -852,7 +933,7 @@ async function writeProductionPackage(input: {
   const packagedVoicePath = join(packageDir, "narration.wav");
   let voiceArtifact = input.voiceArtifact;
 
-  const cardTimings = computeCardTimings(input.cards, input.duration);
+  const cardTimings = computeCardTimings(input.cards, input.duration, input.voiceArtifact?.wordBoundaries);
   const timedText = buildTimedText(input.cards, input.duration, cardTimings);
   await writeFile(transcriptPath, `${input.narration}\n`, "utf8");
   await writeFile(srtPath, timedText.srt, "utf8");
@@ -1061,7 +1142,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
   const styleConfig  = CAPTION_STYLE_CONFIGS[captionKey] ?? CAPTION_STYLE_CONFIGS["bold_center"]!;
 
   const fontFile     = discoverFont();
-  const duration     = clampDuration(input.request.targetDurationSeconds);
+  let duration       = clampDuration(input.request.targetDurationSeconds);
   const cards        = renderCards(input);
   const rendererTier = rendererTierForRequest(input.request);
   const templateId   = templateIdForTier(rendererTier);
@@ -1091,6 +1172,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
     let voiceArtifact: VoiceArtifact | undefined;
     let audioPath = narrationPath;
     try {
+      await MemoryMutex.getInstance().acquirePhase("tts", input.jobId).catch(() => {});
       const selected = await selectVoiceProvider({
         voiceProfileId: input.request.voiceProfileId,
       });
@@ -1120,6 +1202,35 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
         throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
           code: "VOICE_PROVIDER_UNAVAILABLE",
         });
+      }
+    } finally {
+      await MemoryMutex.getInstance().releasePhase("tts", input.jobId).catch(() => {});
+    }
+
+    // Dynamic Scene Duration: Derive actual timeline duration from spoken voice artifact
+    if (voiceArtifact?.durationSeconds && voiceArtifact.durationSeconds > 0) {
+      duration = Math.max(3, Math.min(180, Math.round(voiceArtifact.durationSeconds * 10) / 10));
+    }
+
+    // Hook Latency Enforcement: speech must begin within <= 200ms of video start.
+    let audioFilterPrefix = "";
+    if (voiceArtifact?.wordBoundaries && voiceArtifact.wordBoundaries.length > 0) {
+      const firstWordStartMs = voiceArtifact.wordBoundaries[0]!.startMs;
+      if (firstWordStartMs > 200) {
+        const audioLeadTrimSec = Math.max(0, Math.round(firstWordStartMs - 100) / 1000);
+        audioFilterPrefix = `atrim=start=${audioLeadTrimSec},asetpts=PTS-STARTPTS,`;
+        const shiftMs = Math.round(audioLeadTrimSec * 1000);
+        voiceArtifact.wordBoundaries = voiceArtifact.wordBoundaries.map((wb) => ({
+          word: wb.word,
+          startMs: Math.max(0, wb.startMs - shiftMs),
+          endMs: Math.max(0, wb.endMs - shiftMs),
+        }));
+        voiceArtifact.durationSeconds = Math.max(1, voiceArtifact.durationSeconds - audioLeadTrimSec);
+        duration = Math.max(3, Math.min(180, Math.round(voiceArtifact.durationSeconds * 10) / 10));
+        log.info(
+          { jobId: input.jobId, firstWordStartMs, audioLeadTrimSec },
+          "ffmpeg-video-renderer: hook latency <= 200ms enforced; trimmed leading dead air",
+        );
       }
     }
 
@@ -1166,7 +1277,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       }
     }
 
-    const renderTimings = computeCardTimings(cards, duration);
+    const renderTimings = computeCardTimings(cards, duration, voiceArtifact?.wordBoundaries);
     // Whisper-aligned jobs still render the full cinematic filter chain
     // (fades, background motion layers, progress bar) — only the caption
     // overlay mechanism switches from drawtext cards to an ASS subtitle
@@ -1184,7 +1295,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       alignment ? { mode: "subtitles", assPath: alignment.assPath } : { mode: "cards" },
     );
 
-      const remoteSegments = input.backgroundVideoPaths ?? [];
+    const remoteSegments = input.backgroundVideoPaths ?? [];
     const segmentListPath = join(workDir, "remote-segments.txt");
     if (remoteSegments.length > 0) {
       await writeFile(
@@ -1201,6 +1312,8 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       ? ["-i", audioPath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"];
 
+    await MemoryMutex.getInstance().acquirePhase("render", input.jobId).catch(() => {});
+
     await execFileChecked("ffmpeg", [
       "-y",
       ...visualInputArgs,
@@ -1211,8 +1324,8 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       "-shortest",
       "-t", String(duration),
       "-af", audioPath === masteredPath
-        ? `aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ}`
-        : `aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ},loudnorm=I=${loadEnv().SWARMX_AUDIO_TARGET_LUFS}:TP=${loadEnv().SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS}:LRA=11`,
+        ? `${audioFilterPrefix}aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ}`
+        : `${audioFilterPrefix}aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ},loudnorm=I=${loadEnv().SWARMX_AUDIO_TARGET_LUFS}:TP=${loadEnv().SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS}:LRA=11`,
       "-ar", String(loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ),
       "-ac", String(loadEnv().SWARMX_AUDIO_MASTER_CHANNELS),
       "-c:v", "libx264",
@@ -1245,6 +1358,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
 
     return { outputFilename, renderPackage };
   } finally {
+    await MemoryMutex.getInstance().releasePhase("render", input.jobId).catch(() => {});
     if (!renderCompleted) {
       await unlink(tempOutputPath).catch(() => {});
       await unlink(outputPath).catch(() => {});

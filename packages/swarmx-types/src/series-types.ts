@@ -342,3 +342,62 @@ export interface SeriesPreProductionResponse {
   episodeNumber: number;
   preProduction: EpisodePreProduction;
 }
+
+// ─── Multi-Video Campaign Plan Contracts (APEX-19 r1) ─────────────────────────
+
+export interface HookGrammar {
+  hookText: string;
+  hookStyle: "contrarian" | "curiosity_gap" | "negative_constraint" | "visceral_proof" | "direct_challenge";
+  visualCue: string;
+  targetLatencyMs: number; // <= 200ms
+}
+
+export interface SeriesBridge {
+  previousEpisodeCliffhanger?: string;
+  nextEpisodeTease: string;
+  callbackAnchor: string;
+}
+
+export interface CampaignScript {
+  hookText: string;
+  bodyText: string;
+  ctaText: string;
+  fullScriptText: string;
+  estimatedDurationSeconds: number;
+  wordCount: number;
+}
+
+export interface CampaignPublishingMetadata {
+  platform: "tiktok" | "youtube_shorts" | "instagram_reels";
+  title: string;
+  description: string;
+  tags: string[];
+  scheduledOffsetHours: number;
+  captionDraft: string;
+}
+
+export interface CampaignEpisode {
+  episodeNumber: number;
+  title: string;
+  narrativeArcPosition: "hook_opener" | "escalation" | "climax_revelation" | "resolution_payoff";
+  hookGrammar: HookGrammar;
+  script: CampaignScript;
+  bridge: SeriesBridge;
+  publishing: CampaignPublishingMetadata;
+  status: "drafted" | "rendering" | "rendered" | "published" | "failed";
+  jobId?: string;
+}
+
+export interface CampaignPlanJSON {
+  campaignId: string;
+  title: string;
+  topic: string;
+  niche: string;
+  tone: VideoTone;
+  totalEpisodes: number;
+  targetAudience: string;
+  coreThesis: string;
+  episodes: CampaignEpisode[];
+  createdAt: string;
+  updatedAt: string;
+}

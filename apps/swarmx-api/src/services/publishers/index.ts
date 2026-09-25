@@ -3,11 +3,12 @@ import type { PlatformPublisher } from "./base-publisher.js";
 import { GenericVideoPublisher } from "./generic.js";
 import { InstagramVideoPublisher } from "./instagram.js";
 import { TikTokVideoPublisher } from "./tiktok.js";
+import { YouTubeShortsPublisher } from "./youtube.js";
 
 const publisherRegistry: Record<VideoExportPlatform, PlatformPublisher> = {
   tiktok: new TikTokVideoPublisher(),
   reels: new InstagramVideoPublisher(),
-  shorts: new GenericVideoPublisher(),
+  shorts: new YouTubeShortsPublisher(),
   generic: new GenericVideoPublisher(),
 };
 

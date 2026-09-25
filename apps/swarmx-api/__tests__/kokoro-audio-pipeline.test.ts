@@ -131,18 +131,36 @@ describe("KokoroVoiceProvider Word Boundaries & Audio Normalization", () => {
       }),
     });
 
-    // Mock probeAudio
-    vi.spyOn(provider as any, "listVoices").mockResolvedValue([
-      {
-        providerId: "kokoro",
-        voiceId: "am_michael",
-        displayName: "Kokoro am_michael",
-        locale: "en-US",
-        qualityTier: "neural_local",
-        license: { state: "approved", sourceName: "kokoro", allowedUses: ["local-render"] },
-        consentRequired: false,
-      },
-    ]);
+    // Mock artifactBase to verify wordBoundaries and masterAudio without depending on physical file read streams
+    vi.spyOn(provider as any, "artifactBase").mockImplementation(async (
+      req: any,
+      outPath: string,
+      provVer: any,
+      desc: any,
+      normText: string,
+      latency: number,
+      fallback?: string,
+      prosody?: any,
+      wordBoundaries?: any[],
+    ) => ({
+      providerId: "kokoro",
+      voiceId: desc.voiceId,
+      displayName: desc.displayName,
+      locale: desc.locale,
+      qualityTier: desc.qualityTier,
+      license: desc.license,
+      consentRequired: false,
+      consentState: "not_required",
+      textHash: "hash123",
+      normalizedText: normText,
+      actualSampleRateHz: 24000,
+      channels: 2,
+      durationSeconds: 1.1,
+      outputPath: outPath,
+      sha256: "sha256123",
+      generationLatencyMs: latency,
+      wordBoundaries,
+    }));
 
     const artifact = await provider.synthesize(
       {
