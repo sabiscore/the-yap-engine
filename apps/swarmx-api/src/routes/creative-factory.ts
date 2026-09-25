@@ -447,7 +447,7 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
           backgroundRecipes: parsed.data.backgroundRecipes as unknown as BackgroundRecipe[],
           ...(audioTiming ? { audioTiming } : {}),
           changed: parsed.data.changed,
-          rendererVersion: parsed.data.rendererVersion,
+          ...(parsed.data.rendererVersion !== undefined ? { rendererVersion: parsed.data.rendererVersion } : {}),
         });
         return reply.send(artifact);
       } catch (error) {
