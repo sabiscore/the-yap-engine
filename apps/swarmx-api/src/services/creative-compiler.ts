@@ -5,7 +5,7 @@ function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   const record = value as Record<string, unknown>;
-  return `{${Object.keys(record).sort().map((key) => JSON.stringify(key)+":"+stable(record[key])).join(",")}}`;
+  return `{${Object.keys(record).sort((a, b) => a.localeCompare(b)).map((key) => JSON.stringify(key)+":"+stable(record[key])).join(",")}}`;
 }
 
 export function creativeCacheKey(input: {
