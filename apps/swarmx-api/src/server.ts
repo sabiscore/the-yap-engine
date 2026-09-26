@@ -41,6 +41,7 @@
  */
 
 import { createConnection } from "node:net";
+import { connect as createTlsConnection } from "node:tls";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
@@ -242,111 +243,123 @@ server.log.info(
   "durable-state: API registries hydrated",
 );
 
-// ── Health check ──────────────────────────────────────────────────────────────
-// Probed by docker-compose healthcheck and Kubernetes liveness probes.
-// Must remain at /health (not /api/health) — see [DC-FIX-02] in docker-compose.yml.
+// ── Health checks ─────────────────────────────────────────────────────────────
+server.get("/", { logLevel: "silent" }, async () => ({
+  status: "ok",
+  service: "swarmx-api",
+  version: process.env["npm_package_version"] ?? "2026.6.0",
+  ts: Date.now(),
+}));
+
 server.get("/health", { logLevel: "silent" }, async () => ({
   status: "ok",
   ts: Date.now(),
-  version: process.env["npm_package_version"] ?? "unknown",
+  version: process.env["npm_package_version"] ?? "2026.6.0",
+}));
+
+server.get("/api/health", { logLevel: "silent" }, async () => ({
+  status: "ok",
+  ts: Date.now(),
+  version: process.env["npm_package_version"] ?? "2026.6.0",
 }));
 
 // ── [APEX17-MOT-01] ModelOrchestrator — initialize BEFORE background pollers ─
-//
-// Initialises the RAM-aware orchestrator singleton. Pre-warms the ultra-router
-// so first-request latency is sub-second. All video-orchestrator and composer
-// calls route through this singleton for concurrent 7B model safety.
-//
-// ORDERING FIX: init() must run before startSwarmMonitor and other pollers.
-// Previously it ran after all pollers — if any poller triggered model-related
-// logic before init() completed, the SINGLE-7B LOCK state was a stale empty set.
-try {
-  await ModelOrchestrator.getInstance().init();
-  server.log.info(
-    { ultraRouter: process.env["SWARM_MODEL_ULTRA_ROUTER"] ?? "route-phi4-lite-q4km-prod" },
-    "ModelOrchestrator initialized — SINGLE-7B LOCK active",
-  );
-
-  // Video runtime mode summary — one line, actionable on cold-start audits.
-  server.log.info(
-    {
-      lowRamMode: isLowRamVideoMode(),
-      availableMb: detectAvailableMemoryMb(),
-      videoModel: isLowRamVideoMode() ? LOW_RAM_VIDEO_MODEL : "default (7B planning path)",
-    },
-    "Video pipeline runtime mode resolved",
-  );
-
-  // Fire-and-forget prewarm of the Pilot text model at startup. Cold model
-  // load on CPU takes 100–140 s; warming during boot moves that latency off
-  // the user path. On 16 GB, prewarms the full Pilot; on 8 GB (low-RAM mode),
-  // prewarms the lite Pilot. Both paths write the warmup status marker so the
-  // dashboard shows a dynamic cold-start ETA via /api/system/health → warmup.
-  if (loadEnv().SWARMX_MODEL_STARTUP_PREWARM === "1") {
-    const prewarmTag = isLowRamVideoMode() ? LOW_RAM_VIDEO_MODEL : PILOT_VIDEO_MODEL;
-    const keepAliveSecs = loadEnv().OLLAMA_KEEP_ALIVE_PILOT_S;
-    const ollamaUrl = loadEnv().OLLAMA_HOST ?? loadEnv().SWARMX_OLLAMA_URL ?? "http://127.0.0.1:11434";
-    void fetchBackend(`${ollamaUrl}/api/generate`, {
-      backend: "ollama",
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: prewarmTag,
-        prompt: "warm",
-        stream: false,
-        keep_alive: `${keepAliveSecs}s`,
-        options: { num_predict: 8, num_ctx: 2048 },
-      }),
-    })
-      .then(async () => {
-        server.log.info({ model: prewarmTag, keepAliveSecs }, "video model prewarm complete");
-        const warmupFile = loadEnv().SWARMX_WARMUP_STATUS_FILE;
-        const { writeFile } = await import("node:fs/promises");
-        await writeFile(
-          warmupFile,
-          JSON.stringify({ done: true, completedAt: new Date().toISOString() }),
-          "utf8",
-        ).catch(() => {});
-      })
-      .catch((err: unknown) => server.log.warn({ err, model: prewarmTag }, "video model prewarm skipped"));
-  }
-} catch (err) {
-  server.log.warn({ err }, "ModelOrchestrator init failed — video pipeline may degrade");
-}
-
-// ── Background pollers ────────────────────────────────────────────────────────
-// Start AFTER ModelOrchestrator.init() so pollers see a warmed state.
-startSystemInfoPoller(server);
-
 let stopSwarmMonitor: () => void = () => {};
-stopSwarmMonitor = startSwarmMonitor(
-  (event, data) => server.log.debug({ event, data }, "swarm event"),
-  10_000, // poll every 10s
-);
 
-startCgroupPoller(server);
-startV5MetricsPoller(server);
-startPyEventsPoller(server);       // [V5.9-FIX-05] bridge Python journal events to SSE
-startAgentSeedService(server);     // [V6.1-FIX-15] Seed idle agents from catalog on API boot.
-broadcastStartupSummary(server);   // [V6.1-ENH-01] Broadcast the Python startup summary to SSE clients after boot
-startVideoCleanup();               // Best-effort periodic removal of exports/artifacts older than TTL
-startSeriesCleanup();              // Best-effort periodic eviction of series plans older than TTL
-await startJournaldStream(server);
+if (!process.env["VERCEL"]) {
+  try {
+    await ModelOrchestrator.getInstance().init();
+    server.log.info(
+      { ultraRouter: process.env["SWARM_MODEL_ULTRA_ROUTER"] ?? "route-phi4-lite-q4km-prod" },
+      "ModelOrchestrator initialized — SINGLE-7B LOCK active",
+    );
+
+    // Video runtime mode summary — one line, actionable on cold-start audits.
+    server.log.info(
+      {
+        lowRamMode: isLowRamVideoMode(),
+        availableMb: detectAvailableMemoryMb(),
+        videoModel: isLowRamVideoMode() ? LOW_RAM_VIDEO_MODEL : "default (7B planning path)",
+      },
+      "Video pipeline runtime mode resolved",
+    );
+
+    // Fire-and-forget prewarm of the Pilot text model at startup. Cold model
+    // load on CPU takes 100–140 s; warming during boot moves that latency off
+    // the user path. On 16 GB, prewarms the full Pilot; on 8 GB (low-RAM mode),
+    // prewarms the lite Pilot. Both paths write the warmup status marker so the
+    // dashboard shows a dynamic cold-start ETA via /api/system/health → warmup.
+    if (loadEnv().SWARMX_MODEL_STARTUP_PREWARM === "1") {
+      const prewarmTag = isLowRamVideoMode() ? LOW_RAM_VIDEO_MODEL : PILOT_VIDEO_MODEL;
+      const keepAliveSecs = loadEnv().OLLAMA_KEEP_ALIVE_PILOT_S;
+      const ollamaUrl = loadEnv().OLLAMA_HOST ?? loadEnv().SWARMX_OLLAMA_URL ?? "http://127.0.0.1:11434";
+      void fetchBackend(`${ollamaUrl}/api/generate`, {
+        backend: "ollama",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: prewarmTag,
+          prompt: "warm",
+          stream: false,
+          keep_alive: `${keepAliveSecs}s`,
+          options: { num_predict: 8, num_ctx: 2048 },
+        }),
+      })
+        .then(async () => {
+          server.log.info({ model: prewarmTag, keepAliveSecs }, "video model prewarm complete");
+          const warmupFile = loadEnv().SWARMX_WARMUP_STATUS_FILE;
+          const { writeFile } = await import("node:fs/promises");
+          await writeFile(
+            warmupFile,
+            JSON.stringify({ done: true, completedAt: new Date().toISOString() }),
+            "utf8",
+          ).catch(() => {});
+        })
+        .catch((err: unknown) => server.log.warn({ err, model: prewarmTag }, "video model prewarm skipped"));
+    }
+  } catch (err) {
+    server.log.warn({ err }, "ModelOrchestrator init failed — video pipeline may degrade");
+  }
+
+  // ── Background pollers ────────────────────────────────────────────────────────
+  // Start AFTER ModelOrchestrator.init() so pollers see a warmed state.
+  startSystemInfoPoller(server);
+
+  stopSwarmMonitor = startSwarmMonitor(
+    (event, data) => server.log.debug({ event, data }, "swarm event"),
+    10_000, // poll every 10s
+  );
+
+  startCgroupPoller(server);
+  startV5MetricsPoller(server);
+  startPyEventsPoller(server);       // [V5.9-FIX-05] bridge Python journal events to SSE
+  startAgentSeedService(server);     // [V6.1-FIX-15] Seed idle agents from catalog on API boot.
+  broadcastStartupSummary(server);   // [V6.1-ENH-01] Broadcast the Python startup summary to SSE clients after boot
+  startVideoCleanup();               // Best-effort periodic removal of exports/artifacts older than TTL
+  startSeriesCleanup();              // Best-effort periodic eviction of series plans older than TTL
+  await startJournaldStream(server);
+}
 
 // ── BullMQ Worker ─────────────────────────────────────────────────────────────
 // Probe Redis via TCP before starting the Worker. On failure: warn + fall back
 // to in-memory queue; never crash startup. The env default is "1" (enabled).
-{
+if (!process.env["VERCEL"]) {
   const { SWARMX_VIDEO_USE_BULLMQ, REDIS_URL: probeUrl } = loadEnv();
   if (SWARMX_VIDEO_USE_BULLMQ === "1") {
     const redisReachable = await new Promise<boolean>((resolve) => {
-      const parsed = new URL(probeUrl);
-      const host = parsed.hostname;
-      const port = parseInt(parsed.port || "6379", 10);
-      const socket = createConnection({ host, port });
-      const timer = setTimeout(() => { socket.destroy(); resolve(false); }, 3_000);
-      socket.on("connect", () => { clearTimeout(timer); socket.destroy(); resolve(true); });
-      socket.on("error", () => { clearTimeout(timer); resolve(false); });
+      try {
+        const parsed = new URL(probeUrl);
+        const host = parsed.hostname;
+        const port = parseInt(parsed.port || (parsed.protocol === "rediss:" ? "6380" : "6379"), 10);
+        const socket = parsed.protocol === "rediss:"
+          ? createTlsConnection({ host, port })
+          : createConnection({ host, port });
+        const timer = setTimeout(() => { socket.destroy(); resolve(false); }, 3_000);
+        socket.on("connect", () => { clearTimeout(timer); socket.destroy(); resolve(true); });
+        socket.on("error", () => { clearTimeout(timer); resolve(false); });
+      } catch {
+        resolve(false);
+      }
     });
 
     if (redisReachable) {
@@ -444,13 +457,17 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT",  () => void shutdown("SIGINT"));
 
 // ── Listen ────────────────────────────────────────────────────────────────────
-try {
-  await server.listen({ port: PORT, host: HOST });
-  server.log.info(
-    { host: HOST, port: PORT, pid: process.pid, env: process.env["NODE_ENV"] },
-    "SwarmX API ready",
-  );
-} catch (err) {
-  server.log.error({ err }, "Failed to bind server — check port conflict or permissions");
-  process.exit(1);
+if (!process.env["VERCEL"]) {
+  try {
+    await server.listen({ port: PORT, host: HOST });
+    server.log.info(
+      { host: HOST, port: PORT, pid: process.pid, env: process.env["NODE_ENV"] },
+      "SwarmX API ready",
+    );
+  } catch (err) {
+    server.log.error({ err }, "Failed to bind server — check port conflict or permissions");
+    process.exit(1);
+  }
 }
+
+export default server;

@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/apps/swarmx-api/src/server.js",
+    "start:worker": "node dist/apps/swarmx-api/src/workers/start-worker.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:video": "node --import tsx scripts/video-regression-check.ts",

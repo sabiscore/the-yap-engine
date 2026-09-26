@@ -9,6 +9,9 @@ __pycache__/
 dist/
 build/
 .eggs/
+cdk.out/
+.pnpm-store/
+infra/aws-render-cdk/cdk.out/
 .env
 .env.local
 env.local

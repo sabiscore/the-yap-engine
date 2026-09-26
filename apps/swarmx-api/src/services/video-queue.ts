@@ -166,7 +166,7 @@ export function enqueue(request: VideoJobRequest): VideoJob {
             code: "QUEUE_UNAVAILABLE",
             message: "Remote queue submission failed; job was not accepted by BullMQ.",
             retryable: false,
-            details: detail,
+            details: { error: detail },
           });
         }
       });

@@ -264,6 +264,7 @@ export type VideoErrorCode =
   | "comfyui_ram_budget_exceeded"
   | "INTENT_VALIDATION_FAILED"
   | "SCRIPT_SCHEMA_INVALID"
+  | "QUEUE_UNAVAILABLE"
   | "CANCELLED_BY_USER"
   | "UNKNOWN";
 
