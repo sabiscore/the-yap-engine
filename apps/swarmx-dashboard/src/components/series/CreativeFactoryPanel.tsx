@@ -324,12 +324,18 @@ function RunRow({
       aria-pressed={selected}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={cn(
             "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
             runStatusColor(run.status),
           )}>
             {run.status}
+          </span>
+          <span className={cn(
+            "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
+            hubStateTone(creativeHubState(run)),
+          )}>
+            {creativeHubState(run)}
           </span>
           <span className="font-mono text-[10px] text-text-muted">{run.mode}</span>
         </div>
@@ -356,30 +362,41 @@ function RunDetail({ run }: { run: CreativeFactoryWorkflowRun }) {
     );
   }
 
+  const state = creativeHubState(run);
   return (
-    <ol className="divide-y divide-border">
-      {checkpoints.map(([stage, cp]) => {
-        const isActive = cp?.status === "running";
-        return (
-          <li
-            key={stage}
-            className="flex items-center justify-between gap-2 px-4 py-2"
-            {...(isActive ? { "aria-current": "step" as const } : {})}
-          >
-            <span className="font-mono text-[10px] text-text-secondary">{stage}</span>
-            <span className={cn(
-              "rounded border px-1.5 py-0.5 font-mono text-[10px]",
-              cp?.status === "complete" ? "border-status-success/30 bg-status-success/10 text-status-success" :
-              cp?.status === "failed" ? "border-status-error/30 bg-status-error/10 text-status-error" :
-              cp?.status === "running" ? "border-accent/30 bg-accent/10 text-accent" :
-              "border-border text-text-muted",
-            )}>
-              {cp?.status ?? "unknown"}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <div>
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Production state</span>
+        <span className={cn("rounded border px-2 py-1 font-mono text-[10px] font-semibold", hubStateTone(state))}>{state}</span>
+      </div>
+      <ol className="divide-y divide-border">
+        {checkpoints.map(([stage, cp]) => {
+          const isActive = cp?.status === "running";
+          const isQc = QC_STAGES.includes(stage as typeof QC_STAGES[number]);
+          return (
+            <li
+              key={stage}
+              className="flex items-center justify-between gap-2 px-4 py-2"
+              {...(isActive ? { "aria-current": "step" as const } : {})}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                {isQc && <ShieldAlert className={cn("h-3 w-3 shrink-0", cp?.status === "failed" ? "text-status-error" : "text-text-muted")} aria-hidden="true" />}
+                <span className="font-mono text-[10px] text-text-secondary">{stage}</span>
+              </div>
+              <span className={cn(
+                "rounded border px-1.5 py-0.5 font-mono text-[10px]",
+                cp?.status === "complete" ? "border-status-success/30 bg-status-success/10 text-status-success" :
+                cp?.status === "failed" ? "border-status-error/30 bg-status-error/10 text-status-error" :
+                cp?.status === "running" ? "border-accent/30 bg-accent/10 text-accent" :
+                "border-border text-text-muted",
+              )}>
+                {cp?.status ?? "unknown"}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
