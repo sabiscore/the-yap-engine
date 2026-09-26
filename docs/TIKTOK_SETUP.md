@@ -20,9 +20,10 @@ SWARMX_TIKTOK_ACCESS_TOKEN=
 SWARMX_TIKTOK_CLIENT_KEY=
 SWARMX_TIKTOK_CLIENT_SECRET=
 SWARMX_TIKTOK_API_APPROVED=0
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
 SWARMX_TIKTOK_PRIVACY_LEVEL=SELF_ONLY
 
-SWARMX_TIKTOK_PRIVACY_LEVEL must match an option returned by TikTok's creator-info endpoint. SELF_ONLY is the safe default.
+SWARMX_TIKTOK_PRIVACY_LEVEL must match an option returned by TikTok's creator-info endpoint. SELF_ONLY is the safe default. Public/privacy selections are ignored until the second-stage public-post gate is explicitly enabled after controlled verification.
 Never use NEXT_PUBLIC_* for TikTok credentials.
 
 ## OAuth lifecycle
