@@ -4,18 +4,39 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./operator-map": "./src/operator-map.ts",
-    "./operation-types": "./src/operation-types.ts",
-    "./video-types": "./src/video-types.ts",
-    "./series-types": "./src/series-types.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./operator-map": {
+      "types": "./dist/operator-map.d.ts",
+      "import": "./dist/operator-map.js",
+      "default": "./dist/operator-map.js"
+    },
+    "./operation-types": {
+      "types": "./dist/operation-types.d.ts",
+      "import": "./dist/operation-types.js",
+      "default": "./dist/operation-types.js"
+    },
+    "./video-types": {
+      "types": "./dist/video-types.d.ts",
+      "import": "./dist/video-types.js",
+      "default": "./dist/video-types.js"
+    },
+    "./series-types": {
+      "types": "./dist/series-types.d.ts",
+      "import": "./dist/series-types.js",
+      "default": "./dist/series-types.js"
+    }
   }
 }

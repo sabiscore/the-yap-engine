@@ -18,7 +18,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: corepack enable && corepack prepare pnpm@12.6.0 --activate && pnpm install --frozen-lockfile && pnpm -F @swarmx/types build && pnpm -F swarmx-api build
+    buildCommand: corepack enable && corepack prepare pnpm@12.6.0 --activate && pnpm install --frozen-lockfile && pnpm -F @swarmx/types build && pnpm -F @swarmx/api build
     startCommand: node apps/swarmx-api/dist/apps/swarmx-api/src/workers/start-worker.js
 
     envVars:
