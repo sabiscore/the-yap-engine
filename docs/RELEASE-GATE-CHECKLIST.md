@@ -82,3 +82,13 @@ Do not merge the release branch until every checked item has attached evidence. 
 5. TikTok controlled verification requires a human operator and a real account; production currently has no `controlled_verified` account.
 6. Production monetization observations are currently zero.
 7. iPhone 14 Pro Max empirical browser evidence is not available in the current execution environment.
+
+## Audit snapshot — 2026-09-27
+
+- Current branch: `feat/creative-hub-production-hardening-20260926`
+- Current exact head at last audit: `8bc6dc37c8070719d832c9d8c15b2718839e3bd4`.
+- Most recent exact-head canonical CI result observed before the final trigger: GitHub Actions run [201](https://github.com/sabiscore/the-yap-engine/actions/runs/36280005126), completed with `failure` and no jobs returned by the API.
+- A final exact-head trigger was pushed after that run; the latest lookup returned no workflow run yet for the new SHA. No green CI claim is made.
+- Known production Vercel READY deployment: `dpl_BrwjQ652WcrzdvobZ9PfGuNCTkit` for main SHA `c30a0ab6288233786c5ea00b3f9fbecf7005b25a`.
+- Production Neon counts at audit time: `tiktok_accounts = 0`, `monetization_observations = 0`.
+- AWS CloudFormation `DescribeStacks` in `us-east-1` returned no stacks; Phase-D was not deployed.
