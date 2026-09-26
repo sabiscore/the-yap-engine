@@ -8,9 +8,9 @@ import type {
 
 function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[\${value.map(stable).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   const record = value as Record<string, unknown>;
-  return `{\${Object.keys(record).sort((a, b) => a.localeCompare(b)).map((key) => JSON.stringify(key) + ":" + stable(record[key])).join(",")}}`;
+  return `{${Object.keys(record).sort((a, b) => a.localeCompare(b)).map((key) => JSON.stringify(key) + ":" + stable(record[key])).join(",")}}`;
 }
 
 function sha256(value: unknown): string {
@@ -128,14 +128,14 @@ export function compileCreativeArtifact(input: {
   let cursor = 0;
 
   for (const scene of scenes) {
-    if (scene.endSec <= scene.startSec) throw new Error(`Invalid scene interval: \${scene.id}`);
-    if (scene.startSec < cursor) throw new Error(`Overlapping scene interval: \${scene.id}`);
+    if (scene.endSec <= scene.startSec) throw new Error(`Invalid scene interval: ${scene.id}`);
+    if (scene.startSec < cursor) throw new Error(`Overlapping scene interval: ${scene.id}`);
     cursor = scene.endSec;
     if (scene.background.complexity < 0 || scene.background.complexity > 1) {
-      throw new Error(`Invalid background complexity: \${scene.id}`);
+      throw new Error(`Invalid background complexity: ${scene.id}`);
     }
     if (scene.background.motionEnergy < 0 || scene.background.motionEnergy > 1) {
-      throw new Error(`Invalid background motion energy: \${scene.id}`);
+      throw new Error(`Invalid background motion energy: ${scene.id}`);
     }
   }
 
