@@ -550,14 +550,24 @@ export interface MonetizationObservation {
   id: string;
   userId: string;
   packageId: string;
+  contentId?: string;
+  campaignId?: string;
+  publishId?: string;
   platform: VideoExportPlatform;
   observedAt: string;
   currency: string;
   platformRewardsCents: number;
+  viewCount: number;
+  qualifiedViews: number;
+  watchTimeSeconds: number;
+  completionRate: number | null;
+  shares: number;
+  comments: number;
   affiliateClicks: number;
   affiliateConversions: number;
   affiliateRevenueCents: number;
   landingPageVisits: number;
+  funnelSessions: number;
   checkoutStarts: number;
   ownedProductConversions: number;
   ownedProductRevenueCents: number;
@@ -569,6 +579,10 @@ export interface MonetizationObservation {
   egressCostCents: number;
   source: string;
   attributionWindowDays?: number;
+  generationCostCents: number;
+  distributionCostCents: number;
+  revenueCents: number;
+  contributionMarginCents: number;
   updatedAt: string;
 }
 
