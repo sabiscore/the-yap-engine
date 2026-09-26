@@ -66,7 +66,7 @@
   --nocturne-cyan: #00E5FF;
   --nocturne-green: #00FF66;
   --nocturne-text: #F1F5F9;
-  --nocturne-secondary: #C2CBD4;
+  --nocturne-secondary: color-mix(in srgb, var(--nocturne-text) 74%, var(--nocturne-muted));
   --nocturne-muted: #7C8794;
   --nocturne-error: #FF5C5C;
   --nocturne-error-strong: #FF3B3B;
@@ -107,11 +107,7 @@ html {
 body {
   height: 100%;
   margin: 0;
-  background:
-    radial-gradient(ellipse 80% 40% at 75% 0%, rgb(0 255 102 / 7%), transparent),
-    radial-gradient(ellipse 60% 50% at 10% 100%, rgb(0 255 102 / 4%), transparent),
-    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 2%) 1px, transparent 0) 0 0 / 24px 24px,
-    linear-gradient(175deg, rgb(8 13 17 / 96%) 0%, rgb(4 5 6 / 100%) 60%);
+  background: var(--nocturne-bg);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
   overflow: hidden;
