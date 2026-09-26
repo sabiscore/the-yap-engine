@@ -22,7 +22,7 @@ export async function verifyTikTokControlledAccount(input: {
     token: accessToken,
     prompt: input.prompt,
     outputPath: input.outputPath,
-    durationSeconds: input.durationSeconds,
+    ...(input.durationSeconds !== undefined ? { durationSeconds: input.durationSeconds } : {}),
     privacyLevel: "SELF_ONLY",
     requireSelfOnly: true,
   });
