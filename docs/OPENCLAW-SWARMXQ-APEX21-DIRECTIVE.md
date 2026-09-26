@@ -431,13 +431,20 @@ OpenClaw, SwarmXQ API, Ollama, Redis when required, FFmpeg, Kokoro, optional Whi
 Managed:
 Vercel for the Next.js dashboard;
 Render for persistent Fastify/API workers;
-managed Redis/Upstash for remote BullMQ;
-object storage for artifacts;
-Modal for burst GPU.
+Neon Postgres for durable application state;
+Upstash Redis for remote BullMQ state;
+S3 + Lambda + Fargate for asynchronous Phase-D rendering;
+Modal for optional generative GPU burst capacity.
 
 Do not move local inference to hosted infrastructure merely for convenience.
 
-Use environment-driven configuration and platform secret stores.\n\nVercel constraint correction: current Hobby Functions have a documented 300-second default/max duration. Keep the dashboard thin anyway: media rendering and long-running orchestration remain asynchronous backend jobs.\n\nNeon application traffic must use the pooled PgBouncer endpoint; never commit database credentials. Upstash Redis must use TLS. AWS render manifests must be contract-validated before Fargate execution.\n\nExternal AI providers are optional adapters. fal.ai uses authenticated server-side requests and queued execution for long-running media jobs; Pollinations/Hugging Face are opportunistic providers, not assumed-free production dependencies.
+Use environment-driven configuration and platform secret stores.
+
+Vercel constraint correction: current Hobby Functions have a documented 300-second default/max duration. Keep the dashboard thin anyway: media rendering and long-running orchestration remain asynchronous backend jobs.
+
+Neon application traffic must use the pooled PgBouncer endpoint; never commit database credentials. Upstash Redis must use TLS. AWS render manifests must be contract-validated before Fargate execution.
+
+External AI providers are optional adapters. fal.ai uses authenticated server-side requests and queued execution for long-running media jobs; Pollinations/Hugging Face are opportunistic providers, not assumed-free production dependencies.
 
 ## 26. Validation gates
 
