@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -137,7 +139,7 @@ exports.handler = async (event) => {
         awsvpcConfiguration: {
           subnets: SUBNETS,
           securityGroups: [SECURITY_GROUP],
-          assignPublicIp: "ENABLED"
+          assignPublicIp: "DISABLED"
         }
       },
       overrides: {
@@ -180,6 +182,66 @@ exports.handler = async (event) => {
       new s3n.LambdaDestination(dispatcher),
       { prefix: "jobs/", suffix: ".json" }
     );
+
+    // Render-completion callback intentionally stays outside the isolated render VPC:
+    // Vercel/Neon are external endpoints and isolated subnets have no NAT path.
+    // Render tasks themselves remain private and have no public IP.
+    const renderCompleteFunction = new lambda.Function(this, "RenderCompleteHandler", {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      environment: {
+        API_WEBHOOK_URL: process.env.API_WEBHOOK_URL ?? "",
+        WEBHOOK_SECRET: process.env.SWARMX_RENDER_CALLBACK_SECRET ?? "",
+        AWS_RENDER_BUCKET: bucket.bucketName,
+      },
+      code: lambda.Code.fromInline(`
+exports.handler = async (event) => {
+  const url = process.env.API_WEBHOOK_URL;
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!url || !secret) throw new Error("render callback environment is not configured");
+
+  const records = Array.isArray(event?.Records) ? event.Records : [];
+  for (const record of records) {
+    const key = record?.s3?.object?.key ? decodeURIComponent(String(record.s3.object.key).replace(/\\+/g, " ")) : "";
+    if (!key.endsWith(".validation.json")) continue;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-swarmx-render-callback-secret": secret
+      },
+      body: JSON.stringify({
+        bucket: process.env.AWS_RENDER_BUCKET,
+        validationKey: key,
+        source: "aws-render-complete"
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`render callback failed: ${response.status}`);
+    }
+  }
+};
+`),
+    });
+
+    bucket.grantRead(renderCompleteFunction);
+
+    // EventBridge receives S3 Object Created events after notification delivery is enabled.
+    bucket.enableEventBridgeNotification();
+    const renderCompleteRule = new events.Rule(this, "RenderJobCompleteRule", {
+      eventPattern: {
+        source: ["aws.s3"],
+        detailType: ["Object Created"],
+        detail: {
+          bucket: { name: [bucket.bucketName] },
+          object: { key: [{ suffix: ".validation.json" }] },
+        },
+      },
+    });
+    renderCompleteRule.addTarget(new targets.LambdaFunction(renderCompleteFunction));
 
     new cdk.CfnOutput(this, "RenderBucketName", {
       value: bucket.bucketName
