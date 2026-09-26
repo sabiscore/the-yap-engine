@@ -1,13 +1,196 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Render Blueprint — The Yap Engine (SwarmXQ)
+#
+# Services
+#   swarmx-api       — Fastify 5 / Node 22 web service  (port 3001 → 10000)
+#   swarmx-dashboard — Next.js 16 web service           (port 3000 → 10000)
+#
+# Ollama is NOT hosted on Render (no GPU, insufficient RAM for 7B inference).
+# Point OLLAMA_HOST at your self-hosted or ngrok-tunnelled Ollama instance.
+#
+# Secrets that must be set in the Render dashboard (sync: false):
+#   REDIS_URL                 — Upstash rediss:// connection string
+#   SWARMX_VIDEO_API_TOKEN    — bearer token for POST /api/video/* write routes
+#   OLLAMA_HOST               — external Ollama base URL
+#   DATABASE_URL              — Neon pooled connection (optional)
+#   DATABASE_URL_UNPOOLED     — Neon direct connection (optional)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 services:
-  - type: worker
-    name: theyapengine-cloud-swarm
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python start_swarm.py
+  # ── SwarmX API (Fastify / Node 22) ─────────────────────────────────────────
+  - type: web
+    name: swarmx-api
+    runtime: node
+    region: oregon
+    plan: starter
+
+    # Build from repo root so pnpm can resolve the workspace monorepo.
+    # pnpm-workspace.yaml declares apps/* and packages/* — both are required.
+    rootDir: .
+    buildCommand: corepack enable && corepack prepare pnpm@12.6.0 --activate && pnpm install --frozen-lockfile && pnpm -F swarmx-api build
+    startCommand: node apps/swarmx-api/dist/apps/swarmx-api/src/server.js
+
+    # Render injects PORT automatically. The API reads SWARMX_API_PORT; set it
+    # to the Render-injected $PORT so the server binds on the expected port.
+    # SWARMX_API_HOST must be 0.0.0.0 so Render's proxy can reach it.
     envVars:
-      - key: AWS_RENDER_BUCKET
-        value: my-render-app-assets-2026
+      - key: NODE_ENV
+        value: production
+
+      - key: SWARMX_API_HOST
+        value: 0.0.0.0
+      # Render exposes $PORT at runtime — mirror it into the API's own var.
+      - key: SWARMX_API_PORT
+        value: 10000
+
+      # ── CORS / Origins ──────────────────────────────────────────────────
+      # Replace with the deployed dashboard URL after first deploy.
+      - key: SWARMX_DASHBOARD_ORIGIN
+        value: https://swarmx-dashboard.onrender.com
+      - key: SWARMX_ALLOWED_ORIGINS
+        value: https://swarmx-dashboard.onrender.com
+
+      # ── Redis / BullMQ (Upstash) ────────────────────────────────────────
+      - key: SWARMX_REDIS_PROVIDER
+        value: upstash
+      - key: SWARMX_VIDEO_USE_BULLMQ
+        value: "1"
+      # REDIS_URL is a secret — set via Render dashboard, not here.
+      - key: REDIS_URL
+        sync: false
+
+      # ── Ollama (external — not hosted on Render) ────────────────────────
+      # Point at your self-hosted Ollama instance (ngrok / VPS / Tailscale).
+      - key: OLLAMA_HOST
+        sync: false
+      - key: SWARMX_OLLAMA_BASE_URL
+        sync: false
+
+      # Ollama runtime invariants (CPU host, 16 GB).
+      - key: OLLAMA_MAX_LOADED_MODELS
+        value: "2"
+      - key: OLLAMA_NUM_PARALLEL
+        value: "1"
+      - key: OLLAMA_KEEP_ALIVE
+        value: "0"
+
+      # ── Video pipeline — fail-closed production flags ────────────────────
+      - key: SWARMX_VIDEO_ALLOW_STUB_RENDER
+        value: "0"
+      - key: SWARMX_VIDEO_ALLOW_SILENT_AUDIO
+        value: "0"
+      - key: SWARMX_VIDEO_ALLOW_UNSTRUCTURED_INTENT
+        value: "0"
+      - key: SWARMX_VIDEO_MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: SWARMX_VIDEO_QUEUE_MAX_SIZE
+        value: "20"
+      - key: SWARMX_VIDEO_JOB_LIMIT_PER_HOUR
+        value: "10"
+      - key: SWARMX_VIDEO_EXPORT_TTL_DAYS
+        value: "7"
+      # Artifact directories on the persistent disk mounted at /data.
+      - key: SWARMX_VIDEO_ARTIFACT_DIR
+        value: /data/swarmx/video/artifacts
+      - key: SWARMX_VIDEO_EXPORT_DIR
+        value: /data/swarmx/video/exports
+      - key: SWARMX_VIDEO_TEMP_DIR
+        value: /data/swarmx/video/tmp
+
+      # Bearer token protecting POST /api/video/* write routes.
+      # Set via Render dashboard — never commit.
+      - key: SWARMX_VIDEO_API_TOKEN
+        sync: false
+
+      # ── Phase-D execution (local FFmpeg until AWS certified) ────────────
+      - key: SWARMX_PHASE_ABC_EXECUTION
+        value: local
+      - key: SWARMX_PHASE_D_EXECUTION
+        value: local
+      - key: SWARMX_AWS_RENDER_ENABLED
+        value: "0"
+      - key: AWS_REGION
+        value: us-east-1
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+
+      # ── Database (Neon, optional) ────────────────────────────────────────
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+
+      # ── Logging / Timezone ───────────────────────────────────────────────
+      - key: LOG_LEVEL
+        value: info
+      - key: TZ
+        value: Africa/Lagos
+
+      # ── SwarmX home on persistent disk ──────────────────────────────────
+      - key: SWARMX_HOME
+        value: /data/swarmx
+
+      # ── Dashboard version (for API response headers) ─────────────────────
+      - key: NEXT_PUBLIC_SWARMX_VERSION
+        value: 2026.6.0
+
+    # Persistent disk for video artifacts, exports, telemetry JSONL, and
+    # LLM cache. Render free/starter plans allow 1 GB; upgrade as needed.
+    disk:
+      name: swarmx-data
+      mountPath: /data
+      sizeGB: 1
+
+    # Render health check — must match the /health route in server.ts.
+    # [server.ts L248] server.get('/health', ...) — NOT /api/health.
+    healthCheckPath: /health
+
+    autoDeploy: true
+
+  # ── SwarmX Dashboard (Next.js 16 standalone) ────────────────────────────────
+  - type: web
+    name: swarmx-dashboard
+    runtime: node
+    region: oregon
+    plan: starter
+
+    # Build from repo root (same reason as API — workspace type package).
+    rootDir: .
+    buildCommand: >-
+      corepack enable &&
+      corepack prepare pnpm@12.6.0 --activate &&
+      pnpm install --frozen-lockfile &&
+      NEXT_PUBLIC_SWARMX_VERSION=2026.6.0 pnpm -F swarmx-dashboard build
+    # Next.js standalone output: server.js is at the root of the standalone dir.
+    # After build: apps/swarmx-dashboard/.next/standalone/server.js
+    startCommand: node apps/swarmx-dashboard/.next/standalone/server.js
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+      # ── API connectivity ─────────────────────────────────────────────────
+      # Server-side proxy target (Next.js rewrites /api/* → swarmx-api).
+      # Use the Render internal service URL so traffic stays within Render's
+      # private network and does not traverse the public internet.
+      - key: SWARMX_API_URL
+        value: https://swarmx-api.onrender.com
+
+      # ── Version ──────────────────────────────────────────────────────────
+      - key: NEXT_PUBLIC_SWARMX_VERSION
+        value: 2026.6.0
+
+      # ── Port ─────────────────────────────────────────────────────────────
+      # Next.js standalone reads PORT from the environment (set by Render).
+      # Explicitly mirror it so there is no ambiguity.
+      - key: PORT
+        value: "10000"
+
+    # Next.js standalone does not serve at a sub-path; check the root.
+    healthCheckPath: /
+
+    autoDeploy: true
