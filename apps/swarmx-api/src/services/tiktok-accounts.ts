@@ -69,6 +69,69 @@ function csvScopes(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+export function buildTikTokAuthorizationUrl(input: {
+  state: string;
+  redirectUri: string;
+  scopes?: string[];
+}): string {
+  const clientKey = process.env["SWARMX_TIKTOK_CLIENT_KEY"]?.trim() ?? "";
+  if (!clientKey) throw new Error("SWARMX_TIKTOK_CLIENT_KEY is required for TikTok OAuth");
+  const scopes = input.scopes ?? ["user.info.basic", "video.publish"];
+  const url = new URL("https://www.tiktok.com/v2/auth/authorize/");
+  url.searchParams.set("client_key", clientKey);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", scopes.join(","));
+  url.searchParams.set("redirect_uri", input.redirectUri);
+  url.searchParams.set("state", input.state);
+  return url.toString();
+}
+
+export async function exchangeTikTokAuthorizationCode(input: {
+  userId: string;
+  code: string;
+  redirectUri: string;
+}): Promise<TikTokAccount> {
+  const clientKey = process.env["SWARMX_TIKTOK_CLIENT_KEY"]?.trim() ?? "";
+  const clientSecret = process.env["SWARMX_TIKTOK_CLIENT_SECRET"]?.trim() ?? "";
+  if (!clientKey || !clientSecret) {
+    throw new Error("TikTok client key and secret are required for OAuth");
+  }
+
+  const form = new URLSearchParams({
+    client_key: clientKey,
+    client_secret: clientSecret,
+    grant_type: "authorization_code",
+    code: input.code,
+    redirect_uri: input.redirectUri,
+  });
+  const response = await fetch(TIKTOK_OAUTH_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache" },
+    body: form,
+  });
+  const payload = (await response.json().catch(() => ({}))) as TikTokOAuthTokenResponse;
+  if (!response.ok || payload.error) {
+    throw new Error(
+      `TikTok authorization-code exchange failed (${response.status}): ${payload.error_description ?? payload.error ?? "unknown"}`,
+    );
+  }
+
+  if (!payload.access_token || !payload.refresh_token || !payload.open_id || !payload.expires_in || !payload.refresh_expires_in) {
+    throw new Error("TikTok authorization response is missing required token/account fields");
+  }
+
+  return upsertTikTokAccount({
+    userId: input.userId,
+    openId: payload.open_id,
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    accessExpiresAt: new Date(Date.now() + payload.expires_in * 1000).toISOString(),
+    refreshExpiresAt: new Date(Date.now() + payload.refresh_expires_in * 1000).toISOString(),
+    scopes: payload.scope ? csvScopes(payload.scope) : [],
+    status: "active",
+  });
+}
+
 export async function upsertTikTokAccount(input: {
   id?: string;
   userId: string;
