@@ -22,6 +22,6 @@ npx cdk synth
 npx cdk deploy --require-approval broadening
 ```
 
-The current stack deliberately uses public subnets with no inbound rules and public IPs for low-cost external testing. Move to private subnets plus VPC endpoints/NAT before treating this as a hardened production account.
+The render task now runs in isolated private subnets with no public IP. S3, ECR and CloudWatch Logs VPC endpoints provide required service access without inbound connectivity. The stack still remains an external-testing boundary until idempotent handoff, bounded-jitter retry, terminal unrecoverable state, and Neon render_jobs lineage are E2E-verified.
 
 Do not put AWS credentials in render manifests.
