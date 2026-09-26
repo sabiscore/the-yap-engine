@@ -43,6 +43,7 @@ import {
 } from "../services/monetization-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
+import { readSecretEnv } from "../lib/env.js";
 import { getTikTokPublishingReadiness } from "../services/tiktok-accounts.js";
 import { assertEightGbSafe, assertLocalPhase } from "../services/hybrid-execution.js";
 
@@ -142,6 +143,19 @@ const MonetizationObservationBodySchema = z.object({
   egressCostCents: z.number().int().min(0).default(0),
   source: z.string().min(1).max(160),
   attributionWindowDays: z.number().int().min(0).optional(),
+});
+
+const RenderCallbackBodySchema = z.object({
+  bucket: z.string().min(1).max(255),
+  validationKey: z.string().min(1).max(1024),
+  jobId: z.string().min(1).max(160),
+  status: z.enum(["complete", "failed"]),
+  manifestKey: z.string().min(1).max(1024),
+  outputKey: z.string().min(1).max(1024).optional(),
+  checksum: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+  sizeBytes: z.number().int().min(0).optional(),
+  durationMs: z.number().int().min(0).optional(),
+  error: z.string().max(2000).optional(),
 });
 
 const LearningRecordBodySchema = z.object({
@@ -537,6 +551,48 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
   server.get("/publishing/tiktok/readiness", { preHandler: requireVideoWriteAuth }, async () => ({
     readiness: await getTikTokPublishingReadiness(),
   }));
+
+  server.post<{ Body: unknown }>(
+    "/render/callback",
+    async (request, reply) => {
+      const expected = readSecretEnv("SWARMX_RENDER_CALLBACK_SECRET");
+      const provided = request.headers["x-swarmx-render-callback-secret"];
+      const candidate = Array.isArray(provided) ? provided[0] : provided;
+      if (!expected || candidate !== expected) {
+        return reply.status(401).send({ error: "unauthorized", message: "Invalid render callback credentials" });
+      }
+
+      const parsed = RenderCallbackBodySchema.safeParse(request.body);
+      if (!parsed.success) return sendParseError(reply, parsed.error);
+
+      const sql = (await import("../lib/neon-db.js")).getNeonSql();
+      const value = parsed.data;
+      const errorJson = value.status === "failed"
+        ? JSON.stringify({ message: value.error ?? "AWS render job failed unrecoverably", source: "aws-render-callback" })
+        : null;
+      const rows = (await sql`
+        INSERT INTO public.render_jobs (
+          id, provider, status, idempotency_key, manifest_key, output_key, checksum,
+          duration_ms, updated_at, error
+        ) VALUES (
+          ${value.jobId}, 'aws_fargate', ${value.status}, ${value.jobId},
+          ${value.manifestKey}, ${value.outputKey ?? null}, ${value.checksum ?? null},
+          ${value.durationMs ?? null}, now(), ${errorJson}::jsonb
+        )
+        ON CONFLICT (idempotency_key) DO UPDATE SET
+          status = EXCLUDED.status,
+          manifest_key = COALESCE(EXCLUDED.manifest_key, public.render_jobs.manifest_key),
+          output_key = COALESCE(EXCLUDED.output_key, public.render_jobs.output_key),
+          checksum = COALESCE(EXCLUDED.checksum, public.render_jobs.checksum),
+          duration_ms = COALESCE(EXCLUDED.duration_ms, public.render_jobs.duration_ms),
+          updated_at = now(),
+          error = EXCLUDED.error
+        RETURNING id, provider, status, idempotency_key, manifest_key, output_key, checksum, duration_ms, updated_at, error
+      `) as unknown as Record<string, unknown>[];
+
+      return reply.status(200).send({ renderJob: rows[0] });
+    },
+  );
 
   server.get("/analytics/monetization", { preHandler: requireVideoWriteAuth }, async () => {
     const observations = await listMonetizationObservations();
