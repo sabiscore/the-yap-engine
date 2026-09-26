@@ -43,6 +43,7 @@ import {
 } from "../services/monetization-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
+import { getTikTokPublishingReadiness } from "../services/tiktok-accounts.js";
 import { assertEightGbSafe, assertLocalPhase } from "../services/hybrid-execution.js";
 
 const CapabilityRequirementSchema = z.object({
@@ -531,6 +532,10 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
 
   server.get("/agents", async () => ({
     agents: listRegistryRecords<CreativeAgentSpec>("creative-agent-specs"),
+  }));
+
+  server.get("/publishing/tiktok/readiness", { preHandler: requireVideoWriteAuth }, async () => ({
+    readiness: await getTikTokPublishingReadiness(),
   }));
 
   server.get("/analytics/monetization", { preHandler: requireVideoWriteAuth }, async () => {
