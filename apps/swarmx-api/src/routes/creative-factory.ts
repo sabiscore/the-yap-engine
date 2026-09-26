@@ -534,7 +534,12 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     async (request, reply) => {
       const parsed = MonetizationObservationBodySchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
-      const observation = await recordMonetizationObservation(parsed.data);
+      const { attributionWindowDays, observedAt, ...rest } = parsed.data;
+      const observation = await recordMonetizationObservation({
+        ...rest,
+        ...(observedAt !== undefined ? { observedAt } : {}),
+        ...(attributionWindowDays !== undefined ? { attributionWindowDays } : {}),
+      });
       return reply.status(201).send({
         observation,
         summary: summarizeMonetization([observation]),
