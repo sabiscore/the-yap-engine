@@ -34,6 +34,7 @@ export interface PublishTaskRequest {
   caption?: string;
   tags?: string[];
   title?: string;
+  tiktokAccountId?: string;
 }
 
 export type PublishTaskStatus = "queued" | "validating" | "publishing" | "published" | "failed";
@@ -139,6 +140,7 @@ export async function processPublishTask(task: PublishTaskRecord): Promise<Publi
       request: {
         prompt: task.request.caption ?? task.request.title ?? "Campaign Short",
         platform: task.request.platform,
+        ...(task.request.tiktokAccountId ? { tiktokAccountId: task.request.tiktokAccountId } : {}),
       },
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,

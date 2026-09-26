@@ -28,7 +28,8 @@ export type DurableCollection =
   | "creative-agent-specs"
   | "creative-blackboard"
   | "campaigns"
-  | "publish-tasks";
+  | "publish-tasks"
+  | "monetization-observations";
 
 interface SnapshotEnvelope<T> {
   schemaVersion: 1;

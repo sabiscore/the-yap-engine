@@ -546,6 +546,57 @@ export interface PublishPackage {
   updatedAt: string;
 }
 
+export interface MonetizationObservation {
+  id: string;
+  userId: string;
+  packageId: string;
+  platform: VideoExportPlatform;
+  observedAt: string;
+  currency: string;
+  platformRewardsCents: number;
+  affiliateClicks: number;
+  affiliateConversions: number;
+  affiliateRevenueCents: number;
+  landingPageVisits: number;
+  checkoutStarts: number;
+  ownedProductConversions: number;
+  ownedProductRevenueCents: number;
+  sponsorRevenueCents: number;
+  llmCostCents: number;
+  ttsCostCents: number;
+  renderCostCents: number;
+  storageCostCents: number;
+  egressCostCents: number;
+  source: string;
+  attributionWindowDays?: number;
+  updatedAt: string;
+}
+
+export interface MonetizationSummary {
+  currency: string;
+  observationCount: number;
+  revenueCents: number;
+  costCents: number;
+  contributionMarginCents: number;
+  contributionMarginRate: number | null;
+  platformRewardsCents: number;
+  affiliateRevenueCents: number;
+  ownedProductRevenueCents: number;
+  sponsorRevenueCents: number;
+  affiliateClicks: number;
+  affiliateConversions: number;
+  affiliateConversionRate: number | null;
+  landingPageVisits: number;
+  checkoutStarts: number;
+  ownedProductConversions: number;
+  ownedProductConversionRate: number | null;
+  llmCostCents: number;
+  ttsCostCents: number;
+  renderCostCents: number;
+  storageCostCents: number;
+  egressCostCents: number;
+}
+
 export interface PerformanceSnapshot {
   id: string;
   schemaVersion: 1;

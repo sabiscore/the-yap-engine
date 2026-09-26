@@ -56,6 +56,16 @@
 }
 
 :root {
+  /* Obsidian Nocturne v2 — canonical surface/interaction tokens */
+  --nocturne-bg: #050508;
+  --nocturne-panel: #0B0D12;
+  --nocturne-panel-raised: #11141B;
+  --nocturne-border: #252A33;
+  --nocturne-border-active: #3A424E;
+  --nocturne-cyan: #00E5FF;
+  --nocturne-green: #00FF66;
+  --nocturne-text: #F1F5F9;
+  --nocturne-muted: #7C8794;
   --shadow-accent-glow: 0 0 18px rgb(19 217 141 / 18%);
   --shadow-accent-pulse: 0 0 28px rgb(19 217 141 / 28%);
   --shadow-error-glow: 0 0 12px rgb(241 101 101 / 28%);
@@ -1022,6 +1032,24 @@ body::after {
 :focus-visible {
   outline: 2px solid var(--color-accent-cyan);
   outline-offset: 2px;
+}
+
+/* Mobile-first shell refinements: iPhone-class widths keep the command bar,
+   icon rail and content readable without horizontal scrolling. */
+@media (max-width: 767px) {
+  :root {
+    --nav-rail-width: 52px;
+    --nav-rail-expanded: 52px;
+    --command-bar-height: 52px;
+  }
+
+  body::after {
+    opacity: 0.28;
+  }
+
+  .mobile-safe-area {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

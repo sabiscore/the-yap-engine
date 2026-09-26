@@ -93,6 +93,8 @@ export interface VideoJobRequest {
   storyMode?: VoiceStoryMode;
   /** Client-supplied idempotency key. */
   clientRequestId?: string;
+  /** Durable TikTok creator account ID used for production Direct Post. */
+  tiktokAccountId?: string;
   // ── Series Engine fields (populated by series planner when producing an episode) ──
   seriesId?: string;
   episodeNumber?: number;

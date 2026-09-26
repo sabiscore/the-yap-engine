@@ -38,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
         "grid grid-cols-[var(--app-nav-width)_1fr_var(--app-telemetry-width)]",
         "grid-rows-[var(--command-bar-height)_1fr_var(--app-terminal-height)]",
         "transition-[grid-template-columns,grid-template-rows] duration-(--duration-panel) ease-snap",
-        "motion-reduce:transition-none",
+        "motion-reduce:transition-none max-md:[--app-nav-width:52px] max-md:[--app-terminal-height:0px]",
         navExpanded
           ? "[--app-nav-width:var(--nav-rail-expanded)]"
           : "[--app-nav-width:var(--nav-rail-width)]",

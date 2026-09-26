@@ -19,7 +19,8 @@
     "test:models": "node --import tsx scripts/model-registry-modelfile-check.ts",
     "test:factory": "node --import tsx scripts/creative-factory-release-check.ts",
     "test:regression": "node --import tsx scripts/eviction-metric-regression.ts && node --import tsx scripts/system-health-regression.ts && node --import tsx scripts/reasoning-sanitizer-regression.ts && node --import tsx scripts/adaptive-timeout-regression.ts && node --import tsx scripts/model-registry-modelfile-check.ts && node --import tsx scripts/series-regression.ts && node --import tsx scripts/creative-factory-release-check.ts",
-    "test:m13": "node --import tsx scripts/m13-live-cert.ts"
+    "test:m13": "node --import tsx scripts/m13-live-cert.ts",
+    "tiktok:verify": "tsx scripts/tiktok-controlled-account-verification.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
@@ -35,7 +36,8 @@
     "ioredis": "^5.4.1",
     "node-pty": "^1.0.0",
     "systeminformation": "^5.23.10",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -43,7 +45,8 @@
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "@types/pg": "^8.23.1"
   },
   "engines": {
     "node": ">=22.0.0"

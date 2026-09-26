@@ -24,7 +24,11 @@ function forwardedHeaders(request: NextRequest): Headers {
   headers.delete("x-video-api-key");
 
   const token = process.env.SWARMX_VIDEO_API_TOKEN?.trim();
-  if (token && WRITE_METHODS.has(request.method.toUpperCase())) {
+  const pathname = request.nextUrl.pathname;
+  const isAnalyticsRead =
+    request.method.toUpperCase() === "GET" &&
+    pathname === "/api/video/factory/analytics/monetization";
+  if (token && (WRITE_METHODS.has(request.method.toUpperCase()) || isAnalyticsRead)) {
     headers.set("authorization", `Bearer ${token}`);
     headers.set("x-video-api-key", token);
   }

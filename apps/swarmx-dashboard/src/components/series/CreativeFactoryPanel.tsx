@@ -5,9 +5,11 @@ import {
   Activity,
   Boxes,
   CheckCircle2,
+  CircleDollarSign,
   GitBranch,
   Loader2,
   Plus,
+  ShieldAlert,
   ShieldCheck,
   TriangleAlert,
   Users,
@@ -18,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useCreativeFactoryStore } from "@/stores/creative-factory";
-import type { BrandKit, AudiencePersona, CreativeFactoryWorkflowRun } from "@swarmx/types/video-types";
+import type { BrandKit, AudiencePersona, CreativeFactoryWorkflowRun, MonetizationSummary } from "@swarmx/types/video-types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,35 @@ function runStatusColor(status: CreativeFactoryWorkflowRun["status"]): string {
   if (status === "failed") return "text-status-error border-status-error/30 bg-status-error/10";
   if (status === "blocked") return "text-status-warning border-status-warning/30 bg-status-warning/10";
   return "text-text-muted border-border bg-bg-surface";
+}
+
+
+type CreativeHubState = "RUNNING" | "QC_FAILED" | "NEEDS_REVISION" | "REVIEW_REQUIRED" | "READY_TO_POST";
+
+const QC_STAGES = ["TECHNICAL_QC", "CREATIVE_QC", "CONTINUITY_QC", "COMPLIANCE_QC"] as const;
+
+function creativeHubState(run: CreativeFactoryWorkflowRun): CreativeHubState {
+  if (QC_STAGES.some((stage) => run.checkpoints[stage]?.status === "failed")) return "QC_FAILED";
+  const revision = run.checkpoints.REVISION?.status;
+  if (revision === "running" || revision === "failed" || revision === "checkpointed") return "NEEDS_REVISION";
+  const review = run.checkpoints.HUMAN_REVIEW?.status;
+  if (review && review !== "complete" && review !== "skipped") return "REVIEW_REQUIRED";
+  if (run.checkpoints.PLATFORM_PACKAGE?.status === "complete" && run.status === "complete") return "READY_TO_POST";
+  return "RUNNING";
+}
+
+function hubStateTone(state: CreativeHubState): string {
+  switch (state) {
+    case "READY_TO_POST": return "border-status-success/30 bg-status-success/10 text-status-success";
+    case "QC_FAILED": return "border-status-error/30 bg-status-error/10 text-status-error";
+    case "NEEDS_REVISION": return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+    case "REVIEW_REQUIRED": return "border-accent/30 bg-accent/10 text-accent";
+    default: return "border-border bg-bg-surface text-text-muted";
+  }
+}
+
+function formatCents(cents: number, currency: string): string {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
 }
 
 // ─── BrandKit creation sheet ──────────────────────────────────────────────────
@@ -74,7 +105,7 @@ function BrandKitSheet({ onCreated }: { onCreated: () => void }) {
       </SheetTrigger>
       <SheetContent side="right" aria-labelledby="brandkit-sheet-title">
         <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle id="brandkit-sheet-title" className="text-sm font-semibold">New Brand Kit</SheetTitle>
+          <SheetTitle id="brandkit-sheet-title" className="text-sm font-semibold">New brand kit</SheetTitle>
         </SheetHeader>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
@@ -157,7 +188,7 @@ function AudienceSheet({ onCreated }: { onCreated: () => void }) {
       </SheetTrigger>
       <SheetContent side="right" aria-labelledby="audience-sheet-title">
         <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle id="audience-sheet-title" className="text-sm font-semibold">New Audience Persona</SheetTitle>
+          <SheetTitle id="audience-sheet-title" className="text-sm font-semibold">New audience profile</SheetTitle>
         </SheetHeader>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
@@ -293,12 +324,18 @@ function RunRow({
       aria-pressed={selected}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={cn(
             "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
             runStatusColor(run.status),
           )}>
             {run.status}
+          </span>
+          <span className={cn(
+            "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
+            hubStateTone(creativeHubState(run)),
+          )}>
+            {creativeHubState(run)}
           </span>
           <span className="font-mono text-[10px] text-text-muted">{run.mode}</span>
         </div>
@@ -325,34 +362,84 @@ function RunDetail({ run }: { run: CreativeFactoryWorkflowRun }) {
     );
   }
 
+  const state = creativeHubState(run);
   return (
-    <ol className="divide-y divide-border">
-      {checkpoints.map(([stage, cp]) => {
-        const isActive = cp?.status === "running";
-        return (
-          <li
-            key={stage}
-            className="flex items-center justify-between gap-2 px-4 py-2"
-            {...(isActive ? { "aria-current": "step" as const } : {})}
-          >
-            <span className="font-mono text-[10px] text-text-secondary">{stage}</span>
-            <span className={cn(
-              "rounded border px-1.5 py-0.5 font-mono text-[10px]",
-              cp?.status === "complete" ? "border-status-success/30 bg-status-success/10 text-status-success" :
-              cp?.status === "failed" ? "border-status-error/30 bg-status-error/10 text-status-error" :
-              cp?.status === "running" ? "border-accent/30 bg-accent/10 text-accent" :
-              "border-border text-text-muted",
-            )}>
-              {cp?.status ?? "unknown"}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <div>
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Production state</span>
+        <span className={cn("rounded border px-2 py-1 font-mono text-[10px] font-semibold", hubStateTone(state))}>{state}</span>
+      </div>
+      <ol className="divide-y divide-border">
+        {checkpoints.map(([stage, cp]) => {
+          const isActive = cp?.status === "running";
+          const isQc = QC_STAGES.includes(stage as typeof QC_STAGES[number]);
+          return (
+            <li
+              key={stage}
+              className="flex items-center justify-between gap-2 px-4 py-2"
+              {...(isActive ? { "aria-current": "step" as const } : {})}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                {isQc && <ShieldAlert className={cn("h-3 w-3 shrink-0", cp?.status === "failed" ? "text-status-error" : "text-text-muted")} aria-hidden="true" />}
+                <span className="font-mono text-[10px] text-text-secondary">{stage}</span>
+              </div>
+              <span className={cn(
+                "rounded border px-1.5 py-0.5 font-mono text-[10px]",
+                cp?.status === "complete" ? "border-status-success/30 bg-status-success/10 text-status-success" :
+                cp?.status === "failed" ? "border-status-error/30 bg-status-error/10 text-status-error" :
+                cp?.status === "running" ? "border-accent/30 bg-accent/10 text-accent" :
+                "border-border text-text-muted",
+              )}>
+                {cp?.status ?? "unknown"}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
+
+function MonetizationPanel({ summary }: { summary: MonetizationSummary | null }) {
+  if (!summary) {
+    return <div className="min-h-32 px-4 py-8 text-center text-xs text-text-muted">
+      No observed monetization data yet. Values appear only after telemetry is recorded.
+    </div>;
+  }
+  const format = (cents: number) => formatCents(cents, summary.currency);
+  return (
+    <div>
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-xs font-medium text-text-primary">Observed economics</p>
+        <p className="mt-1 text-[10px] text-text-muted">
+          No assumed RPM. Contribution margin = observed revenue − recorded LLM/TTS/render/storage/egress cost.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-0 sm:grid-cols-3">
+        {[
+          ["Observed revenue", format(summary.revenueCents)],
+          ["Recorded cost", format(summary.costCents)],
+          ["Contribution margin", format(summary.contributionMarginCents)],
+          ["Affiliate conversions", summary.affiliateConversions + "/" + summary.affiliateClicks],
+          ["Product conversions", summary.ownedProductConversions + "/" + summary.checkoutStarts],
+          ["Observations", String(summary.observationCount)],
+        ].map(([label, value]) => (
+          <div key={label} className="border-r border-b border-border px-4 py-3">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-text-muted">{label}</p>
+            <p className="mt-1 font-mono text-sm tabular-nums text-text-primary">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 px-4 py-3 font-mono text-[10px] text-text-muted">
+        <span>Affiliate CVR: {summary.affiliateConversionRate == null ? "—" : (summary.affiliateConversionRate * 100).toFixed(1) + "%"}</span>
+        <span>Product CVR: {summary.ownedProductConversionRate == null ? "—" : (summary.ownedProductConversionRate * 100).toFixed(1) + "%"}</span>
+        <span>Margin rate: {summary.contributionMarginRate == null ? "—" : (summary.contributionMarginRate * 100).toFixed(1) + "%"}</span>
+      </div>
+    </div>
+  );
+}
 
 export function CreativeFactoryPanel() {
   // Scalar selectors — Zustand v5 + React 19 tears on object-returning selectors (React #185).
@@ -362,6 +449,7 @@ export function CreativeFactoryPanel() {
   const brandKits = useCreativeFactoryStore((s) => s.brandKits);
   const audiences = useCreativeFactoryStore((s) => s.audiences);
   const blueprints = useCreativeFactoryStore((s) => s.blueprints);
+  const monetizationSummary = useCreativeFactoryStore((s) => s.monetizationSummary);
   const selectedRunId = useCreativeFactoryStore((s) => s.selectedRunId);
   const isLoading = useCreativeFactoryStore((s) => s.isLoading);
   const error = useCreativeFactoryStore((s) => s.error);
@@ -402,7 +490,7 @@ export function CreativeFactoryPanel() {
   };
 
   return (
-    <section className="mb-5 rounded border border-border bg-bg-elevated/70" aria-labelledby="factory-heading">
+    <section className="mobile-safe-area mb-5 rounded border border-border bg-bg-elevated/70" aria-labelledby="factory-heading">
       {/* Header */}
       <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
@@ -418,7 +506,7 @@ export function CreativeFactoryPanel() {
           {isLoading
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             : <Activity className="h-4 w-4" aria-hidden="true" />}
-          Start Run
+          Start workflow
         </Button>
       </div>
 
@@ -435,17 +523,17 @@ export function CreativeFactoryPanel() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full justify-start px-4 pt-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="brandkits">
-            BrandKits
+        <TabsList className="w-full justify-start gap-1 overflow-x-auto px-3 pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="overview" className="min-h-9 shrink-0">Overview</TabsTrigger>
+          <TabsTrigger value="brandkits" className="min-h-9 shrink-0">
+            Brand kits
             {brandKits.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
                 {brandKits.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="audiences">
+          <TabsTrigger value="audiences" className="min-h-9 shrink-0">
             Audiences
             {audiences.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
@@ -453,7 +541,11 @@ export function CreativeFactoryPanel() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="runs">
+          <TabsTrigger value="monetization" className="min-h-9 shrink-0">
+            <CircleDollarSign className="mr-1 h-3 w-3" aria-hidden="true" />
+            Monetization
+          </TabsTrigger>
+          <TabsTrigger value="runs" className="min-h-9 shrink-0">
             Runs
             {runs.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
@@ -490,7 +582,7 @@ export function CreativeFactoryPanel() {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Capabilities</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 gap-2 text-xs min-[390px]:grid-cols-2">
                 {capabilities.map((capability) => (
                   <div
                     key={capability.platform}
@@ -498,7 +590,7 @@ export function CreativeFactoryPanel() {
                   >
                     <span className="truncate text-text-secondary">{capability.platform}</span>
                     <span className={cn("font-mono text-[10px]", capabilityTone(capability.supportsDirectPublish ? "available" : "degraded"))}>
-                      {capability.supportsDirectPublish ? "direct" : "draft"}
+                      {capability.supportsDirectPublish ? "direct" : capability.platform === "tiktok" ? "gated" : "export"}
                     </span>
                   </div>
                 ))}
@@ -551,6 +643,11 @@ export function CreativeFactoryPanel() {
           )}
         </TabsContent>
 
+        {/* ── Monetization ── */}
+        <TabsContent value="monetization">
+          <MonetizationPanel summary={monetizationSummary} />
+        </TabsContent>
+
         {/* ── Runs ── */}
         <TabsContent value="runs">
           <div className="grid gap-0 sm:grid-cols-2 sm:divide-x sm:divide-border">
@@ -563,7 +660,7 @@ export function CreativeFactoryPanel() {
                 <ListSkeleton />
               ) : runs.length === 0 ? (
                 <div className="px-4 py-8 text-center text-xs text-text-muted">
-                  No runs yet. Click &ldquo;Start Run&rdquo; to begin a workflow.
+                  No runs yet. Click &ldquo;Start workflow&rdquo; to begin a production workflow.
                 </div>
               ) : (
                 <div>
