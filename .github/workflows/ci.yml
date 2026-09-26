@@ -7,7 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/creative-hub-production-hardening-20260926
   pull_request:
     branches: [main]
 
