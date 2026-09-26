@@ -1,9 +1,10 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { loadEnv } from "./env.js";
 
-let sql: NeonQueryFunction<false, false> | null = null;
+type NeonSql = ReturnType<typeof neon>;
+let sql: NeonSql | null = null;
 
-export function getNeonSql(): NeonQueryFunction<false, false> {
+export function getNeonSql(): NeonSql {
   const databaseUrl = loadEnv().DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is required for durable Neon state");
