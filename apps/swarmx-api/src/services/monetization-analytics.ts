@@ -6,8 +6,12 @@ import { readSnapshot, writeSnapshot } from "./local-state-store.js";
 
 const LOCAL_COLLECTION = "monetization-observations" as const;
 
-function money(n: unknown): number {
+function nonNegativeInt(n: unknown): number {
   return typeof n === "number" && Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+}
+
+function nonNegativeNumber(n: unknown): number {
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 function mapRow(row: Record<string, unknown>): MonetizationObservation {
@@ -19,11 +23,11 @@ function mapRow(row: Record<string, unknown>): MonetizationObservation {
     platform: String(row.platform) as MonetizationObservation["platform"],
     observedAt: new Date(String(row.observed_at)).toISOString(),
     currency: String(row.currency),
-    platformRewardsCents: money(row.platform_rewards_cents),
-    viewCount: money(row.view_count),
-    qualifiedViews: money(row.qualified_views),
-    watchTimeSeconds: money(row.watch_time_seconds),
-    completionRate: row.completion_rate == null ? null : Number(row.completion_rate),
+    platformRewardsCents: nonNegativeInt(row.platform_rewards_cents),
+    viewCount: nonNegativeInt(row.view_count),
+    qualifiedViews: nonNegativeInt(row.qualified_views),
+    watchTimeSeconds: nonNegativeNumber(row.watch_time_seconds),
+    completionRate: row.completion_rate == null ? null : Math.min(1, Math.max(0, Number(row.completion_rate))),
     shares: money(row.shares),
     comments: money(row.comments),
     affiliateClicks: money(row.affiliate_clicks),
