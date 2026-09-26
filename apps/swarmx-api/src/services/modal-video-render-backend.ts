@@ -136,7 +136,7 @@ function validateArtifacts(tasks: RenderSegmentTask[], artifacts: RenderSegmentA
   return tasks.map((task) => {
     const artifact = artifacts.find((candidate) => candidate.segmentId === task.segmentId)!;
     if (artifact.cacheKey && artifact.cacheKey !== task.cacheKey) {
-      throw Object.assign(new Error(`Modal cache key mismatch for segment \${task.segmentId}`), { code: "RENDER_FAILED" });
+      throw Object.assign(new Error(`Modal cache key mismatch for segment ${task.segmentId}`), { code: "RENDER_FAILED" });
     }
     if (!task.cacheKey) throw Object.assign(new Error(`Missing cache key for segment ${task.segmentId}`), { code: "RENDER_FAILED" });\n    return { ...artifact, cacheKey: task.cacheKey };
   });
