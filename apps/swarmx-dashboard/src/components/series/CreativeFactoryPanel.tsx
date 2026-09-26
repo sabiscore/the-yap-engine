@@ -490,7 +490,7 @@ export function CreativeFactoryPanel() {
   };
 
   return (
-    <section className="mb-5 rounded border border-border bg-bg-elevated/70" aria-labelledby="factory-heading">
+    <section className="mobile-safe-area mb-5 rounded border border-border bg-bg-elevated/70" aria-labelledby="factory-heading">
       {/* Header */}
       <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
