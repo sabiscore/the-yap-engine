@@ -51,7 +51,7 @@ Do not put TikTok credentials or tokens in `NEXT_PUBLIC_*` variables.
 
 1. Generate an application OAuth state value using the application's normal authorization flow.
 2. Open the generated TikTok authorization URL.
-3. Authorize the controlled creator account with the approved scopes.
+3. Authorize the controlled creator account with the approved scopes, including `video.publish` for Direct Post. The separate `video.upload` scope applies to draft-upload flows.
 4. Complete the registered callback.
 5. Confirm the resulting `tiktok_accounts` row contains:
    - the correct `user_id`;
@@ -148,6 +148,19 @@ Do not capture access tokens, refresh tokens, client secrets, or encryption keys
 | Public posting flag | remains `0` |
 
 A successful controlled verification does **not** by itself authorize public posting.
+
+## Operator-only release gate
+
+Do not manually mutate `public.tiktok_accounts` to force `controlled_verified`. The application callback creates the durable account as `active`; only the real verification command may promote the existing row after a terminal successful provider result. Use:
+
+```sql
+SELECT id, user_id, open_id, status, scopes, updated_at
+FROM public.tiktok_accounts
+WHERE status = 'controlled_verified'
+ORDER BY updated_at DESC;
+```
+
+The production release condition is exactly one or more real operator-controlled accounts in `controlled_verified`; absence of that state keeps Direct Post blocked. Public posting remains separately gated by `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0`.
 
 ## Phase 5 — Negative-path checks
 
