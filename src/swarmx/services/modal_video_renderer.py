@@ -1,23 +1,19 @@
 """Native Modal GPU worker for SwarmXQ video segment rendering.
 
-The Fastify API remains the lifecycle owner. This module owns only remote GPU
-execution and artifact persistence. One admitted local VideoJob may fan out its
-render segments with Function.map(); the 8 GB local host remains single-job
-locked.
-
-Deployment invariants:
-  - L4 GPU
-  - min_containers=0
-  - max_containers <= 4
-  - secrets are injected with modal.Secret
-  - artifacts are persisted to a Modal Volume
-  - segment inputs are validated with Pydantic before inference
+APEX-21 rules:
+- SwarmXQ owns lifecycle, admission, persistence and publication.
+- This module owns only remote GPU execution and artifact persistence.
+- Local 8 GB constraints are never relaxed by remote fan-out.
+- Tasks are schema validated, bounded and checksum verified.
+- GPU model state is reused only inside an already-admitted Modal container.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +32,8 @@ MODEL_IDS = {
     "wan22": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
     "ltx": os.getenv("SWARMX_MODAL_LTX_MODEL_ID", "Lightricks/LTX-Video"),
 }
+MODEL_CACHE: dict[str, Any] = {}
+MODEL_CACHE_LOCKED: str | None = None
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
@@ -69,7 +67,9 @@ class RenderSegmentTask(BaseModel):
     height: int = Field(ge=256, le=1920)
     seed: int = Field(ge=0, le=2**63 - 1)
     model: str = Field(default=MODEL_NAME)
+    aspectRatio: str = Field(default="9:16")
     steps: int = Field(default=28, ge=8, le=50)
+    cacheKey: str | None = Field(default=None, max_length=128)
 
     @field_validator("model")
     @classmethod
@@ -78,6 +78,13 @@ class RenderSegmentTask(BaseModel):
         if normalized not in MODEL_IDS:
             raise ValueError(f"unsupported Modal model: {normalized}")
         return normalized
+
+    @field_validator("aspectRatio")
+    @classmethod
+    def validate_aspect_ratio(cls, value: str) -> str:
+        if value not in {"9:16", "1:1", "16:9"}:
+            raise ValueError(f"unsupported aspect ratio: {value}")
+        return value
 
 
 class RenderSegmentArtifact(BaseModel):
@@ -89,6 +96,7 @@ class RenderSegmentArtifact(BaseModel):
     fps: int
     checksum: str
     model: str
+    cacheKey: str | None = None
 
 
 def _output_path(job_id: str, segment_id: str) -> Path:
@@ -107,13 +115,64 @@ def _checksum(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _probe(path: Path) -> dict[str, Any]:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-show_entries", "stream=codec_type,width,height,r_frame_rate",
+            "-of", "json", str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"ffprobe failed: {result.stderr[-500:]}")
+    payload = json.loads(result.stdout or "{}")
+    streams = payload.get("streams") or []
+    video = next((item for item in streams if item.get("codec_type") == "video"), None)
+    duration = float((payload.get("format") or {}).get("duration") or 0)
+    if not video or duration <= 0:
+        raise RuntimeError("rendered artifact failed media validation")
+    return {"durationSeconds": duration, "width": video.get("width"), "height": video.get("height")}
+
+
+def _load_pipeline(model: str):
+    global MODEL_CACHE_LOCKED
+    cached = MODEL_CACHE.get(model)
+    if cached is not None:
+        return cached
+
+    if MODEL_CACHE_LOCKED and MODEL_CACHE_LOCKED != model:
+        old = MODEL_CACHE.pop(MODEL_CACHE_LOCKED, None)
+        if old is not None:
+            del old
+        import torch
+        torch.cuda.empty_cache()
+
+    import torch
+    if model == "wan22":
+        from diffusers import WanPipeline
+        pipe = WanPipeline.from_pretrained(MODEL_IDS[model], torch_dtype=torch.bfloat16).to("cuda")
+    elif model == "ltx":
+        from diffusers import LTXVideoPipeline
+        pipe = LTXVideoPipeline.from_pretrained(MODEL_IDS[model], torch_dtype=torch.bfloat16).to("cuda")
+    else:
+        raise ValueError(f"unsupported render model: {model}")
+
+    MODEL_CACHE[model] = pipe
+    MODEL_CACHE_LOCKED = model
+    return pipe
+
+
 def _render_wan(task: RenderSegmentTask, output: Path) -> None:
     import torch
-    from diffusers import WanPipeline
     from diffusers.utils import export_to_video
 
-    pipe = WanPipeline.from_pretrained(MODEL_IDS["wan22"], torch_dtype=torch.bfloat16).to("cuda")
-    frames = max(8, min(int(round(task.durationSeconds * task.fps)), 241))
+    pipe = _load_pipeline("wan22")
+    frames = max(8, min(int(round(task.durationSeconds * task.fps)), 121))
     result = pipe(
         prompt=task.prompt,
         negative_prompt=task.negativePrompt or "low quality, blurry, watermark, distorted",
@@ -125,16 +184,15 @@ def _render_wan(task: RenderSegmentTask, output: Path) -> None:
         generator=torch.Generator(device="cuda").manual_seed(task.seed),
     )
     export_to_video(result.frames[0], str(output), fps=task.fps)
-    del pipe
+    del result
     torch.cuda.empty_cache()
 
 
 def _render_ltx(task: RenderSegmentTask, output: Path) -> None:
     import torch
-    from diffusers import LTXVideoPipeline
     from diffusers.utils import export_to_video
 
-    pipe = LTXVideoPipeline.from_pretrained(MODEL_IDS["ltx"], torch_dtype=torch.bfloat16).to("cuda")
+    pipe = _load_pipeline("ltx")
     frames = max(8, min(int(round(task.durationSeconds * task.fps)), 121))
     result = pipe(
         prompt=task.prompt,
@@ -146,7 +204,7 @@ def _render_ltx(task: RenderSegmentTask, output: Path) -> None:
         generator=torch.Generator(device="cuda").manual_seed(task.seed),
     )
     export_to_video(result.frames[0], str(output), fps=task.fps)
-    del pipe
+    del result
     torch.cuda.empty_cache()
 
 
@@ -159,6 +217,10 @@ def _render(task: RenderSegmentTask) -> RenderSegmentArtifact:
     else:
         raise ValueError(f"unsupported render model: {task.model}")
 
+    probe = _probe(output)
+    if int(probe["width"] or 0) != task.width or int(probe["height"] or 0) != task.height:
+        raise RuntimeError("rendered dimensions do not match the task contract")
+
     checksum = _checksum(output)
     volume.commit()
     return RenderSegmentArtifact(
@@ -170,6 +232,7 @@ def _render(task: RenderSegmentTask) -> RenderSegmentArtifact:
         fps=task.fps,
         checksum=checksum,
         model=task.model,
+        cacheKey=task.cacheKey,
     )
 
 
@@ -204,7 +267,6 @@ def render_segments(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return []
     if len(validated) > MAX_CONTAINERS * 2:
         raise ValueError(f"segment batch exceeds safety ceiling: {len(validated)}")
-    # Native Modal fan-out. The API still admits only one local VideoJob.
     return list(render_one.map(validated))
 
 
@@ -228,6 +290,7 @@ async def health(authorization: str | None = Header(default=None)) -> dict[str, 
         "min_containers": 0,
         "max_containers": MAX_CONTAINERS,
         "fanout": "Function.map",
+        "model_cache": list(MODEL_CACHE),
     }
 
 
@@ -239,8 +302,6 @@ async def submit(payload: dict[str, Any], authorization: str | None = Header(def
         raise HTTPException(status_code=422, detail="tasks must be a non-empty list")
     if len(tasks) > MAX_CONTAINERS * 2:
         raise HTTPException(status_code=422, detail="too many segment tasks")
-    # Function.spawn keeps HTTP submission cheap; the spawned Function invokes
-    # render_one.map() and therefore fans out only within this single job call.
     call = render_segments.spawn(tasks)
     return {"call_id": call.object_id}
 
