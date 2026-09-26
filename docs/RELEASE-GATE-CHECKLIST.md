@@ -85,10 +85,10 @@ Do not merge the release branch until every checked item has attached evidence. 
 
 ## Audit snapshot — 2026-09-27
 
-- Current branch: `feat/creative-hub-production-hardening-20260926`
-- Current exact head at last audit: `8bc6dc37c8070719d832c9d8c15b2718839e3bd4`.
-- Most recent exact-head canonical CI result observed before the final trigger: GitHub Actions run [201](https://github.com/sabiscore/the-yap-engine/actions/runs/36280005126), completed with `failure` and no jobs returned by the API.
-- A final exact-head trigger was pushed after that run; the latest lookup returned no workflow run yet for the new SHA. No green CI claim is made.
+- Current exact PR #11 head: `6b8b6e022e8e72147caf827aebcb479342c9966b`.
+- Exact-head GitHub Actions lookup for `6b8b6e022e8e72147caf827aebcb479342c9966b`: one `production-video-benchmark.yml` run, ID `36280105516`, completed with `failure`; the jobs endpoint returned an empty job list. No canonical `ci.yml` run exists for this SHA.
+- Canonical CI last observed run for an exact hardening SHA: run 201 on `3b4c94a...`, completed with `failure` and no jobs.
 - Known production Vercel READY deployment: `dpl_BrwjQ652WcrzdvobZ9PfGuNCTkit` for main SHA `c30a0ab6288233786c5ea00b3f9fbecf7005b25a`.
 - Production Neon counts at audit time: `tiktok_accounts = 0`, `monetization_observations = 0`.
-- AWS CloudFormation `DescribeStacks` in `us-east-1` returned no stacks; Phase-D was not deployed.
+- AWS CloudFormation `DescribeStacks` in `us-east-1`: no stacks returned; Phase-D has not been deployed.
+- UI static audit: only Nocturne v2 token colors remain; user zoom is not disabled; mobile viewport is edge-to-edge with `viewportFit: cover`.
