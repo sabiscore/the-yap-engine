@@ -36,3 +36,13 @@ See docs/MODAL-APEX21-DEPLOYMENT.md for deployment and smoke-test procedures.
 - expose secrets or broad host filesystem access to local agents;
 - treat free media API access as automatic commercial-rights clearance;
 - accept a remote artifact without contract and media validation.
+
+## Hybrid Execution Boundary (APEX-21 closeout)
+
+- **Phase A — Creative Architecture:** local-only. No remote LLM, hosted agent, or cloud creative planner may execute this phase.
+- **Phase B — Asset Sourcing:** local-only orchestration and local cache/provenance handling. Remote asset APIs may be queried only as declared source retrieval; control, validation, caching and rights decisions remain local.
+- **Phase C — Audio Timing Spine:** local-only. Kokoro/Piper/eSpeak, alignment and timing derivation remain on the local host.
+- **8 GB invariant:** `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_KEEP_ALIVE=0`, and `SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1` are the default certification envelope.
+- **Phase D — Hub/render boundary:** may hand off asynchronously to AWS Fargate only after the local SceneSpec, asset provenance and audio timing contracts are complete.
+- **Phase E — Managed state:** Neon/Upstash are state services, not creative execution engines.
+- A phase boundary violation is a hard failure, not a fallback condition.
