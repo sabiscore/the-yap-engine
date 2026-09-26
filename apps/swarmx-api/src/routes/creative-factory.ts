@@ -36,6 +36,11 @@ import {
   listPerformanceSnapshots,
   recordPerformanceSnapshot,
 } from "../services/creative-factory-analytics.js";
+import {
+  listMonetizationObservations,
+  recordMonetizationObservation,
+  summarizeMonetization,
+} from "../services/monetization-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
 import { assertEightGbSafe, assertLocalPhase } from "../services/hybrid-execution.js";
@@ -102,6 +107,30 @@ const PerformanceSnapshotBodySchema = z.object({
   comments: z.number().int().min(0).optional(),
   completionRate: z.number().min(0).max(1).optional(),
   averageWatchSeconds: z.number().min(0).optional(),
+});
+
+const MonetizationObservationBodySchema = z.object({
+  userId: z.string().min(1).max(160),
+  packageId: z.string().min(1).max(160),
+  platform: z.enum(["tiktok", "reels", "shorts", "generic"]),
+  observedAt: z.string().datetime().optional(),
+  currency: z.string().length(3).default("USD"),
+  platformRewardsCents: z.number().int().min(0).default(0),
+  affiliateClicks: z.number().int().min(0).default(0),
+  affiliateConversions: z.number().int().min(0).default(0),
+  affiliateRevenueCents: z.number().int().min(0).default(0),
+  landingPageVisits: z.number().int().min(0).default(0),
+  checkoutStarts: z.number().int().min(0).default(0),
+  ownedProductConversions: z.number().int().min(0).default(0),
+  ownedProductRevenueCents: z.number().int().min(0).default(0),
+  sponsorRevenueCents: z.number().int().min(0).default(0),
+  llmCostCents: z.number().int().min(0).default(0),
+  ttsCostCents: z.number().int().min(0).default(0),
+  renderCostCents: z.number().int().min(0).default(0),
+  storageCostCents: z.number().int().min(0).default(0),
+  egressCostCents: z.number().int().min(0).default(0),
+  source: z.string().min(1).max(160),
+  attributionWindowDays: z.number().int().min(0).optional(),
 });
 
 const LearningRecordBodySchema = z.object({
@@ -493,6 +522,25 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
   server.get("/agents", async () => ({
     agents: listRegistryRecords<CreativeAgentSpec>("creative-agent-specs"),
   }));
+
+  server.get("/analytics/monetization", async () => {
+    const observations = await listMonetizationObservations();
+    return { observations, summary: summarizeMonetization(observations) };
+  });
+
+  server.post<{ Body: unknown }>(
+    "/analytics/monetization",
+    { preHandler: requireVideoWriteAuth },
+    async (request, reply) => {
+      const parsed = MonetizationObservationBodySchema.safeParse(request.body);
+      if (!parsed.success) return sendParseError(reply, parsed.error);
+      const observation = await recordMonetizationObservation(parsed.data);
+      return reply.status(201).send({
+        observation,
+        summary: summarizeMonetization([observation]),
+      });
+    },
+  );
 
   server.get("/analytics/performance", async () => ({
     snapshots: listPerformanceSnapshots(),
