@@ -33,11 +33,32 @@ export class YapRenderStack extends cdk.Stack {
       natGateways: 0,
       subnetConfiguration: [
         {
-          name: "public",
-          subnetType: ec2.SubnetType.PUBLIC,
+          name: "render-private",
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
           cidrMask: 24
         }
       ]
+    });
+
+    vpc.addGatewayEndpoint("RenderS3Endpoint", {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+      subnets: [{ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }],
+    });
+
+    vpc.addInterfaceEndpoint("RenderEcrApiEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR,
+      privateDnsEnabled: true,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+    });
+    vpc.addInterfaceEndpoint("RenderEcrDkrEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+      privateDnsEnabled: true,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+    });
+    vpc.addInterfaceEndpoint("RenderLogsEndpoint", {
+      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+      privateDnsEnabled: true,
+      subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
     });
 
     const cluster = new ecs.Cluster(this, "RenderCluster", { vpc });
@@ -51,7 +72,14 @@ export class YapRenderStack extends cdk.Stack {
     const taskRole = new iam.Role(this, "RenderTaskRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com")
     });
-    bucket.grantReadWrite(taskRole);
+    taskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ["s3:GetObject"],
+      resources: [bucket.arnForObjects("jobs/*")],
+    }));
+    taskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ["s3:PutObject"],
+      resources: [bucket.arnForObjects("results/*")],
+    }));
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, "RenderTaskDefinition", {
       cpu: 1024,
@@ -128,7 +156,7 @@ exports.handler = async (event) => {
       environment: {
         CLUSTER: cluster.clusterArn,
         TASK_DEFINITION: taskDefinition.taskDefinitionArn,
-        SUBNETS: vpc.publicSubnets.map((subnet) => subnet.subnetId).join(","),
+        SUBNETS: vpc.isolatedSubnets.map((subnet) => subnet.subnetId).join(","),
         SECURITY_GROUP: taskSecurityGroup.securityGroupId,
         BUCKET: bucket.bucketName
       }
