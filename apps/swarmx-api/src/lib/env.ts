@@ -41,6 +41,7 @@ const schema = z.object({
   AWS_REGION: z.string().min(1).default("us-east-1"),
   SWARMX_AWS_RENDER_ENABLED: z.enum(["0", "1"]).default("0"),
   SWARMX_AWS_RENDER_BUCKET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_RENDER_CALLBACK_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   NEON_BRANCH: z.string().default("production"),
   NEON_AUTH_BASE_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   NEON_AUTH_JWKS_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
@@ -200,7 +201,8 @@ export type SecretEnvKey =
   | "SWARMX_TIKTOK_ACCESS_TOKEN"
   | "SWARMX_INSTAGRAM_ACCESS_TOKEN"
   | "SWARMX_YOUTUBE_ACCESS_TOKEN"
-  | "SWARMX_MODAL_RENDER_TOKEN";
+  | "SWARMX_MODAL_RENDER_TOKEN"
+  | "SWARMX_RENDER_CALLBACK_SECRET";
 
 let cached: Env | null = null;
 
