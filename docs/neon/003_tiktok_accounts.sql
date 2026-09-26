@@ -30,26 +30,7 @@ CREATE POLICY tiktok_accounts_owner_select
   TO authenticated
   USING (user_id = auth.user_id());
 
-DROP POLICY IF EXISTS tiktok_accounts_owner_insert ON public.tiktok_accounts;
-CREATE POLICY tiktok_accounts_owner_insert
-  ON public.tiktok_accounts
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.user_id());
-
-DROP POLICY IF EXISTS tiktok_accounts_owner_update ON public.tiktok_accounts;
-CREATE POLICY tiktok_accounts_owner_update
-  ON public.tiktok_accounts
-  FOR UPDATE
-  TO authenticated
-  USING (user_id = auth.user_id())
-  WITH CHECK (user_id = auth.user_id());
-
-DROP POLICY IF EXISTS tiktok_accounts_owner_delete ON public.tiktok_accounts;
-CREATE POLICY tiktok_accounts_owner_delete
-  ON public.tiktok_accounts
-  FOR DELETE
-  TO authenticated
-  USING (user_id = auth.user_id());
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.tiktok_accounts TO authenticated;
+-- Browser/Data API access is read-only. Account creation, token rotation and
+-- controlled-verification promotion are server-authoritative operations.
+REVOKE INSERT, UPDATE, DELETE ON public.tiktok_accounts FROM authenticated;
+GRANT SELECT ON public.tiktok_accounts TO authenticated;
