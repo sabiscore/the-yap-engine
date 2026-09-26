@@ -66,6 +66,7 @@ const PublishRequestSchema = {
   required: ["platform"],
   properties: {
     platform: { type: "string", enum: ["tiktok", "reels", "shorts", "generic"] },
+    tiktokAccountId: { type: "string", minLength: 1, maxLength: 128 },
     scheduledAt: { type: "string" },
   },
 } as const;
@@ -784,7 +785,7 @@ export async function videoRoutes(
 
   fastify.post<{
     Params: { id: string };
-    Body: { platform: "tiktok" | "reels" | "shorts" | "generic"; scheduledAt?: string };
+    Body: { platform: "tiktok" | "reels" | "shorts" | "generic"; scheduledAt?: string; tiktokAccountId?: string };
   }>(
     "/jobs/:id/publish",
     {
@@ -815,9 +816,19 @@ export async function videoRoutes(
         outputPath: job.output.absolutePath,
         outputPublicUrl: job.output.publicUrl,
       };
+      const publishJob =
+        request.body.platform === "tiktok" && request.body.tiktokAccountId
+          ? {
+              ...job,
+              request: {
+                ...job.request,
+                tiktokAccountId: request.body.tiktokAccountId,
+              },
+            }
+          : job;
       const publishResult = request.body.scheduledAt
-        ? await publisher.schedule(job, artifacts, request.body.scheduledAt)
-        : await publisher.publish(job, artifacts);
+        ? await publisher.schedule(publishJob, artifacts, request.body.scheduledAt)
+        : await publisher.publish(publishJob, artifacts);
 
       if (!job.outputArtifacts) {
         job.outputArtifacts = {};
