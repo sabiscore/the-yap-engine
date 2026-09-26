@@ -1,44 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-base: #040506;
-  --color-bg-surface: #0a0d0f;
-  --color-bg-elevated: #11161a;
-  --color-bg-input: #0d1216;
+  /* Obsidian Nocturne v2 — semantic compatibility aliases. */
+  --color-bg-base: var(--nocturne-bg);
+  --color-bg-surface: var(--nocturne-panel);
+  --color-bg-elevated: var(--nocturne-panel-raised);
+  --color-bg-input: var(--nocturne-panel);
 
-  --color-border: #1a242c;
-  --color-border-active: #2a3a45;
+  --color-border: var(--nocturne-border);
+  --color-border-active: var(--nocturne-border-active);
 
-  --color-status-active: #13d98d;
-  --color-status-queued: #f1a63a;
-  --color-status-success: #39c16f;
-  --color-status-error: #f16565;
-  --color-status-fatal: #ff5d5d;
-  --color-status-idle: #56616b;
-  --color-status-warning: #f08b37;
-  --color-status-reload: #49a8ff;
-  --color-status-throttled: #bb7bff;
+  --color-status-active: var(--nocturne-green);
+  --color-status-queued: var(--nocturne-cyan);
+  --color-status-success: var(--nocturne-green);
+  --color-status-error: var(--nocturne-error);
+  --color-status-fatal: var(--nocturne-error-strong);
+  --color-status-idle: var(--nocturne-muted);
+  --color-status-warning: var(--nocturne-pending);
+  --color-status-reload: var(--nocturne-cyan);
+  --color-status-throttled: var(--nocturne-muted);
 
-  --color-resource-safe: #13d98d;
-  --color-resource-warn: #f1a63a;
-  --color-resource-critical: #f16565;
+  --color-resource-safe: var(--nocturne-green);
+  --color-resource-warn: var(--nocturne-pending);
+  --color-resource-critical: var(--nocturne-error);
 
-  --color-accent: #13d98d;
-  --color-mission-running: #13d98d;
-  --color-mission-paused: #f1a63a;
-  --color-review-required: #f08b37;
-  --color-evolution-approved: #39c16f;
-  --color-risk-low: #49a8ff;
-  --color-risk-high: #f1a63a;
-  --color-risk-critical: #f16565;
-  --color-success: #39c16f;
+  --color-accent: var(--nocturne-green);
+  --color-mission-running: var(--nocturne-green);
+  --color-mission-paused: var(--nocturne-pending);
+  --color-review-required: var(--nocturne-pending);
+  --color-evolution-approved: var(--nocturne-green);
+  --color-risk-low: var(--nocturne-cyan);
+  --color-risk-high: var(--nocturne-pending);
+  --color-risk-critical: var(--nocturne-error);
+  --color-success: var(--nocturne-green);
 
-  --color-text-primary: #e8eef2;
-  --color-text-secondary: #99a8b3;
-  --color-text-muted: #61737f;
-  --color-text-accent: #13d98d;
-  --color-text-error: #f16565;
-  --color-text-warn: #f1a63a;
+  --color-text-primary: var(--nocturne-text);
+  --color-text-secondary: var(--nocturne-secondary);
+  --color-text-muted: var(--nocturne-muted);
+  --color-text-accent: var(--nocturne-green);
+  --color-text-error: var(--nocturne-error);
+  --color-text-warn: var(--nocturne-pending);
 
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -56,7 +57,7 @@
 }
 
 :root {
-  /* Obsidian Nocturne v2 — canonical surface/interaction tokens */
+  /* Obsidian Nocturne v2 — canonical tokens. */
   --nocturne-bg: #050508;
   --nocturne-panel: #0B0D12;
   --nocturne-panel-raised: #11141B;
@@ -65,14 +66,19 @@
   --nocturne-cyan: #00E5FF;
   --nocturne-green: #00FF66;
   --nocturne-text: #F1F5F9;
+  --nocturne-secondary: #C2CBD4;
   --nocturne-muted: #7C8794;
-  --shadow-accent-glow: 0 0 18px rgb(19 217 141 / 18%);
-  --shadow-accent-pulse: 0 0 28px rgb(19 217 141 / 28%);
-  --shadow-error-glow: 0 0 12px rgb(241 101 101 / 28%);
+  --nocturne-error: #FF5C5C;
+  --nocturne-error-strong: #FF3B3B;
+  --nocturne-pending: #F5C451;
 
-  --color-accent-dim: rgb(19 217 141 / 8%);
-  --color-border-accent: rgb(19 217 141 / 28%);
-  --color-selection-bg: rgb(19 217 141 / 18%);
+  --shadow-accent-glow: none;
+  --shadow-accent-pulse: none;
+  --shadow-error-glow: none;
+
+  --color-accent-dim: rgb(0 255 102 / 8%);
+  --color-border-accent: rgb(0 255 102 / 28%);
+  --color-selection-bg: rgb(0 255 102 / 18%);
 
   --nav-rail-width: 60px;
   --nav-rail-expanded: 240px;
@@ -80,6 +86,7 @@
   --telemetry-width: 280px;
   --command-bar-height: 48px;
 }
+
 
 *,
 *::before,
@@ -101,8 +108,8 @@ body {
   height: 100%;
   margin: 0;
   background:
-    radial-gradient(ellipse 80% 40% at 75% 0%, rgb(19 217 141 / 7%), transparent),
-    radial-gradient(ellipse 60% 50% at 10% 100%, rgb(19 217 141 / 4%), transparent),
+    radial-gradient(ellipse 80% 40% at 75% 0%, rgb(0 255 102 / 7%), transparent),
+    radial-gradient(ellipse 60% 50% at 10% 100%, rgb(0 255 102 / 4%), transparent),
     radial-gradient(circle at 1px 1px, rgb(255 255 255 / 2%) 1px, transparent 0) 0 0 / 24px 24px,
     linear-gradient(175deg, rgb(8 13 17 / 96%) 0%, rgb(4 5 6 / 100%) 60%);
   color: var(--color-text-primary);
@@ -258,13 +265,13 @@ body::after {
 }
 
 @keyframes border-flash-error {
-  0%, 100% { border-color: rgb(241 101 101 / 30%); }
-  50% { border-color: rgb(241 101 101 / 70%); }
+  0%, 100% { border-color: rgb(255 92 92) / 30%); }
+  50% { border-color: rgb(255 92 92) / 70%); }
 }
 
 @keyframes border-flash-warn {
-  0%, 100% { border-color: rgb(240 139 55 / 25%); }
-  50% { border-color: rgb(240 139 55 / 55%); }
+  0%, 100% { border-color: rgb(245 196 81 / 25%); }
+  50% { border-color: rgb(245 196 81 / 55%); }
 }
 
 .status-dot {
@@ -304,18 +311,18 @@ body::after {
 
 /* Active nav item accent glow */
 .nav-item-active-glow {
-  box-shadow: inset 2px 0 10px rgb(19 217 141 / 15%);
+  box-shadow: inset 2px 0 10px rgb(0 255 102 / 15%);
 }
 
 /* Panel danger variant — border pulses red when there are active errors */
 .panel-variant-danger {
-  border-color: rgb(241 101 101 / 30%);
+  border-color: rgb(255 92 92) / 30%);
   animation: border-flash-error 3s ease-in-out infinite;
 }
 
 /* Panel warn variant */
 .panel-variant-warn {
-  border-color: rgb(240 139 55 / 25%);
+  border-color: rgb(245 196 81 / 25%);
   animation: border-flash-warn 4s ease-in-out infinite;
 }
 
@@ -349,9 +356,9 @@ body::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgb(19 217 141 / 40%) 30%,
-    rgb(19 217 141 / 60%) 50%,
-    rgb(19 217 141 / 40%) 70%,
+    rgb(0 255 102 / 40%) 30%,
+    rgb(0 255 102 / 60%) 50%,
+    rgb(0 255 102 / 40%) 70%,
     transparent 100%
   );
   animation: live-edge-pulse 3s ease-in-out infinite;
@@ -685,9 +692,9 @@ body::after {
 
 /* ── Swarm activity pulse ring ───────────────────────────────────────────── */
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0    rgb(19 217 141 / 40%); }
-  70%  { box-shadow: 0 0 0 10px rgb(19 217 141 / 0%); }
-  100% { box-shadow: 0 0 0 0    rgb(19 217 141 / 0%); }
+  0%   { box-shadow: 0 0 0 0    rgb(0 255 102 / 40%); }
+  70%  { box-shadow: 0 0 0 10px rgb(0 255 102 / 0%); }
+  100% { box-shadow: 0 0 0 0    rgb(0 255 102 / 0%); }
 }
 
 /* ── Card surface lift on hover ──────────────────────────────────────────── */
@@ -709,9 +716,9 @@ body::after {
   background: linear-gradient(
     90deg,
     var(--color-accent) 0%,
-    rgb(73 168 255 / 90%) 40%,
+    rgb(0 229 255) / 90%) 40%,
     var(--color-accent) 70%,
-    rgb(73 168 255 / 90%) 100%
+    rgb(0 229 255) / 90%) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -727,8 +734,8 @@ body::after {
   gap: 0.25rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  border: 1px solid rgb(19 217 141 / 28%);
-  background: rgb(19 217 141 / 8%);
+  border: 1px solid rgb(0 255 102 / 28%);
+  background: rgb(0 255 102 / 8%);
   color: var(--color-accent);
   font-size: 0.6rem;
   font-family: var(--font-mono);
@@ -822,7 +829,7 @@ body::after {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgb(19 217 141 / 3%) 50%,
+    rgb(0 255 102 / 3%) 50%,
     transparent 100%
   );
   animation: scan-sweep 6s ease-in-out infinite;
@@ -845,10 +852,10 @@ body::after {
 }
 
 /* Insight card color variants */
-.insight-info    { border-color: rgb(73 168 255 / 30%);  background: rgb(73 168 255 / 6%);  color: #49a8ff; }
-.insight-warn    { border-color: rgb(241 166 58 / 30%);  background: rgb(241 166 58 / 6%);  color: var(--color-status-queued); }
-.insight-error   { border-color: rgb(241 101 101 / 30%); background: rgb(241 101 101 / 6%); color: var(--color-status-error); }
-.insight-success { border-color: rgb(57 193 111 / 30%);  background: rgb(57 193 111 / 6%);  color: var(--color-status-success); }
+.insight-info    { border-color: rgb(0 229 255) / 30%);  background: rgb(0 229 255) / 6%);  color: #00E5FF; }
+.insight-warn    { border-color: rgb(245 196 81 / 30%);  background: rgb(245 196 81 / 6%);  color: var(--color-status-queued); }
+.insight-error   { border-color: rgb(255 92 92) / 30%); background: rgb(255 92 92) / 6%); color: var(--color-status-error); }
+.insight-success { border-color: rgb(0 255 102 / 30%);  background: rgb(0 255 102 / 6%);  color: var(--color-status-success); }
 
 /* ── Scan lines — the original body::after handles this — no override needed ── */
 
@@ -899,7 +906,7 @@ body::after {
 .mission-bar {
   background: linear-gradient(
     90deg,
-    rgb(19 217 141 / 8%) 0%,
+    rgb(0 255 102 / 8%) 0%,
     transparent 100%
   );
   border-left: 2px solid var(--color-accent);
@@ -947,8 +954,8 @@ body::after {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(circle at 12% 8%, rgb(19 217 141 / 6%), transparent 28%),
-    radial-gradient(circle at 88% 28%, rgb(73 168 255 / 5%), transparent 30%);
+    radial-gradient(circle at 12% 8%, rgb(0 255 102 / 6%), transparent 28%),
+    radial-gradient(circle at 88% 28%, rgb(0 229 255) / 5%), transparent 30%);
 }
 .yap-video-frame {
   position: relative;
@@ -987,18 +994,18 @@ body::after {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --color-bg-base: #09090B;
-  --color-bg-surface: #09090B;
-  --color-bg-elevated: #16181D;
-  --color-bg-input: #16181D;
-  --color-border: #272A30;
+  --color-bg-base: #050508;
+  --color-bg-surface: #050508;
+  --color-bg-elevated: #11141B;
+  --color-bg-input: #11141B;
+  --color-border: #252A33;
   --color-border-active: #00E5FF;
   --color-accent: #00FF66;
-  --color-text-primary: #EDEDED;
-  --color-text-secondary: #A1A1AA;
-  --color-text-muted: #71717A;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #C2CBD4;
+  --color-text-muted: #7C8794;
   --color-text-accent: #00FF66;
-  --color-panel: #16181D;
+  --color-panel: #11141B;
   --color-accent-cyan: #00E5FF;
   --shadow-accent-glow: none;
   --shadow-accent-pulse: none;
@@ -1006,7 +1013,7 @@ body::after {
 }
 
 body {
-  background: #09090B !important;
+  background: #050508 !important;
   background-image: none !important;
 }
 
