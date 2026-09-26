@@ -76,7 +76,7 @@ export class TikTokVideoPublisher extends BaseVideoPublisher {
         prompt: job.request.prompt,
         outputPath: artifacts.outputPath,
         ...(artifacts.outputPublicUrl ? { outputPublicUrl: artifacts.outputPublicUrl } : {}),
-        ...(artifacts.durationSeconds !== undefined ? { durationSeconds: artifacts.durationSeconds } : {}),
+        ...(job.output?.durationSeconds !== undefined ? { durationSeconds: job.output?.durationSeconds } : {}),
         privacyLevel: requestedPrivacy,
       });
 
@@ -108,7 +108,7 @@ export class TikTokVideoPublisher extends BaseVideoPublisher {
       prompt: job.request.prompt,
       outputPath: artifacts.outputPath,
       ...(artifacts.outputPublicUrl ? { outputPublicUrl: artifacts.outputPublicUrl } : {}),
-      ...(artifacts.durationSeconds !== undefined ? { durationSeconds: artifacts.durationSeconds } : {}),
+      ...(job.output?.durationSeconds !== undefined ? { durationSeconds: job.output?.durationSeconds } : {}),
       privacyLevel: requestedPrivacy,
     });
 
