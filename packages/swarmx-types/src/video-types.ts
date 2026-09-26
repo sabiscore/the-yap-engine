@@ -579,10 +579,10 @@ export interface MonetizationObservation {
   egressCostCents: number;
   source: string;
   attributionWindowDays?: number;
-  generationCostCents: number;
-  distributionCostCents: number;
-  revenueCents: number;
-  contributionMarginCents: number;
+  generationCostCents?: number;
+  distributionCostCents?: number;
+  revenueCents?: number;
+  contributionMarginCents?: number;
   updatedAt: string;
 }
 
