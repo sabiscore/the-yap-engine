@@ -17,6 +17,7 @@ import { RouteDegradedBanner } from "@/components/layout/RouteDegradedBanner";
 import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
 import { LocalAgentStack } from "@/components/overview/LocalAgentStack";
 import { CreativeCommandCenter } from "@/components/overview/CreativeCommandCenter";
+import { HybridExecutionStrip } from "@/components/overview/HybridExecutionStrip";
 import type { AgentState, LogEntry } from "@swarmx/types";
 
 import { Zap, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, Brain } from "lucide-react";
@@ -929,6 +930,7 @@ export default function OverviewPage() {
 
       {/* Creative production control plane: concept, visual, audio and review actions. */}
       <CreativeCommandCenter />
+      <HybridExecutionStrip />
 
       {/* Bento top strip: Health Radar + 4 quick stats */}
 

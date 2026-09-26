@@ -152,10 +152,24 @@ export function enqueue(request: VideoJobRequest): VideoJob {
   persistJob("enqueue", job);
 
   if (isBullMQEnabled()) {
-    void getBullQueue().add("video-job", request, {
-      jobId: job.id,
-      priority: 5,
-    });
+    void getBullQueue()
+      .add("video-job", request, {
+        jobId: job.id,
+        priority: 5,
+      })
+      .catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : String(error);
+        log.error({ jobId: job.id, error: detail }, "video-queue: BullMQ enqueue failed; terminating job safely");
+        const current = registry.get(job.id);
+        if (current && !isTerminalStatus(current.status)) {
+          failJob(job.id, {
+            code: "QUEUE_UNAVAILABLE",
+            message: "Remote queue submission failed; job was not accepted by BullMQ.",
+            retryable: false,
+            details: detail,
+          });
+        }
+      });
   }
 
   scheduleCleanup(job.id);

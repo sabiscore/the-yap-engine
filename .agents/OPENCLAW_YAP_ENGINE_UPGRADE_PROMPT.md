@@ -20,6 +20,11 @@ Execute the canonical APEX-21 Creative Compiler and Production Automation Direct
 - External media requires provenance and rights evidence.
 - Deterministic FFmpeg/FFprobe checks are authoritative; vision review is advisory.
 - One bounded automated revision is the default; persistent failure becomes NEEDS_REVISION/BLOCKED.
+- Neon Postgres is the durable external-testing state plane; use the pooled PgBouncer endpoint and never commit credentials.
+- Upstash Redis is the remote BullMQ state plane; use TLS and preserve separate Queue/Worker connections.
+- Vercel is a thin client only. Do not execute media rendering or local inference in dashboard/serverless request paths.
+- AWS Phase-D is S3 jobs/ → asynchronous Lambda dispatcher → isolated Fargate FFmpeg worker → S3 results/. Validate checksum and FFprobe output before acceptance.
+- External AI providers are optional, budgeted adapters. Never silently convert a local/free path into paid inference.
 
 ## Agent loop
 DISCOVER → CONTRACT MAP → PLAN → SURGICAL PATCH → TARGETED TEST → ADVERSARIAL REVIEW → FIX → VERIFY → REPORT.
@@ -43,3 +48,13 @@ Stop conditions: [blockers]
 ### NEXT ACTION
 
 For the complete production rules, workflow, Modal contract, asset-rights policy, BullMQ graph, dashboard requirements, benchmark gate and definition of done, follow docs/OPENCLAW-SWARMXQ-APEX21-DIRECTIVE.md.
+
+## Hybrid Execution Boundary (APEX-21 closeout)
+
+- **Phase A — Creative Architecture:** local-only. No remote LLM, hosted agent, or cloud creative planner may execute this phase.
+- **Phase B — Asset Sourcing:** local-only orchestration and local cache/provenance handling. Remote asset APIs may be queried only as declared source retrieval; control, validation, caching and rights decisions remain local.
+- **Phase C — Audio Timing Spine:** local-only. Kokoro/Piper/eSpeak, alignment and timing derivation remain on the local host.
+- **8 GB invariant:** `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_KEEP_ALIVE=0`, and `SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1` are the default certification envelope.
+- **Phase D — Hub/render boundary:** may hand off asynchronously to AWS Fargate only after the local SceneSpec, asset provenance and audio timing contracts are complete.
+- **Phase E — Managed state:** Neon/Upstash are state services, not creative execution engines.
+- A phase boundary violation is a hard failure, not a fallback condition.

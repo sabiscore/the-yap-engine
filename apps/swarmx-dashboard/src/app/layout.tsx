@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     // [V6.1-FIX-13] Use CSS font fallbacks instead of network-fetched
     // next/font Google assets so production builds stay deterministic offline.
-    <html lang="en" className="h-full" suppressHydrationWarning>
+    <html lang="en" className="h-full" data-theme="nocturne-v2" suppressHydrationWarning>
       <body className="h-full bg-bg-base text-text-primary antialiased">
         {children}
       </body>

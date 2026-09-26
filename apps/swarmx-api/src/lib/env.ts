@@ -27,8 +27,22 @@ const schema = z.object({
   OLLAMA_KEEP_ALIVE: z.string().default("0"),
   OLLAMA_KEEP_ALIVE_PILOT_S: z.coerce.number().int().min(0).default(300),
   SWARMX_HOST_PROFILE: z.enum(["auto", "constrained_cpu_8gb", "standard_cpu_16gb", "accelerated_optional", "constrained_cpu", "standard_cpu", "8gb", "16gb"]).default("auto"),
+  // Hybrid execution boundary: Phases A-C are immutable local-only stages.
+  SWARMX_PHASE_ABC_EXECUTION: z.literal("local").default("local"),
+  SWARMX_PHASE_D_EXECUTION: z.enum(["local", "aws_fargate"]).default("local"),
 
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
+  SWARMX_REDIS_PROVIDER: z.enum(["local", "upstash"]).default("local"),
+  DATABASE_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
+  DATABASE_URL_UNPOOLED: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
+  FAL_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_EXTERNAL_AI_ENABLED: z.enum(["0", "1"]).default("0"),
+  SWARMX_EXTERNAL_AI_MAX_REQUESTS_PER_JOB: z.coerce.number().int().min(0).max(20).default(2),
+  AWS_REGION: z.string().min(1).default("us-east-1"),
+  SWARMX_AWS_RENDER_ENABLED: z.enum(["0", "1"]).default("0"),
+  SWARMX_AWS_RENDER_BUCKET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  NEON_DATA_API_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
+  NEON_AUTH_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
 
   SWARMX_MODEL_FAST: z.preprocess((val) => val ?? process.env["SWARM_MODEL_FAST"], z.string().default("instruct-phi4-pro-q8-prod")),
   SWARMX_MODEL_REASON: z.preprocess((val) => val ?? process.env["SWARM_MODEL_REASONER"] ?? process.env["SWARM_MODEL_REASON"], z.string().default("reason-deepseekr1-pro-q5km-prod")),

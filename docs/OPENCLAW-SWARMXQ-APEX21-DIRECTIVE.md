@@ -431,13 +431,20 @@ OpenClaw, SwarmXQ API, Ollama, Redis when required, FFmpeg, Kokoro, optional Whi
 Managed:
 Vercel for the Next.js dashboard;
 Render for persistent Fastify/API workers;
-managed Redis/Upstash for remote BullMQ;
-object storage for artifacts;
-Modal for burst GPU.
+Neon Postgres for durable application state;
+Upstash Redis for remote BullMQ state;
+S3 + Lambda + Fargate for asynchronous Phase-D rendering;
+Modal for optional generative GPU burst capacity.
 
 Do not move local inference to hosted infrastructure merely for convenience.
 
 Use environment-driven configuration and platform secret stores.
+
+Vercel constraint correction: current Hobby Functions have a documented 300-second default/max duration. Keep the dashboard thin anyway: media rendering and long-running orchestration remain asynchronous backend jobs.
+
+Neon application traffic must use the pooled PgBouncer endpoint; never commit database credentials. Upstash Redis must use TLS. AWS render manifests must be contract-validated before Fargate execution.
+
+External AI providers are optional adapters. fal.ai uses authenticated server-side requests and queued execution for long-running media jobs; Pollinations/Hugging Face are opportunistic providers, not assumed-free production dependencies.
 
 ## 26. Validation gates
 
@@ -525,3 +532,13 @@ The mission is complete when:
 ## 30. Execution principle
 
 ONE BRIEF → THREE DISTINCT CONCEPTS → ONE BOUNDED REVISION → AUDIO-FIRST TIMELINE → INTENTIONAL VISUAL EDIT → CONTENT-ADDRESSED RENDER → DETERMINISTIC QC → SERIALIZED VISUAL QA → RIGHTS CHECK → HUMAN-READY PACKAGE → SAFE PUBLICATION → MEASURED OUTCOME → EVIDENCE-BACKED NEXT ITERATION.
+
+## Hybrid Execution Boundary (APEX-21 closeout)
+
+- **Phase A — Creative Architecture:** local-only. No remote LLM, hosted agent, or cloud creative planner may execute this phase.
+- **Phase B — Asset Sourcing:** local-only orchestration and local cache/provenance handling. Remote asset APIs may be queried only as declared source retrieval; control, validation, caching and rights decisions remain local.
+- **Phase C — Audio Timing Spine:** local-only. Kokoro/Piper/eSpeak, alignment and timing derivation remain on the local host.
+- **8 GB invariant:** `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_KEEP_ALIVE=0`, and `SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1` are the default certification envelope.
+- **Phase D — Hub/render boundary:** may hand off asynchronously to AWS Fargate only after the local SceneSpec, asset provenance and audio timing contracts are complete.
+- **Phase E — Managed state:** Neon/Upstash are state services, not creative execution engines.
+- A phase boundary violation is a hard failure, not a fallback condition.

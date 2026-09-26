@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { VideoJobError } from "../src/types/video.js";
+import { Queue } from "bullmq";
 
 // Mock BullMQ before any import that pulls in video-queue (which imports Queue at module level)
 vi.mock("bullmq", () => ({
@@ -98,6 +99,27 @@ describe("enqueue", () => {
       enqueue({ prompt: `job ${i}` });
     }
     expect(() => enqueue({ prompt: "overflow" })).toThrow(/queue is full/i);
+  });
+
+  test("fails closed when BullMQ rejects the remote enqueue", async () => {
+    setBullMQRuntimeEnabled(true);
+    vi.mocked(Queue).mockImplementationOnce(() => ({
+      add: vi.fn().mockRejectedValue(new Error("Upstash unavailable")),
+      getJob: vi.fn().mockResolvedValue(null),
+      changePriority: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    }) as never);
+
+    const job = enqueue({ prompt: "remote queue failure" });
+    expect(job.status).toBe("queued");
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const failed = getJob(job.id);
+    expect(failed?.status).toBe("failed");
+    expect(failed?.error?.code).toBe("QUEUE_UNAVAILABLE");
+    expect(failed?.error?.retryable).toBe(false);
   });
 });
 
