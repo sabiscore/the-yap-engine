@@ -1,7 +1,7 @@
 # .github/workflows/ci.yml
 # SwarmXQ Quality Gate CI — Priority 2 milestone
 # Automates all 8 release gates from CLAUDE.md + Gate 5.5 BullMQ integration.
-# pnpm 11.9.0 · Node 22 · ubuntu-latest · Redis 7-alpine
+# pnpm 12.6.0 · Node 22 · ubuntu-latest · Redis 7-alpine
 
 name: CI
 
@@ -78,7 +78,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: '11.9.0'
+          version: '12.6.0'
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
