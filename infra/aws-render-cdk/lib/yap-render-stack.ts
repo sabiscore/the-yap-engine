@@ -303,7 +303,13 @@ exports.handler = async (event) => {
 };
 `),
     });
-    bucket.grantRead(renderCompleteFunction);
+    renderCompleteFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ["s3:GetObject"],
+      resources: [
+        bucket.bucketArn + "/results/" + "*.validation.json",
+        bucket.bucketArn + "/results/" + "*.failure.json",
+      ],
+    }));
 
     bucket.enableEventBridgeNotification();
 
