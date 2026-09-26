@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "jobId": "job-cheatbook-test-01",
+    "topic": "Zero-Shot Video Generation",
+    "niche": "tech",
+    "tone": "contrarian",
+    "hookStyle": "contrarian",
+    "hookText": "Stop scrolling right now. You are doing video creation wrong.",
+    "hookLatencyMs": 110,
+    "retentionInterruptCadenceSeconds": 2.8,
+    "prosodyTagsUsed": [
+      "pause",
+      "emphasis"
+    ],
+    "wordBoundaryCount": 14,
+    "platform": "tiktok",
+    "viralityScore": 84,
+    "recommendations": [
+      "Increase initial visual contrast",
+      "Trim dead air before hook"
+    ],
+    "captionDraft": "The real secret to high-retention video. #tech #viral",
+    "timestamp": "2026-09-25T23:16:09.861Z"
+  }
+]
