@@ -66,3 +66,13 @@ Do not use fingerprint spoofing, hash manipulation, proxy rotation, browser stea
 - TikTok Content Posting API — Direct Post
 - TikTok Content Posting API — Upload
 - TikTok OAuth User Access Token Management
+
+## Production promotion gate
+Keep `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0` until the controlled verification command completes successfully for the durable account. The promotion record must show `controlled_verified` before any production Direct Post may honor a non-`SELF_ONLY` privacy selection.
+
+Operational sequence:
+1. Register the exact OAuth redirect URI and required TikTok scopes.
+2. Complete authorization and persist encrypted token state in `tiktok_accounts`.
+3. Run the controlled verification with `--confirm-self-only=true`.
+4. Confirm `creator_info/query` exposes `SELF_ONLY`, the upload succeeds, and `status/fetch` reaches the terminal published state.
+5. Only then enable the second-stage public-post flag, after the applicable TikTok audit/visibility requirements are satisfied.
