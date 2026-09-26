@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { Queue, QueueEvents, Worker, type JobsOptions } from "bullmq";
+import { Queue, QueueEvents, Worker } from "bullmq";
 import { loadEnv } from "../lib/env.js";
 import { executeTikTokDirectPostWithAccessToken, type TikTokDirectPostInput, type TikTokDirectPostOutcome } from "./tiktok-protocol.js";
+import { getTikTokAccessToken } from "./tiktok-accounts.js";
 
 export interface TikTokDirectPostJob extends Omit<TikTokDirectPostInput, "token"> {
   accountId: string;
@@ -45,8 +46,9 @@ async function createLane(accountId: string): Promise<Lane> {
   const worker = new Worker<TikTokDirectPostJob, TikTokDirectPostOutcome>(
     name,
     async (job) => {
-      const { accountId: _accountId, ...input } = job.data;
-      return executeTikTokDirectPostWithAccessToken(input);
+      const { accountId, ...input } = job.data;
+      const { accessToken } = await getTikTokAccessToken(accountId);
+      return executeTikTokDirectPostWithAccessToken({ ...input, token: accessToken });
     },
     {
       connection: redisConnection(),
@@ -54,17 +56,6 @@ async function createLane(accountId: string): Promise<Lane> {
       limiter: { max: 6, duration: 60_000 },
     },
   );
-
-  worker.on("failed", (job, error) => {
-    if (job) {
-      void queue.add(
-        "audit",
-        { ...job.data },
-        { removeOnComplete: true, removeOnFail: true } satisfies JobsOptions,
-      ).catch(() => {});
-    }
-    loadEnv();
-  });
 
   lanes.set(accountId, { queue, events, worker });
   return lanes.get(accountId)!;
