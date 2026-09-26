@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 import { useCreativeFactoryStore } from "@/stores/creative-factory";
 import type { BrandKit, AudiencePersona, CreativeFactoryWorkflowRun, MonetizationSummary } from "@swarmx/types/video-types";
+import type { TikTokPublishingReadiness } from "@/stores/creative-factory";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -351,24 +352,56 @@ function RunRow({
 
 // ─── Run checkpoint detail ─────────────────────────────────────────────────────
 
-function RunDetail({ run }: { run: CreativeFactoryWorkflowRun }) {
+function RunDetail({
+  run,
+  tiktokReadiness,
+}: {
+  run: CreativeFactoryWorkflowRun;
+  tiktokReadiness: TikTokPublishingReadiness | null;
+}) {
   const checkpoints = Object.entries(run.checkpoints);
+  const state = creativeHubState(run);
+  const failedGates = checkpoints
+    .filter(([, cp]) => cp?.status === "failed" || cp?.status === "blocked")
+    .map(([stage, cp]) => ({
+      label: stage,
+      reason: cp?.errorMessage ?? cp?.errorCode ?? "Gate returned a blocking state.",
+    }));
+  const authorizationBlocked = state === "READY_TO_POST" && tiktokReadiness?.state !== "controlled_verified";
+  const blockers = [
+    ...failedGates,
+    ...(authorizationBlocked && tiktokReadiness ? [{ label: "AUTHORIZATION", reason: tiktokReadiness.reason }] : []),
+  ];
 
   if (checkpoints.length === 0) {
     return (
       <div className="px-4 py-6 text-center text-[10px] text-text-muted">
-        No checkpoints recorded yet.
+        No checkpoints recorded yet. State is not verified.
       </div>
     );
   }
 
-  const state = creativeHubState(run);
   return (
     <div>
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Production state</span>
         <span className={cn("rounded border px-2 py-1 font-mono text-[10px] font-semibold", hubStateTone(state))}>{state}</span>
       </div>
+      {state === "READY_TO_POST" && blockers.length > 0 ? (
+        <div className="border-b border-border bg-status-warning/5 px-4 py-3" role="status" aria-live="polite">
+          <div className="flex items-center gap-2 text-xs font-semibold text-status-warning">
+            <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+            Publishing blocked — evidence below is the source of the block
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {blockers.map((blocker) => (
+              <li key={blocker.label} className="text-[10px] leading-4 text-text-secondary">
+                <span className="font-mono text-text-primary">{blocker.label}:</span> {blocker.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <ol className="divide-y divide-border">
         {checkpoints.map(([stage, cp]) => {
           const isActive = cp?.status === "running";
@@ -450,6 +483,7 @@ export function CreativeFactoryPanel() {
   const audiences = useCreativeFactoryStore((s) => s.audiences);
   const blueprints = useCreativeFactoryStore((s) => s.blueprints);
   const monetizationSummary = useCreativeFactoryStore((s) => s.monetizationSummary);
+  const tiktokReadiness = useCreativeFactoryStore((s) => s.tiktokReadiness);
   const selectedRunId = useCreativeFactoryStore((s) => s.selectedRunId);
   const isLoading = useCreativeFactoryStore((s) => s.isLoading);
   const error = useCreativeFactoryStore((s) => s.error);
@@ -683,7 +717,7 @@ export function CreativeFactoryPanel() {
                 </span>
               </div>
               {selectedRun ? (
-                <RunDetail run={selectedRun} />
+                <RunDetail run={selectedRun} tiktokReadiness={tiktokReadiness} />
               ) : (
                 <div className="px-4 py-8 text-center text-xs text-text-muted">
                   Select a run on the left to view stage checkpoints.
