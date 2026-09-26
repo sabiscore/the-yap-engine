@@ -8,11 +8,12 @@ const contract = JSON.parse(await readFile(new URL("../../../contracts/video-seg
 const pythonSource = await readFile(new URL("../../../src/swarmx/services/video_segment_contract.py", import.meta.url), "utf8");
 const modalSource = await readFile(new URL("../../../src/swarmx/services/modal_video_renderer.py", import.meta.url), "utf8");
 
-assert.ok(backendSource.includes("class ModalVideoRenderBackend") || backendSource.includes("ModalVideoRenderBackend"));
+assert.ok(backendSource.includes("class ModalVideoRenderBackend"));
 assert.ok(backendSource.includes("SWARMX_MODAL_RENDER_URL"));
 assert.ok(backendSource.includes("/v1/render"));
 assert.ok(backendSource.includes("maxConcurrentSegments: 4"));
-assert.ok(backendSource.includes("minContainers"));
+assert.ok(backendSource.includes("aspectRatio"));
+assert.ok(backendSource.includes("cacheKey"));
 
 assert.deepEqual(contract.required, [
   "jobId",
@@ -23,6 +24,7 @@ assert.deepEqual(contract.required, [
   "width",
   "height",
   "seed",
+  "aspectRatio",
 ]);
 for (const field of contract.required ?? []) {
   assert.ok(pythonSource.includes(field), `Python contract missing ${field}`);
@@ -36,5 +38,7 @@ assert.ok(modalSource.includes("modal.Retries(max_retries=2"));
 assert.ok(modalSource.includes("render_one.map(validated)"));
 assert.ok(modalSource.includes("Wan2.2-TI2V-5B-Diffusers"));
 assert.ok(modalSource.includes("FunctionCall.from_id(call_id)"));
+assert.ok(modalSource.includes("_probe"));
+assert.ok(modalSource.includes("MODEL_CACHE"));
 
 console.log("video-modal-contract-regression: PASS");
