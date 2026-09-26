@@ -149,7 +149,7 @@ export async function upsertTikTokAccount(input: {
   const refreshTokenCiphertext = encryptTikTokToken(input.refreshToken);
   const status = input.status ?? "active";
 
-  const rows = await sql`
+  const rows = (await sql`
     INSERT INTO public.tiktok_accounts (
       id, user_id, open_id, access_token_ciphertext, refresh_token_ciphertext,
       access_expires_at, refresh_expires_at, scopes, status, updated_at
@@ -168,31 +168,31 @@ export async function upsertTikTokAccount(input: {
       status = EXCLUDED.status,
       updated_at = now()
     RETURNING id, user_id, open_id, access_expires_at, refresh_expires_at, scopes, status, updated_at
-  `;
+  `) as unknown as Record<string, unknown>[];
   if (!rows[0]) throw new Error("Failed to persist TikTok account");
   return mapRow(rows[0] as Record<string, unknown>);
 }
 
 export async function getTikTokAccount(id: string): Promise<TikTokAccount | null> {
   const sql = getNeonSql();
-  const rows = await sql`
+  const rows = (await sql`
     SELECT id, user_id, open_id, access_expires_at, refresh_expires_at, scopes, status, updated_at
     FROM public.tiktok_accounts
     WHERE id = ${id}
     LIMIT 1
-  `;
+  `) as unknown as Record<string, unknown>[];
   return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
 async function getTikTokAccountSecrets(id: string): Promise<TikTokAccountSecretRow | null> {
   const sql = getNeonSql();
-  const rows = await sql`
+  const rows = (await sql`
     SELECT id, user_id, open_id, access_token_ciphertext, refresh_token_ciphertext,
            access_expires_at, refresh_expires_at, scopes, status, updated_at
     FROM public.tiktok_accounts
     WHERE id = ${id}
     LIMIT 1
-  `;
+  `) as unknown as Record<string, unknown>[];
   return rows[0] ? mapSecretRow(rows[0] as Record<string, unknown>) : null;
 }
 
@@ -285,12 +285,12 @@ export async function getTikTokAccessToken(accountId: string): Promise<{ account
 
 export async function setTikTokAccountStatus(id: string, status: TikTokAccountStatus): Promise<TikTokAccount | null> {
   const sql = getNeonSql();
-  const rows = await sql`
+  const rows = (await sql`
     UPDATE public.tiktok_accounts
     SET status = ${status}, updated_at = now()
     WHERE id = ${id}
     RETURNING id, user_id, open_id, access_expires_at, refresh_expires_at, scopes, status, updated_at
-  `;
+  `) as unknown as Record<string, unknown>[];
   return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
