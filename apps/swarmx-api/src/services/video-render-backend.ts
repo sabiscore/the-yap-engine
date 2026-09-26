@@ -1,9 +1,7 @@
 /**
  * Canonical render-backend contract.
- *
  * The six-stage video orchestrator remains the lifecycle owner; concrete
- * backends only execute rendering work. This keeps ComfyUI, Modal and future
- * providers behind one audited capability boundary.
+ * backends only execute rendering work.
  */
 import type { RendererCapabilityTier } from "@swarmx/types/video-types";
 import type { VideoJobRequest } from "../types/video.js";
@@ -18,6 +16,8 @@ export interface RenderSegmentTask {
   width: number;
   height: number;
   seed: number;
+  aspectRatio?: "9:16" | "1:1" | "16:9";
+  cacheKey?: string;
   referenceImagePath?: string;
 }
 
@@ -29,6 +29,7 @@ export interface RenderSegmentArtifact {
   height: number;
   fps: number;
   checksum?: string;
+  cacheKey?: string;
 }
 
 export interface RenderBackendCapabilities {

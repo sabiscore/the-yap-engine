@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { backgroundBudget, createBackgroundRecipe, selectBackgroundFamily } from "../src/services/creative-backgrounds.js";
-import { compileCreativeArtifact, creativeCacheKey, deriveAudioTimingSpine } from "../src/services/creative-compiler.js";
+import { compileCreativeArtifact, creativeCacheKey, deriveAudioTimingSpine, sceneCacheKey } from "../src/services/creative-compiler.js";
 import type { SceneSpecV2 } from "@swarmx/types/video-types";
 
 const scene = (id: string, startSec: number, endSec: number): SceneSpecV2 => ({
@@ -55,6 +55,45 @@ describe("creative compiler", () => {
         changed: ["audio_timing"],
       }).invalidation.affectedScenes,
     ).toEqual(["s1", "s2"]);
+  });
+
+  it("produces stable scene-scoped cache keys and isolates unrelated scenes", () => {
+    const s1 = scene("s1", 0, 2);
+    const s2 = scene("s2", 2, 4);
+    const timing = deriveAudioTimingSpine({
+      durationMs: 4000,
+      words: [
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 2200, endMs: 2500 },
+      ],
+    });
+    const k1 = sceneCacheKey({
+      creativeDnaId: "dna-1",
+      scene: s1,
+      backgroundRecipe: createBackgroundRecipe({ id: "bg-1", family: "gradient_field", seed: 7 }),
+      audioTiming: timing,
+      rendererVersion: "v2",
+      assetHashes: ["asset-a"],
+    });
+    const k1Again = sceneCacheKey({
+      creativeDnaId: "dna-1",
+      scene: s1,
+      backgroundRecipe: createBackgroundRecipe({ id: "bg-1", family: "gradient_field", seed: 7 }),
+      audioTiming: timing,
+      rendererVersion: "v2",
+      assetHashes: ["asset-a"],
+    });
+    const k2 = sceneCacheKey({
+      creativeDnaId: "dna-1",
+      scene: s2,
+      backgroundRecipe: createBackgroundRecipe({ id: "bg-1", family: "gradient_field", seed: 7 }),
+      audioTiming: timing,
+      rendererVersion: "v2",
+      assetHashes: ["asset-a"],
+    });
+    expect(k1).toHaveLength(64);
+    expect(k1).toBe(k1Again);
+    expect(k1).not.toBe(k2);
   });
 
   it("rejects overlapping scenes", () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { VideoJobRequest } from "../types/video.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -84,15 +85,40 @@ async function requestJson<T>(url: string, init: RequestInit, signal?: AbortSign
   }
 }
 
-function buildTasks(request: VideoJobRequest, tasks: RenderSegmentTask[]): RenderSegmentTask[] {
-  void request;
-  return tasks.map((task) => ({
-    ...task,
-    durationSeconds: Math.max(1, Math.min(12, task.durationSeconds)),
-    fps: Math.max(8, Math.min(30, task.fps)),
-    width: Math.max(256, Math.min(1920, task.width)),
-    height: Math.max(256, Math.min(1920, task.height)),
-  }));
+function inferAspectRatio(width: number, height: number): "9:16" | "1:1" | "16:9" {
+  const ratio = width / height;
+  if (Math.abs(ratio - 9 / 16) < 0.08) return "9:16";
+  if (Math.abs(ratio - 16 / 9) < 0.08) return "16:9";
+  return "1:1";
+}
+
+function stableTaskKey(task: RenderSegmentTask): string {
+  const canonical = JSON.stringify({
+    durationSeconds: task.durationSeconds,
+    fps: task.fps,
+    height: task.height,
+    negativePrompt: task.negativePrompt ?? "",
+    prompt: task.prompt,
+    seed: task.seed,
+    width: task.width,
+  });
+  return createHash("sha256").update(canonical).digest("hex").slice(0, 64);
+}
+
+function buildTasks(_request: VideoJobRequest, tasks: RenderSegmentTask[]): RenderSegmentTask[] {
+  return tasks.map((task) => {
+    const width = Math.max(256, Math.min(1920, task.width));
+    const height = Math.max(256, Math.min(1920, task.height));
+    return {
+      ...task,
+      durationSeconds: Math.max(1, Math.min(12, task.durationSeconds)),
+      fps: Math.max(8, Math.min(30, task.fps)),
+      width,
+      height,
+      aspectRatio: task.aspectRatio ?? inferAspectRatio(width, height),
+      cacheKey: task.cacheKey ?? stableTaskKey({ ...task, width, height }),
+    };
+  });
 }
 
 function validateArtifacts(tasks: RenderSegmentTask[], artifacts: RenderSegmentArtifact[]): RenderSegmentArtifact[] {
@@ -107,7 +133,14 @@ function validateArtifacts(tasks: RenderSegmentTask[], artifacts: RenderSegmentA
     }
     seen.add(artifact.segmentId);
   }
-  return tasks.map((task) => artifacts.find((artifact) => artifact.segmentId === task.segmentId)!);
+  return tasks.map((task) => {
+    const artifact = artifacts.find((candidate) => candidate.segmentId === task.segmentId)!;
+    if (artifact.cacheKey && artifact.cacheKey !== task.cacheKey) {
+      throw Object.assign(new Error(`Modal cache key mismatch for segment ${task.segmentId}`), { code: "RENDER_FAILED" });
+    }
+    if (!task.cacheKey) throw Object.assign(new Error(`Missing cache key for segment ${task.segmentId}`), { code: "RENDER_FAILED" });
+    return { ...artifact, cacheKey: task.cacheKey };
+  });
 }
 
 export class ModalVideoRenderBackend implements RenderBackend {
