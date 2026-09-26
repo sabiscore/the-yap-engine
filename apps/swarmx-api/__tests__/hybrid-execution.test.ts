@@ -28,7 +28,7 @@ describe("hybrid execution policy", () => {
   it("fails closed if the local-only phase policy is changed", () => {
     process.env.SWARMX_PHASE_ABC_EXECUTION = "cloud";
     resetEnvForTesting();
-    expect(() => assertLocalPhase("A")).toThrow(/must execute locally/);
+    expect(() => assertLocalPhase("A")).toThrow(/Invalid environment configuration/);
   });
 
   it("exposes a truthful operator policy", () => {
