@@ -173,6 +173,66 @@ export async function upsertTikTokAccount(input: {
   return mapRow(rows[0] as Record<string, unknown>);
 }
 
+export interface TikTokPublishingReadiness {
+  apiApproved: boolean;
+  publicPostsEnabled: boolean;
+  accountCount: number;
+  controlledVerifiedCount: number;
+  state: "blocked" | "controlled_verified" | "ready_for_operator_review";
+  reason: string;
+}
+
+export async function getTikTokPublishingReadiness(): Promise<TikTokPublishingReadiness> {
+  const env = loadEnv();
+  const sql = getNeonSql();
+  const rows = (await sql`
+    SELECT
+      count(*)::int AS account_count,
+      count(*) FILTER (WHERE status = 'controlled_verified')::int AS controlled_verified_count
+    FROM public.tiktok_accounts
+  `) as unknown as Array<Record<string, unknown>>;
+  const accountCount = Number(rows[0]?.account_count ?? 0);
+  const controlledVerifiedCount = Number(rows[0]?.controlled_verified_count ?? 0);
+  if (env.SWARMX_TIKTOK_API_APPROVED !== "1") {
+    return {
+      apiApproved: false,
+      publicPostsEnabled: env.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED === "1",
+      accountCount,
+      controlledVerifiedCount,
+      state: "blocked",
+      reason: "TikTok Content Posting API approval is disabled.",
+    };
+  }
+  if (controlledVerifiedCount === 0) {
+    return {
+      apiApproved: true,
+      publicPostsEnabled: env.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED === "1",
+      accountCount,
+      controlledVerifiedCount,
+      state: "blocked",
+      reason: "No controlled_verified TikTok account exists. Public posting remains fail-closed.",
+    };
+  }
+  if (env.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED !== "1") {
+    return {
+      apiApproved: true,
+      publicPostsEnabled: false,
+      accountCount,
+      controlledVerifiedCount,
+      state: "controlled_verified",
+      reason: "Controlled verification exists, but public posting is intentionally disabled.",
+    };
+  }
+  return {
+    apiApproved: true,
+    publicPostsEnabled: true,
+    accountCount,
+    controlledVerifiedCount,
+    state: "ready_for_operator_review",
+    reason: "A controlled_verified account exists and the public-post flag is enabled; operator review is still required.",
+  };
+}
+
 export async function getTikTokAccount(id: string): Promise<TikTokAccount | null> {
   const sql = getNeonSql();
   const rows = (await sql`
