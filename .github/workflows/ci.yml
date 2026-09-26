@@ -203,6 +203,14 @@ jobs:
           fi
           echo "PASS: no public dashboard video write-token references"
 
+      # ── Gate 6.5 · AWS Phase-D CDK synthesis ───────────────────────────────
+      # Synthesis-only validation; no infrastructure mutation occurs here.
+      - name: Gate 6.5 — AWS Phase-D CDK synth
+        working-directory: infra/aws-render-cdk
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm exec cdk synth
+
       # ── Gate 7 · Dashboard next build (≥14 routes, 0 build errors) ────────
 
       - name: Restore Next.js build cache
