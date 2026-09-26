@@ -1,20 +1,36 @@
-import { neon } from "@neondatabase/serverless";
+import pg from "pg";
 import { loadEnv } from "./env.js";
 
-type NeonSql = ReturnType<typeof neon>;
-let sql: NeonSql | null = null;
+type SqlClient = pg.Pool;
+let pool: SqlClient | null = null;
 
-export function getNeonSql(): NeonSql {
+export function getNeonSql(): pg.Pool {
   const databaseUrl = loadEnv().DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is required for durable Neon state");
   }
-  if (!sql) {
-    sql = neon(databaseUrl);
+  if (!pool) {
+    pool = new pg.Pool({
+      connectionString: databaseUrl,
+      max: 4,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
+    });
   }
-  return sql;
+  return pool;
 }
 
-export function resetNeonSqlForTesting(): void {
-  sql = null;
+export async function queryNeon<T extends Record<string, unknown>>(
+  text: string,
+  values: unknown[] = [],
+): Promise<{ rows: T[] }> {
+  const client = getNeonSql();
+  return client.query<T>(text, values);
+}
+
+export async function resetNeonSqlForTesting(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
 }
