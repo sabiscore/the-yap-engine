@@ -47,7 +47,7 @@ export async function recordMonetizationObservation(
   };
   if (loadEnv().DATABASE_URL) {
     const sql = getNeonSql();
-    const rows = await sql`
+    const rows = (await sql`
       INSERT INTO public.monetization_observations (
         id,user_id,package_id,platform,observed_at,currency,
         platform_rewards_cents,affiliate_clicks,affiliate_conversions,affiliate_revenue_cents,
@@ -61,7 +61,7 @@ export async function recordMonetizationObservation(
         ${record.sponsorRevenueCents},${record.llmCostCents},${record.ttsCostCents},${record.renderCostCents},${record.storageCostCents},${record.egressCostCents},
         ${record.source},${record.attributionWindowDays ?? null},now()
       ) RETURNING *
-    `;
+    `) as unknown as Record<string, unknown>[];
     return mapRow(rows[0] as Record<string, unknown>);
   }
 
@@ -73,9 +73,9 @@ export async function recordMonetizationObservation(
 export async function listMonetizationObservations(userId?: string): Promise<MonetizationObservation[]> {
   if (loadEnv().DATABASE_URL) {
     const sql = getNeonSql();
-    const rows = userId
+    const rows = (userId
       ? await sql`SELECT * FROM public.monetization_observations WHERE user_id=${userId} ORDER BY observed_at DESC LIMIT 500`
-      : await sql`SELECT * FROM public.monetization_observations ORDER BY observed_at DESC LIMIT 500`;
+      : await sql`SELECT * FROM public.monetization_observations ORDER BY observed_at DESC LIMIT 500`) as unknown as Record<string, unknown>[];
     return rows.map((row) => mapRow(row as Record<string, unknown>));
   }
   const rows = readSnapshot<MonetizationObservation>(LOCAL_COLLECTION);
