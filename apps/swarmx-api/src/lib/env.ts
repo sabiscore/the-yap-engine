@@ -185,6 +185,10 @@ const schema = z.object({
 
   SWARMX_INSTAGRAM_USER_ID: z.string().optional(),
   SWARMX_TIKTOK_API_APPROVED: boolFlag,
+  SWARMX_TIKTOK_CLIENT_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_TIKTOK_CLIENT_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_TIKTOK_TOKEN_ENCRYPTION_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_TIKTOK_OAUTH_REDIRECT_URI: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   SWARMX_YOUTUBE_API_APPROVED: boolFlag,
 });
 
