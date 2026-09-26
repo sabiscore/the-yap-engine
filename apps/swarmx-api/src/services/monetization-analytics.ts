@@ -1,3 +1,4 @@
+// Release-gate probe: keep the API surface in the exact-head deployment fingerprint.
 import { randomUUID } from "node:crypto";
 import type { MonetizationObservation, MonetizationSummary } from "@swarmx/types/video-types";
 import { getNeonSql } from "../lib/neon-db.js";
