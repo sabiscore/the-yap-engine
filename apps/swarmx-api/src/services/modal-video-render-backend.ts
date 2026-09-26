@@ -39,10 +39,10 @@ async function requestBytes(url: string, init: RequestInit, signal?: AbortSignal
   try {
     const headers = new Headers(init.headers);
     const token = modalToken();
-    if (token) headers.set("authorization", `Bearer \${token}`);
+    if (token) headers.set("authorization", `Bearer ${token}`);
     const response = await fetch(url, { ...init, headers, signal: controller.signal });
     if (!response.ok) {
-      throw Object.assign(new Error(`Modal file fetch failed: \${response.status}`), { code: "MODAL_RENDER_REQUEST_FAILED" });
+      throw Object.assign(new Error(`Modal file fetch failed: ${response.status}`), { code: "MODAL_RENDER_REQUEST_FAILED" });
     }
     return new Uint8Array(await response.arrayBuffer());
   } finally {
@@ -60,7 +60,7 @@ async function requestJson<T>(url: string, init: RequestInit, signal?: AbortSign
     const headers = new Headers(init.headers);
     headers.set("content-type", "application/json");
     const token = modalToken();
-    if (token) headers.set("authorization", `Bearer \${token}`);
+    if (token) headers.set("authorization", `Bearer ${token}`);
     const response = await fetch(url, { ...init, headers, signal: controller.signal });
     const text = await response.text();
     let payload: unknown = {};
@@ -73,7 +73,7 @@ async function requestJson<T>(url: string, init: RequestInit, signal?: AbortSign
       const reason = typeof payload === "object" && payload && "error" in payload
         ? String((payload as { error?: unknown }).error ?? response.status)
         : String(response.status);
-      throw Object.assign(new Error(`Modal renderer request failed: \${reason}`), {
+      throw Object.assign(new Error(`Modal renderer request failed: ${reason}`), {
         code: "MODAL_RENDER_REQUEST_FAILED",
         status: response.status,
       });
@@ -123,13 +123,13 @@ function buildTasks(_request: VideoJobRequest, tasks: RenderSegmentTask[]): Rend
 
 function validateArtifacts(tasks: RenderSegmentTask[], artifacts: RenderSegmentArtifact[]): RenderSegmentArtifact[] {
   if (artifacts.length !== tasks.length) {
-    throw Object.assign(new Error(`Modal returned \${artifacts.length} artifacts for \${tasks.length} tasks`), { code: "RENDER_FAILED" });
+    throw Object.assign(new Error(`Modal returned ${artifacts.length} artifacts for ${tasks.length} tasks`), { code: "RENDER_FAILED" });
   }
   const expected = new Set(tasks.map((task) => task.segmentId));
   const seen = new Set<string>();
   for (const artifact of artifacts) {
     if (!expected.has(artifact.segmentId) || seen.has(artifact.segmentId)) {
-      throw Object.assign(new Error(`Modal returned an invalid or duplicate segment: \${artifact.segmentId}`), { code: "RENDER_FAILED" });
+      throw Object.assign(new Error(`Modal returned an invalid or duplicate segment: ${artifact.segmentId}`), { code: "RENDER_FAILED" });
     }
     seen.add(artifact.segmentId);
   }
@@ -154,7 +154,7 @@ export class ModalVideoRenderBackend implements RenderBackend {
 
   async isAvailable(signal?: AbortSignal): Promise<boolean> {
     try {
-      const response = await requestJson<{ ok?: boolean }>(`\${modalUrl()}/health`, { method: "GET" }, signal);
+      const response = await requestJson<{ ok?: boolean }>(`${modalUrl()}/health`, { method: "GET" }, signal);
       return response.ok !== false;
     } catch {
       return false;
@@ -164,12 +164,12 @@ export class ModalVideoRenderBackend implements RenderBackend {
   async renderSegments(request: VideoJobRequest, tasks: RenderSegmentTask[], signal?: AbortSignal): Promise<RenderSegmentArtifact[]> {
     if (tasks.length === 0) return [];
     if (tasks.length > this.capabilities.maxConcurrentSegments * 2) {
-      throw Object.assign(new Error(`Modal segment batch exceeds the per-job safety ceiling (\${this.capabilities.maxConcurrentSegments * 2})`), { code: "RENDER_BACKEND_INVALID" });
+      throw Object.assign(new Error(`Modal segment batch exceeds the per-job safety ceiling (${this.capabilities.maxConcurrentSegments * 2})`), { code: "RENDER_BACKEND_INVALID" });
     }
 
     const normalizedTasks = buildTasks(request, tasks);
     const payload = await requestJson<ModalSubmitResponse>(
-      `\${modalUrl()}/v1/render`,
+      `${modalUrl()}/v1/render`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -191,7 +191,7 @@ export class ModalVideoRenderBackend implements RenderBackend {
     while (Date.now() < deadline) {
       if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
       const result = await requestJson<ModalResultResponse>(
-        `\${modalUrl()}/v1/render/\${encodeURIComponent(payload.call_id)}`,
+        `${modalUrl()}/v1/render/${encodeURIComponent(payload.call_id)}`,
         { method: "GET" },
         signal,
       );
@@ -203,10 +203,10 @@ export class ModalVideoRenderBackend implements RenderBackend {
         const localArtifacts: RenderSegmentArtifact[] = [];
         for (const artifact of artifacts) {
           const bytes = await requestBytes(
-            `\${modalUrl()}/v1/render/file/\${encodeURIComponent(jobId)}/\${encodeURIComponent(artifact.segmentId)}`,
+            `${modalUrl()}/v1/render/file/${encodeURIComponent(jobId)}/${encodeURIComponent(artifact.segmentId)}`,
             { method: "GET" }, signal,
           );
-          const localPath = join(tempRoot, `\${artifact.segmentId}.mp4`);
+          const localPath = join(tempRoot, `${artifact.segmentId}.mp4`);
           await writeFile(localPath, bytes);
           localArtifacts.push({ ...artifact, path: localPath });
         }
