@@ -29,28 +29,28 @@ function mapRow(row: Record<string, unknown>): MonetizationObservation {
     qualifiedViews: nonNegativeInt(row.qualified_views),
     watchTimeSeconds: nonNegativeNumber(row.watch_time_seconds),
     completionRate: row.completion_rate == null ? null : Math.min(1, Math.max(0, Number(row.completion_rate))),
-    shares: money(row.shares),
-    comments: money(row.comments),
-    affiliateClicks: money(row.affiliate_clicks),
-    affiliateConversions: money(row.affiliate_conversions),
-    affiliateRevenueCents: money(row.affiliate_revenue_cents),
-    landingPageVisits: money(row.landing_page_visits),
-    funnelSessions: money(row.funnel_sessions),
-    checkoutStarts: money(row.checkout_starts),
-    ownedProductConversions: money(row.owned_product_conversions),
-    ownedProductRevenueCents: money(row.owned_product_revenue_cents),
-    sponsorRevenueCents: money(row.sponsor_revenue_cents),
-    llmCostCents: money(row.llm_cost_cents),
-    ttsCostCents: money(row.tts_cost_cents),
-    renderCostCents: money(row.render_cost_cents),
-    storageCostCents: money(row.storage_cost_cents),
-    egressCostCents: money(row.egress_cost_cents),
+    shares: nonNegativeInt(row.shares),
+    comments: nonNegativeInt(row.comments),
+    affiliateClicks: nonNegativeInt(row.affiliate_clicks),
+    affiliateConversions: nonNegativeInt(row.affiliate_conversions),
+    affiliateRevenueCents: nonNegativeInt(row.affiliate_revenue_cents),
+    landingPageVisits: nonNegativeInt(row.landing_page_visits),
+    funnelSessions: nonNegativeInt(row.funnel_sessions),
+    checkoutStarts: nonNegativeInt(row.checkout_starts),
+    ownedProductConversions: nonNegativeInt(row.owned_product_conversions),
+    ownedProductRevenueCents: nonNegativeInt(row.owned_product_revenue_cents),
+    sponsorRevenueCents: nonNegativeInt(row.sponsor_revenue_cents),
+    llmCostCents: nonNegativeInt(row.llm_cost_cents),
+    ttsCostCents: nonNegativeInt(row.tts_cost_cents),
+    renderCostCents: nonNegativeInt(row.render_cost_cents),
+    storageCostCents: nonNegativeInt(row.storage_cost_cents),
+    egressCostCents: nonNegativeInt(row.egress_cost_cents),
     source: String(row.source),
-    ...(row.attribution_window_days == null ? {} : { attributionWindowDays: money(row.attribution_window_days) }),
-    generationCostCents: money(row.generation_cost_cents),
-    distributionCostCents: money(row.distribution_cost_cents),
-    revenueCents: money(row.revenue_cents),
-    contributionMarginCents: money(row.contribution_margin_cents),
+    ...(row.attribution_window_days == null ? {} : { attributionWindowDays: nonNegativeInt(row.attribution_window_days) }),
+    generationCostCents: nonNegativeInt(row.generation_cost_cents),
+    distributionCostCents: nonNegativeInt(row.distribution_cost_cents),
+    revenueCents: nonNegativeInt(row.revenue_cents),
+    contributionMarginCents: nonNegativeInt(row.contribution_margin_cents),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
   };
 }
@@ -104,7 +104,7 @@ export async function listMonetizationObservations(userId?: string): Promise<Mon
 }
 
 export function summarizeMonetization(observations: MonetizationObservation[]): MonetizationSummary {
-  const sum = (key: keyof MonetizationObservation) => observations.reduce((total,row)=>total + money(row[key]),0);
+  const sum = (key: keyof MonetizationObservation) => observations.reduce((total,row)=>total + nonNegativeInt(row[key]),0);
   const revenueCents = sum("platformRewardsCents") + sum("affiliateRevenueCents") + sum("ownedProductRevenueCents") + sum("sponsorRevenueCents");
   const costCents = sum("llmCostCents") + sum("ttsCostCents") + sum("renderCostCents") + sum("storageCostCents") + sum("egressCostCents");
   const affiliateClicks = sum("affiliateClicks");
