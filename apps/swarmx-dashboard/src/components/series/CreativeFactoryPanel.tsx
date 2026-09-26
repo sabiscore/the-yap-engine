@@ -5,9 +5,11 @@ import {
   Activity,
   Boxes,
   CheckCircle2,
+  CircleDollarSign,
   GitBranch,
   Loader2,
   Plus,
+  ShieldAlert,
   ShieldCheck,
   TriangleAlert,
   Users,
@@ -18,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useCreativeFactoryStore } from "@/stores/creative-factory";
-import type { BrandKit, AudiencePersona, CreativeFactoryWorkflowRun } from "@swarmx/types/video-types";
+import type { BrandKit, AudiencePersona, CreativeFactoryWorkflowRun, MonetizationSummary } from "@swarmx/types/video-types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,35 @@ function runStatusColor(status: CreativeFactoryWorkflowRun["status"]): string {
   if (status === "failed") return "text-status-error border-status-error/30 bg-status-error/10";
   if (status === "blocked") return "text-status-warning border-status-warning/30 bg-status-warning/10";
   return "text-text-muted border-border bg-bg-surface";
+}
+
+
+type CreativeHubState = "RUNNING" | "QC_FAILED" | "NEEDS_REVISION" | "REVIEW_REQUIRED" | "READY_TO_POST";
+
+const QC_STAGES = ["TECHNICAL_QC", "CREATIVE_QC", "CONTINUITY_QC", "COMPLIANCE_QC"] as const;
+
+function creativeHubState(run: CreativeFactoryWorkflowRun): CreativeHubState {
+  if (QC_STAGES.some((stage) => run.checkpoints[stage]?.status === "failed")) return "QC_FAILED";
+  const revision = run.checkpoints.REVISION?.status;
+  if (revision === "running" || revision === "failed" || revision === "checkpointed") return "NEEDS_REVISION";
+  const review = run.checkpoints.HUMAN_REVIEW?.status;
+  if (review && review !== "complete" && review !== "skipped") return "REVIEW_REQUIRED";
+  if (run.checkpoints.PLATFORM_PACKAGE?.status === "complete" && run.status === "complete") return "READY_TO_POST";
+  return "RUNNING";
+}
+
+function hubStateTone(state: CreativeHubState): string {
+  switch (state) {
+    case "READY_TO_POST": return "border-status-success/30 bg-status-success/10 text-status-success";
+    case "QC_FAILED": return "border-status-error/30 bg-status-error/10 text-status-error";
+    case "NEEDS_REVISION": return "border-status-warning/30 bg-status-warning/10 text-status-warning";
+    case "REVIEW_REQUIRED": return "border-accent/30 bg-accent/10 text-accent";
+    default: return "border-border bg-bg-surface text-text-muted";
+  }
+}
+
+function formatCents(cents: number, currency: string): string {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
 }
 
 // ─── BrandKit creation sheet ──────────────────────────────────────────────────
