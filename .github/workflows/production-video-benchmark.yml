@@ -60,7 +60,9 @@ jobs:
           ffprobe -version | head -n 1
 
       - name: Build shared types
-        run: pnpm --filter @swarmx/types typecheck
+        run: |
+          pnpm --filter @swarmx/types build
+          pnpm --filter @swarmx/types typecheck
 
       - name: Build API
         run: pnpm --filter @swarmx/api build
