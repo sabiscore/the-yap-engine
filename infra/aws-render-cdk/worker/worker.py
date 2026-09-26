@@ -6,6 +6,7 @@ and FFmpeg receives an argv vector rather than a shell command.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -80,11 +81,48 @@ def main() -> None:
         if not output.is_file() or output.stat().st_size == 0:
             raise RuntimeError("FFmpeg produced no output")
 
+        probe = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-show_entries",
+                "format=format_name,duration,size:stream=index,codec_name,codec_type,width,height,r_frame_rate",
+                "-of", "json", str(output),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if probe.returncode != 0:
+            raise RuntimeError(f"FFprobe validation failed: {probe.stderr[-2000:]}")
+        try:
+            probe_data = json.loads(probe.stdout)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("FFprobe returned invalid JSON") from exc
+
+        if not probe_data.get("streams") or not probe_data.get("format"):
+            raise RuntimeError("FFprobe validation returned incomplete media metadata")
+
+        digest = hashlib.sha256(output.read_bytes()).hexdigest()
         output_key = str(manifest["outputKey"])
         if not output_key.startswith("results/") or ".." in output_key:
             raise ValueError("outputKey must remain under results/")
 
         s3.upload_file(str(output), bucket, output_key)
+        validation_key = output_key.rsplit("/", 1)[0] + "/validation.json"
+        validation = {
+            "version": 1,
+            "jobId": manifest["jobId"],
+            "outputKey": output_key,
+            "sha256": digest,
+            "sizeBytes": output.stat().st_size,
+            "ffprobe": probe_data,
+            "sourceManifestKey": manifest_key,
+        }
+        s3.put_object(
+            Bucket=bucket,
+            Key=validation_key,
+            Body=json.dumps(validation, separators=(",", ":")).encode("utf-8"),
+            ContentType="application/json",
+        )
 
 
 if __name__ == "__main__":
