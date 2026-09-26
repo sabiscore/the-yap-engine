@@ -53,3 +53,6 @@ AGENTS.md
 .agents/sentinel_*/
 .agents/handoff.md
 .agents/ORIGINAL_REQUEST.md
+
+# Neon CLI project context — contains account/project/branch binding
+.neon
