@@ -402,6 +402,45 @@ function RunDetail({ run }: { run: CreativeFactoryWorkflowRun }) {
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
+function MonetizationPanel({ summary }: { summary: MonetizationSummary | null }) {
+  if (!summary) {
+    return <div className="min-h-32 px-4 py-8 text-center text-xs text-text-muted">
+      No observed monetization data yet. Values appear only after telemetry is recorded.
+    </div>;
+  }
+  const format = (cents: number) => formatCents(cents, summary.currency);
+  return (
+    <div>
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-xs font-medium text-text-primary">Observed economics</p>
+        <p className="mt-1 text-[10px] text-text-muted">
+          No assumed RPM. Contribution margin = observed revenue − recorded LLM/TTS/render/storage/egress cost.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-0 sm:grid-cols-3">
+        {[
+          ["Observed revenue", format(summary.revenueCents)],
+          ["Recorded cost", format(summary.costCents)],
+          ["Contribution margin", format(summary.contributionMarginCents)],
+          ["Affiliate conversions", summary.affiliateConversions + "/" + summary.affiliateClicks],
+          ["Product conversions", summary.ownedProductConversions + "/" + summary.checkoutStarts],
+          ["Observations", String(summary.observationCount)],
+        ].map(([label, value]) => (
+          <div key={label} className="border-r border-b border-border px-4 py-3">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-text-muted">{label}</p>
+            <p className="mt-1 font-mono text-sm tabular-nums text-text-primary">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 px-4 py-3 font-mono text-[10px] text-text-muted">
+        <span>Affiliate CVR: {summary.affiliateConversionRate == null ? "—" : (summary.affiliateConversionRate * 100).toFixed(1) + "%"}</span>
+        <span>Product CVR: {summary.ownedProductConversionRate == null ? "—" : (summary.ownedProductConversionRate * 100).toFixed(1) + "%"}</span>
+        <span>Margin rate: {summary.contributionMarginRate == null ? "—" : (summary.contributionMarginRate * 100).toFixed(1) + "%"}</span>
+      </div>
+    </div>
+  );
+}
+
 export function CreativeFactoryPanel() {
   // Scalar selectors — Zustand v5 + React 19 tears on object-returning selectors (React #185).
   const stages = useCreativeFactoryStore((s) => s.stages);
@@ -410,6 +449,7 @@ export function CreativeFactoryPanel() {
   const brandKits = useCreativeFactoryStore((s) => s.brandKits);
   const audiences = useCreativeFactoryStore((s) => s.audiences);
   const blueprints = useCreativeFactoryStore((s) => s.blueprints);
+  const monetizationSummary = useCreativeFactoryStore((s) => s.monetizationSummary);
   const selectedRunId = useCreativeFactoryStore((s) => s.selectedRunId);
   const isLoading = useCreativeFactoryStore((s) => s.isLoading);
   const error = useCreativeFactoryStore((s) => s.error);
@@ -500,6 +540,10 @@ export function CreativeFactoryPanel() {
                 {audiences.length}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="monetization">
+            <CircleDollarSign className="mr-1 h-3 w-3" aria-hidden="true" />
+            Monetization
           </TabsTrigger>
           <TabsTrigger value="runs">
             Runs
@@ -597,6 +641,11 @@ export function CreativeFactoryPanel() {
               {audiences.map((persona) => <AudienceRow key={persona.id} persona={persona} />)}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── Monetization ── */}
+        <TabsContent value="monetization">
+          <MonetizationPanel summary={monetizationSummary} />
         </TabsContent>
 
         {/* ── Runs ── */}
