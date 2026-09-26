@@ -138,7 +138,7 @@ function validateArtifacts(tasks: RenderSegmentTask[], artifacts: RenderSegmentA
     if (artifact.cacheKey && artifact.cacheKey !== task.cacheKey) {
       throw Object.assign(new Error(`Modal cache key mismatch for segment \${task.segmentId}`), { code: "RENDER_FAILED" });
     }
-    return { ...artifact, cacheKey: task.cacheKey };
+    if (!task.cacheKey) throw Object.assign(new Error(`Missing cache key for segment ${task.segmentId}`), { code: "RENDER_FAILED" });\n    return { ...artifact, cacheKey: task.cacheKey };
   });
 }
 
