@@ -590,7 +590,7 @@ export function CreativeFactoryPanel() {
                   >
                     <span className="truncate text-text-secondary">{capability.platform}</span>
                     <span className={cn("font-mono text-[10px]", capabilityTone(capability.supportsDirectPublish ? "available" : "degraded"))}>
-                      {capability.supportsDirectPublish ? "direct" : "draft"}
+                      {capability.supportsDirectPublish ? "direct" : capability.platform === "tiktok" ? "gated" : "export"}
                     </span>
                   </div>
                 ))}
@@ -660,7 +660,7 @@ export function CreativeFactoryPanel() {
                 <ListSkeleton />
               ) : runs.length === 0 ? (
                 <div className="px-4 py-8 text-center text-xs text-text-muted">
-                  No runs yet. Click &ldquo;Start Run&rdquo; to begin a workflow.
+                  No runs yet. Click &ldquo;Start workflow&rdquo; to begin a production workflow.
                 </div>
               ) : (
                 <div>
