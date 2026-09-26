@@ -18,6 +18,15 @@ import boto3
 s3 = boto3.client("s3")
 
 
+def put_json(bucket: str, key: str, payload: dict) -> None:
+    s3.put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+        ContentType="application/json",
+    )
+
+
 def load_manifest(bucket: str, key: str) -> dict:
     body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
     manifest = json.loads(body)
@@ -107,7 +116,7 @@ def main() -> None:
             raise ValueError("outputKey must remain under results/")
 
         s3.upload_file(str(output), bucket, output_key)
-        validation_key = output_key.rsplit("/", 1)[0] + "/validation.json"
+        validation_key = output_key + ".validation.json"
         validation = {
             "version": 1,
             "jobId": manifest["jobId"],
@@ -117,13 +126,27 @@ def main() -> None:
             "ffprobe": probe_data,
             "sourceManifestKey": manifest_key,
         }
-        s3.put_object(
-            Bucket=bucket,
-            Key=validation_key,
-            Body=json.dumps(validation, separators=(",", ":")).encode("utf-8"),
-            ContentType="application/json",
-        )
+        put_json(bucket, validation_key, validation)
 
 
 if __name__ == "__main__":
-    main()
+    bucket = os.environ["RENDER_BUCKET"]
+    manifest_key = os.environ["RENDER_MANIFEST_KEY"]
+    try:
+        main()
+    except Exception as exc:
+        failure_key = manifest_key.replace("jobs/", "results/", 1) + ".failure.json"
+        payload = {
+            "version": 1,
+            "status": "failed_unrecoverable",
+            "manifestKey": manifest_key,
+            "error": str(exc)[-2000:],
+        }
+        try:
+            manifest = load_manifest(bucket, manifest_key)
+            payload["jobId"] = manifest["jobId"]
+            payload["outputKey"] = str(manifest["outputKey"])
+        except Exception:
+            payload["jobId"] = manifest_key
+        put_json(bucket, failure_key, payload)
+        raise
