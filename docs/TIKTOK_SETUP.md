@@ -40,10 +40,10 @@ It must:
 5. query /v2/post/publish/status/fetch/ with POST;
 6. persist/return the publish identifier and terminal state;
 7. mark AI-generated content with the documented AIGC field.
-The adapter intentionally falls back to pending_review when approval or authorization is unavailable.
+The production adapter fails closed to `pending_review` / Studio export when approval, authorization, durable account state, or controlled verification is unavailable.
 
 ## Upload limits and reliability
-TikTok currently documents six requests per minute per user access token for Direct Post initialization. Use provider-scoped rate limiting, bounded retries and exponential backoff.
+TikTok currently documents six requests per minute per user access token for Direct Post initialization; creator-info and status endpoints have separate limits. Use provider-scoped rate limiting, bounded retries and exponential backoff.
 Do not retry indefinitely and do not bypass rate limits.
 
 ## AI and originality
@@ -66,6 +66,10 @@ Do not use fingerprint spoofing, hash manipulation, proxy rotation, browser stea
 - TikTok Content Posting API — Direct Post
 - TikTok Content Posting API — Upload
 - TikTok OAuth User Access Token Management
+
+## Controlled verification runbook
+
+See [`docs/TIKTOK-CONTROLLED-VERIFICATION.md`](./TIKTOK-CONTROLLED-VERIFICATION.md) for the operator checklist, evidence requirements, negative-path checks, and rollback procedure.
 
 ## Production promotion gate
 Keep `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0` until the controlled verification command completes successfully for the durable account. The promotion record must show `controlled_verified` before any production Direct Post may honor a non-`SELF_ONLY` privacy selection.
