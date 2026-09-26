@@ -37,7 +37,8 @@ describe("TikTok Direct Post protocol", () => {
       }
       if (url === "https://upload.example/video") {
         expect(method).toBe("PUT");
-        const range = String(init?.headers && (init.headers as Record<string,string>)["Content-Range"]);
+        const headers = new Headers(init?.headers);
+        const range = headers.get("Content-Range") ?? "";
         expect(range.startsWith("bytes 0-10485759/")).toBe(true);
         return new Response("", { status: 201 });
       }
