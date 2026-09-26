@@ -160,7 +160,7 @@ export function compileCreativeArtifact(input: {
       backgroundRecipes: input.backgroundRecipes,
       ...(input.audioTiming ? { audioTiming: input.audioTiming } : {}),
       rendererVersion,
-      assetHashesByScene: input.assetHashesByScene,
+      assetHashesByScene: input.assetHashesByScene ?? {},
     }),
     createdAt: new Date().toISOString(),
   };
