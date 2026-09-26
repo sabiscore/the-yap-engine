@@ -1,3 +1,4 @@
+// Exact-head release-gate probe: CI must evaluate this API commit.
 // Release-gate probe: keep the API surface in the exact-head deployment fingerprint.
 import { randomUUID } from "node:crypto";
 import type { MonetizationObservation, MonetizationSummary } from "@swarmx/types/video-types";
