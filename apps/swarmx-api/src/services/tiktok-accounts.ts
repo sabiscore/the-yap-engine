@@ -199,7 +199,7 @@ async function refreshTikTokAccount(account: TikTokAccountSecretRow): Promise<{ 
   const updated = await persistRefreshedTokens(account, payload);
   return {
     account: updated,
-    accessToken: decryptTikTokToken(encryptTikTokToken(payload.access_token!)),
+    accessToken: payload.access_token!,
   };
 }
 
