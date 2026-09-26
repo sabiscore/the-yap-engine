@@ -38,6 +38,7 @@ import {
 } from "../services/creative-factory-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
+import { assertEightGbSafe, assertLocalPhase } from "../services/hybrid-execution.js";
 
 const CapabilityRequirementSchema = z.object({
   capability: z.string().min(1),
@@ -363,6 +364,8 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     "/concept-tournaments",
     { preHandler: requireVideoWriteAuth },
     async (request, reply) => {
+      assertLocalPhase("A");
+      assertEightGbSafe();
       const parsed = ConceptTournamentBodySchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
       let tournament: ConceptTournament;
@@ -400,6 +403,8 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     "/visual/background-preview",
     { preHandler: requireVideoWriteAuth },
     async (request, reply) => {
+      assertLocalPhase("B");
+      assertEightGbSafe();
       const parsed = BackgroundPreviewSchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
       const family = parsed.data.family ?? selectBackgroundFamily({
@@ -428,6 +433,10 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     "/visual/compile",
     { preHandler: requireVideoWriteAuth },
     async (request, reply) => {
+      assertLocalPhase("A");
+      assertLocalPhase("B");
+      assertLocalPhase("C");
+      assertEightGbSafe();
       const parsed = CreativeCompileSchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
       try {
@@ -472,6 +481,8 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
   server.post<{ Body: unknown }>(
     "/retention-map/preview",
     async (request, reply) => {
+      assertLocalPhase("A");
+      assertEightGbSafe();
       const parsed = RetentionPreviewSchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
       const map = generateRetentionMap(parsed.data.script, parsed.data.targetDurationSecs);
