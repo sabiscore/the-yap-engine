@@ -1,0 +1,13 @@
+services:
+  - type: worker
+    name: theyapengine-cloud-swarm
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start_swarm.py
+    envVars:
+      - key: AWS_RENDER_BUCKET
+        value: my-render-app-assets-2026
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
