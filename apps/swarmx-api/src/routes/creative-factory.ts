@@ -523,7 +523,7 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     agents: listRegistryRecords<CreativeAgentSpec>("creative-agent-specs"),
   }));
 
-  server.get("/analytics/monetization", async () => {
+  server.get("/analytics/monetization", { preHandler: requireVideoWriteAuth }, async () => {
     const observations = await listMonetizationObservations();
     return { observations, summary: summarizeMonetization(observations) };
   });
@@ -542,7 +542,7 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     },
   );
 
-  server.get("/analytics/performance", async () => ({
+  server.get("/analytics/performance", { preHandler: requireVideoWriteAuth }, async () => ({
     snapshots: listPerformanceSnapshots(),
   }));
 
