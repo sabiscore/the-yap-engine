@@ -44,7 +44,10 @@ export class TikTokVideoPublisher extends BaseVideoPublisher {
       });
     }
 
-    const requestedPrivacy = readRawEnv("SWARMX_TIKTOK_PRIVACY_LEVEL")?.trim() || "SELF_ONLY";
+    const requestedPrivacy =
+      env.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED === "1"
+        ? (readRawEnv("SWARMX_TIKTOK_PRIVACY_LEVEL")?.trim() || "SELF_ONLY")
+        : "SELF_ONLY";
     const accountId = job.request.tiktokAccountId;
 
     if (env.NODE_ENV === "production") {
