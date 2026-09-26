@@ -13,14 +13,24 @@ function money(n: unknown): number {
 function mapRow(row: Record<string, unknown>): MonetizationObservation {
   return {
     id: String(row.id), userId: String(row.user_id), packageId: String(row.package_id),
+    ...(row.content_id == null ? {} : { contentId: String(row.content_id) }),
+    ...(row.campaign_id == null ? {} : { campaignId: String(row.campaign_id) }),
+    ...(row.publish_id == null ? {} : { publishId: String(row.publish_id) }),
     platform: String(row.platform) as MonetizationObservation["platform"],
     observedAt: new Date(String(row.observed_at)).toISOString(),
     currency: String(row.currency),
     platformRewardsCents: money(row.platform_rewards_cents),
+    viewCount: money(row.view_count),
+    qualifiedViews: money(row.qualified_views),
+    watchTimeSeconds: money(row.watch_time_seconds),
+    completionRate: row.completion_rate == null ? null : Number(row.completion_rate),
+    shares: money(row.shares),
+    comments: money(row.comments),
     affiliateClicks: money(row.affiliate_clicks),
     affiliateConversions: money(row.affiliate_conversions),
     affiliateRevenueCents: money(row.affiliate_revenue_cents),
     landingPageVisits: money(row.landing_page_visits),
+    funnelSessions: money(row.funnel_sessions),
     checkoutStarts: money(row.checkout_starts),
     ownedProductConversions: money(row.owned_product_conversions),
     ownedProductRevenueCents: money(row.owned_product_revenue_cents),
@@ -32,6 +42,10 @@ function mapRow(row: Record<string, unknown>): MonetizationObservation {
     egressCostCents: money(row.egress_cost_cents),
     source: String(row.source),
     ...(row.attribution_window_days == null ? {} : { attributionWindowDays: money(row.attribution_window_days) }),
+    generationCostCents: money(row.generation_cost_cents),
+    distributionCostCents: money(row.distribution_cost_cents),
+    revenueCents: money(row.revenue_cents),
+    contributionMarginCents: money(row.contribution_margin_cents),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
   };
 }
@@ -49,15 +63,17 @@ export async function recordMonetizationObservation(
     const sql = getNeonSql();
     const rows = (await sql`
       INSERT INTO public.monetization_observations (
-        id,user_id,package_id,platform,observed_at,currency,
-        platform_rewards_cents,affiliate_clicks,affiliate_conversions,affiliate_revenue_cents,
+        id,user_id,package_id,content_id,campaign_id,publish_id,platform,observed_at,currency,
+        platform_rewards_cents,view_count,qualified_views,watch_time_seconds,completion_rate,shares,comments,
+        affiliate_clicks,affiliate_conversions,affiliate_revenue_cents,
         landing_page_visits,checkout_starts,owned_product_conversions,owned_product_revenue_cents,
         sponsor_revenue_cents,llm_cost_cents,tts_cost_cents,render_cost_cents,storage_cost_cents,egress_cost_cents,
         source,attribution_window_days,updated_at
       ) VALUES (
-        ${record.id},${record.userId},${record.packageId},${record.platform},${record.observedAt},${record.currency},
-        ${record.platformRewardsCents},${record.affiliateClicks},${record.affiliateConversions},${record.affiliateRevenueCents},
-        ${record.landingPageVisits},${record.checkoutStarts},${record.ownedProductConversions},${record.ownedProductRevenueCents},
+        ${record.id},${record.userId},${record.packageId},${record.contentId ?? null},${record.campaignId ?? null},${record.publishId ?? null},${record.platform},${record.observedAt},${record.currency},
+        ${record.platformRewardsCents},${record.viewCount},${record.qualifiedViews},${record.watchTimeSeconds},${record.completionRate ?? null},${record.shares},${record.comments},
+        ${record.affiliateClicks},${record.affiliateConversions},${record.affiliateRevenueCents},
+        ${record.landingPageVisits},${record.funnelSessions},${record.checkoutStarts},${record.ownedProductConversions},${record.ownedProductRevenueCents},
         ${record.sponsorRevenueCents},${record.llmCostCents},${record.ttsCostCents},${record.renderCostCents},${record.storageCostCents},${record.egressCostCents},
         ${record.source},${record.attributionWindowDays ?? null},now()
       ) RETURNING *
