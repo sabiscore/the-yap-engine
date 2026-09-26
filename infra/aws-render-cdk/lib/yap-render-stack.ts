@@ -37,6 +37,12 @@ export class YapRenderStack extends cdk.Stack {
 
     const cluster = new ecs.Cluster(this, "RenderCluster", { vpc });
 
+    const taskSecurityGroup = new ec2.SecurityGroup(this, "RenderSecurityGroup", {
+      vpc,
+      allowAllOutbound: true,
+      description: "Render tasks have no inbound ports."
+    });
+
     const taskRole = new iam.Role(this, "RenderTaskRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com")
     });
@@ -76,14 +82,16 @@ const { ECSClient, RunTaskCommand } = require("@aws-sdk/client-ecs");
 const ecs = new ECSClient({});
 const CLUSTER = process.env.CLUSTER;
 const TASK_DEFINITION = process.env.TASK_DEFINITION;
-const SUBNETS = process.env.SUBNETS.split(",");
+const SUBNETS = String(process.env.SUBNETS || "").split(",").filter(Boolean);
 const SECURITY_GROUP = process.env.SECURITY_GROUP;
 const BUCKET = process.env.BUCKET;
 
 exports.handler = async (event) => {
   const records = Array.isArray(event?.Records) ? event.Records : [];
+
   for (const record of records) {
-    const key = decodeURIComponent(String(record?.s3?.object?.key || "").replace(/\\+/g, " "));
+    const encodedKey = String(record?.s3?.object?.key || "");
+    const key = decodeURIComponent(encodedKey.replace(/\\+/g, " "));
     if (!key.startsWith("jobs/") || !key.endsWith(".json")) continue;
 
     await ecs.send(new RunTaskCommand({
@@ -116,39 +124,22 @@ exports.handler = async (event) => {
         CLUSTER: cluster.clusterArn,
         TASK_DEFINITION: taskDefinition.taskDefinitionArn,
         SUBNETS: vpc.publicSubnets.map((subnet) => subnet.subnetId).join(","),
-        SECURITY_GROUP: cluster.connections.securityGroups[0]?.securityGroupId ?? "",
+        SECURITY_GROUP: taskSecurityGroup.securityGroupId,
         BUCKET: bucket.bucketName
       }
     });
 
-    const dispatcherSg = new ec2.SecurityGroup(this, "DispatcherSecurityGroup", {
-      vpc,
-      allowAllOutbound: true,
-      description: "No inbound access; Fargate render tasks are outbound-only."
-    });
-
-    taskDefinition.taskRole?.grantAssumeRole(dispatcher);
     dispatcher.addToRolePolicy(new iam.PolicyStatement({
       actions: ["ecs:RunTask"],
       resources: [taskDefinition.taskDefinitionArn]
     }));
+
     dispatcher.addToRolePolicy(new iam.PolicyStatement({
       actions: ["iam:PassRole"],
       resources: [
         taskDefinition.taskRole!.roleArn,
         taskDefinition.executionRole!.roleArn
       ]
-    }));
-
-    const taskSecurityGroup = new ec2.SecurityGroup(this, "RenderSecurityGroup", {
-      vpc,
-      allowAllOutbound: true,
-      description: "Render tasks have no inbound ports."
-    });
-
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["ecs:DescribeTasks"],
-      resources: ["*"]
     }));
 
     bucket.addEventNotification(
@@ -169,11 +160,5 @@ exports.handler = async (event) => {
     new cdk.CfnOutput(this, "RenderDispatcherName", {
       value: dispatcher.functionName
     });
-
-    // The SG is intentionally created after the task definition. The first
-    // version of the dispatcher uses the task-definition network security
-    // group only when explicitly supplied by deployment automation.
-    void dispatcherSg;
-    void taskSecurityGroup;
   }
 }
