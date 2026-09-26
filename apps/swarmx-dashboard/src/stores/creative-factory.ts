@@ -6,6 +6,7 @@ import type {
   AudiencePersona,
   BrandKit,
   CreativeFactoryWorkflowRun,
+  MonetizationSummary,
   PlatformCapability,
   VideoBlueprint,
   WorkflowStageDefinition,
@@ -41,6 +42,7 @@ export interface CreativeFactoryState {
   brandKits: BrandKit[];
   audiences: AudiencePersona[];
   blueprints: VideoBlueprint[];
+  monetizationSummary: MonetizationSummary | null;
   selectedRunId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -65,6 +67,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
     brandKits: [],
     audiences: [],
     blueprints: [],
+    monetizationSummary: null,
     selectedRunId: null,
     isLoading: false,
     error: null,
@@ -72,13 +75,14 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
     fetchFactory: async () => {
       set({ isLoading: true, error: null }, false, "factory/fetch/start");
       try {
-        const [definitions, runs, capabilities, brandKits, audiences, blueprints] = await Promise.all([
+        const [definitions, runs, capabilities, brandKits, audiences, blueprints, monetization] = await Promise.all([
           apiFetch<{ stages: WorkflowStageDefinition[] }>("/api/video/factory/workflow/definitions"),
           apiFetch<{ runs: CreativeFactoryWorkflowRun[] }>("/api/video/factory/runs"),
           apiFetch<{ capabilities: PlatformCapability[] }>("/api/video/factory/capabilities"),
           apiFetch<{ brandKits: BrandKit[] }>("/api/video/factory/brand-kits"),
           apiFetch<{ audiences: AudiencePersona[] }>("/api/video/factory/audiences"),
           apiFetch<{ blueprints: VideoBlueprint[] }>("/api/video/factory/blueprints"),
+          apiFetch<{ summary: MonetizationSummary }>("/api/video/factory/analytics/monetization"),
         ]);
         set({
           stages: definitions.stages,
@@ -87,6 +91,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
           brandKits: brandKits.brandKits,
           audiences: audiences.audiences,
           blueprints: blueprints.blueprints,
+          monetizationSummary: monetization.summary,
           isLoading: false,
         }, false, "factory/fetch/done");
       } catch (err) {
