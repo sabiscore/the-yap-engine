@@ -105,7 +105,7 @@ function BrandKitSheet({ onCreated }: { onCreated: () => void }) {
       </SheetTrigger>
       <SheetContent side="right" aria-labelledby="brandkit-sheet-title">
         <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle id="brandkit-sheet-title" className="text-sm font-semibold">New Brand Kit</SheetTitle>
+          <SheetTitle id="brandkit-sheet-title" className="text-sm font-semibold">New brand kit</SheetTitle>
         </SheetHeader>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
@@ -188,7 +188,7 @@ function AudienceSheet({ onCreated }: { onCreated: () => void }) {
       </SheetTrigger>
       <SheetContent side="right" aria-labelledby="audience-sheet-title">
         <SheetHeader className="border-b border-border px-6 py-4">
-          <SheetTitle id="audience-sheet-title" className="text-sm font-semibold">New Audience Persona</SheetTitle>
+          <SheetTitle id="audience-sheet-title" className="text-sm font-semibold">New audience profile</SheetTitle>
         </SheetHeader>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="flex flex-col gap-5 px-6 py-5">
           <div className="flex flex-col gap-1.5">
@@ -506,7 +506,7 @@ export function CreativeFactoryPanel() {
           {isLoading
             ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             : <Activity className="h-4 w-4" aria-hidden="true" />}
-          Start Run
+          Start workflow
         </Button>
       </div>
 
@@ -523,17 +523,17 @@ export function CreativeFactoryPanel() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full justify-start px-4 pt-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="brandkits">
-            BrandKits
+        <TabsList className="w-full justify-start gap-1 overflow-x-auto px-3 pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="overview" className="min-h-9 shrink-0">Overview</TabsTrigger>
+          <TabsTrigger value="brandkits" className="min-h-9 shrink-0">
+            Brand kits
             {brandKits.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
                 {brandKits.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="audiences">
+          <TabsTrigger value="audiences" className="min-h-9 shrink-0">
             Audiences
             {audiences.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
@@ -541,11 +541,11 @@ export function CreativeFactoryPanel() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="monetization">
+          <TabsTrigger value="monetization" className="min-h-9 shrink-0">
             <CircleDollarSign className="mr-1 h-3 w-3" aria-hidden="true" />
             Monetization
           </TabsTrigger>
-          <TabsTrigger value="runs">
+          <TabsTrigger value="runs" className="min-h-9 shrink-0">
             Runs
             {runs.length > 0 && (
               <span className="ml-1 rounded bg-bg-surface px-1 font-mono text-[9px] text-text-muted">
@@ -582,7 +582,7 @@ export function CreativeFactoryPanel() {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Capabilities</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 gap-2 text-xs min-[390px]:grid-cols-2">
                 {capabilities.map((capability) => (
                   <div
                     key={capability.platform}
