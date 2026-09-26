@@ -201,7 +201,9 @@ async function fetchPublishStatus(token: string, publishId: string): Promise<{
 
   const status = (payload.data?.status ?? "").toUpperCase();
   if (["PUBLISH_COMPLETE", "PUBLISHED", "SUCCESS"].includes(status)) {
-    return { status: "published", platformUrl: payload.data?.public_url };
+    return payload.data?.public_url
+      ? { status: "published", platformUrl: payload.data.public_url }
+      : { status: "published" };
   }
   if (["FAILED", "PUBLISH_FAILED", "ERROR"].includes(status)) {
     return {
