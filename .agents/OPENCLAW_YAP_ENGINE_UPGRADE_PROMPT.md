@@ -20,6 +20,11 @@ Execute the canonical APEX-21 Creative Compiler and Production Automation Direct
 - External media requires provenance and rights evidence.
 - Deterministic FFmpeg/FFprobe checks are authoritative; vision review is advisory.
 - One bounded automated revision is the default; persistent failure becomes NEEDS_REVISION/BLOCKED.
+- Neon Postgres is the durable external-testing state plane; use the pooled PgBouncer endpoint and never commit credentials.
+- Upstash Redis is the remote BullMQ state plane; use TLS and preserve separate Queue/Worker connections.
+- Vercel is a thin client only. Do not execute media rendering or local inference in dashboard/serverless request paths.
+- AWS Phase-D is S3 jobs/ → asynchronous Lambda dispatcher → isolated Fargate FFmpeg worker → S3 results/. Validate checksum and FFprobe output before acceptance.
+- External AI providers are optional, budgeted adapters. Never silently convert a local/free path into paid inference.
 
 ## Agent loop
 DISCOVER → CONTRACT MAP → PLAN → SURGICAL PATCH → TARGETED TEST → ADVERSARIAL REVIEW → FIX → VERIFY → REPORT.
