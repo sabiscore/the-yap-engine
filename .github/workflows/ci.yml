@@ -207,10 +207,13 @@ jobs:
       # ── Gate 6.5 · AWS Phase-D CDK synthesis ───────────────────────────────
       # Synthesis-only validation; no infrastructure mutation occurs here.
       - name: Gate 6.5 — AWS Phase-D CDK build + synth
+        working-directory: infra/aws-render-cdk
         run: |
-          pnpm --filter yap-engine-aws-render-cdk build
+          pnpm install --ignore-workspace --no-frozen-lockfile
           if [ "$?" -ne 0 ]; then exit 1; fi
-          pnpm --filter yap-engine-aws-render-cdk synth
+          pnpm run build
+          if [ "$?" -ne 0 ]; then exit 1; fi
+          pnpm exec cdk synth
 
       # ── Gate 7 · Dashboard next build (≥14 routes, 0 build errors) ────────
 
