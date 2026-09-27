@@ -993,6 +993,22 @@ VIDEO_RENDER_TIMEOUT_MS
 VIDEO_FINALIZING_TIMEOUT_MS
 ```
 
+## Local generation / platform publishing boundary
+
+Video generation is a local-first capability and does not require TikTok, Instagram, YouTube,
+or any other platform integration to be configured. The `POST /api/video/jobs` path validates
+only runtime, model, voice, FFmpeg, and FFprobe prerequisites, then runs the local orchestration
+pipeline.
+
+Platform credentials and approval are consulted only by the explicit
+`POST /api/video/jobs/:id/publish` path after a video job has completed. In particular,
+`SWARMX_TIKTOK_API_APPROVED`, TikTok account state, and TikTok OAuth credentials must never
+block local video generation or local export.
+
+The dashboard therefore defaults new video jobs to the `generic` local-export profile. Users
+may explicitly select TikTok as a publishing/output profile without making TikTok connectivity
+a prerequisite for rendering.
+
 Renderer selection is controlled by `SWARMX_VIDEO_RENDER_BACKEND=auto|comfyui|ffmpeg`.
 Production runs should keep `SWARMX_VIDEO_ALLOW_STUB_RENDER=0`. The local FFmpeg
 path is the default production fallback. ComfyUI handoff requires
