@@ -9,8 +9,8 @@ Evidence mode: exact-head, source-backed, fail-closed
 - [x] `Windows 8GB Compatibility` completed `success`.
 - [x] AWS Phase-D CDK build/synth gate passed in the certified CI sequence.
 
-Latest completed CI evidence before documentation/UI commits: run `36315946735`.
-After each new repository commit, rerun/inspect CI for the resulting SHA; historical green runs must not be treated as exact-head evidence.
+Latest completed CI evidence before the final documentation/UI polish: run `36315946735`.
+The final documentation/UI commit has a newer SHA and therefore requires its own completed CI result. Historical green runs must not be treated as exact-head evidence.
 
 ## Historical CI / Vercel finding — PR #10 `f45042b`
 
@@ -28,7 +28,7 @@ Do not rewrite or retest the merged commit as though it were the current release
 - [ ] Current deployment state is `READY`.
 - [ ] Deployment commit SHA exactly matches the release SHA.
 
-Current evidence: the Vercel deployment for `216ec56d92d8bd1a0da6c1bc181df62714952cb9` was `CANCELED` because subsequent repository commits superseded it. A prior `READY` deployment exists for an older branch SHA and is not exact-head evidence.
+Current evidence: rapid successive commits on the hardening branch have caused superseded Vercel builds to be canceled. Only a `READY` deployment whose commit SHA exactly matches the final branch HEAD counts for this gate.
 
 ## Gate 3 — Local 8 GB Windows / WSL2
 
@@ -137,7 +137,7 @@ Do not merge the release branch until every checked item has attached evidence. 
 
 ## Current blockers
 
-1. Exact-head Vercel `READY` evidence is pending after the final UI/documentation commits.
+1. Exact-head Vercel `READY` evidence is pending for the final branch HEAD.
 2. Local 8 GB physical-machine render evidence is pending.
 3. AWS Phase-D deployment/E2E evidence is pending.
 4. TikTok controlled verification requires a human-operated real account.
