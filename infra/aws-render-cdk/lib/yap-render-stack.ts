@@ -191,7 +191,7 @@ exports.handler = async (event) => {
     }
 
     if (lastError) {
-      const failureKey = `results/${jobId}.failure.json`;
+      const failureKey = "results/" + jobId + ".failure.json";
       await s3.send(new PutObjectCommand({
         Bucket: BUCKET,
         Key: failureKey,
@@ -299,7 +299,7 @@ exports.handler = async (event) => {
     },
     body: JSON.stringify(body)
   });
-  if (!response.ok) throw new Error(`render callback failed: ${response.status}`);
+  if (!response.ok) throw new Error("render callback failed: " + response.status);
 };
 `),
     });
