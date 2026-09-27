@@ -373,7 +373,20 @@ export function VideoJobForm({
             value={platform}
             onChange={setPlatform}
             disabled={isSubmitting}
-undefined
+            options={[
+              {
+                value: "tiktok",
+                label: "TikTok",
+                help: "Choose this output profile when you intend to publish through TikTok later.",
+              },
+              { value: "youtube_shorts", label: "YT Shorts" },
+              { value: "reels", label: "Reels" },
+              {
+                value: "generic",
+                label: "Generic",
+                help: "Local-first export. No platform credentials or publishing approval is required to generate the video.",
+              },
+            ]}
           />
           <Select
             id={`${formId}-template`}
