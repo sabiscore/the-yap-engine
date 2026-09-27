@@ -261,8 +261,8 @@ body::after {
 }
 
 @keyframes border-flash-error {
-  0%, 100% { border-color: rgb(255 92 92) / 30%); }
-  50% { border-color: rgb(255 92 92) / 70%); }
+  0%, 100% { border-color: rgb(255 92 92 / 30%); }
+  50% { border-color: rgb(255 92 92 / 70%); }
 }
 
 @keyframes border-flash-warn {
@@ -312,7 +312,7 @@ body::after {
 
 /* Panel danger variant — border pulses red when there are active errors */
 .panel-variant-danger {
-  border-color: rgb(255 92 92) / 30%);
+  border-color: rgb(255 92 92 / 30%);
   animation: border-flash-error 3s ease-in-out infinite;
 }
 
@@ -712,9 +712,9 @@ body::after {
   background: linear-gradient(
     90deg,
     var(--color-accent) 0%,
-    rgb(0 229 255) / 90%) 40%,
+    rgb(0 229 255 / 90%) 40%,
     var(--color-accent) 70%,
-    rgb(0 229 255) / 90%) 100%
+    rgb(0 229 255 / 90%) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -848,9 +848,9 @@ body::after {
 }
 
 /* Insight card color variants */
-.insight-info    { border-color: rgb(0 229 255) / 30%);  background: rgb(0 229 255) / 6%);  color: #00E5FF; }
+.insight-info    { border-color: rgb(0 229 255 / 30%);  background: rgb(0 229 255 / 6%);  color: #00E5FF; }
 .insight-warn    { border-color: rgb(245 196 81 / 30%);  background: rgb(245 196 81 / 6%);  color: var(--color-status-queued); }
-.insight-error   { border-color: rgb(255 92 92) / 30%); background: rgb(255 92 92) / 6%); color: var(--color-status-error); }
+.insight-error   { border-color: rgb(255 92 92 / 30%); background: rgb(255 92 92 / 6%); color: var(--color-status-error); }
 .insight-success { border-color: rgb(0 255 102 / 30%);  background: rgb(0 255 102 / 6%);  color: var(--color-status-success); }
 
 /* ── Scan lines — the original body::after handles this — no override needed ── */
@@ -951,7 +951,7 @@ body::after {
   z-index: -1;
   background:
     radial-gradient(circle at 12% 8%, rgb(0 255 102 / 6%), transparent 28%),
-    radial-gradient(circle at 88% 28%, rgb(0 229 255) / 5%), transparent 30%);
+    radial-gradient(circle at 88% 28%, rgb(0 229 255 / 5%), transparent 30%);
 }
 .yap-video-frame {
   position: relative;
