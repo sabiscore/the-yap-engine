@@ -1,21 +1,39 @@
 # Creative Hub Release-Gate Checklist
 
-Status: NOT CERTIFIED
+Status: **HOLD — awaiting external evidence gates**
 Evidence mode: exact-head, source-backed, fail-closed
 
 ## Gate 1 — Exact-head CI
-- [x] Final hardening SHA has a completed GitHub Actions CI run.
-- [x] CI conclusion is `success`.
-- [x] Every required quality gate is green.
-- Evidence: PR #11 head `4ece05c4ad8c2430b95553c8e878f6b1eb860c29`; CI run `36284792657`.
+- [x] Current PR #11 head has a completed GitHub Actions run.
+- [x] `Quality Gates` completed `success`.
+- [x] `Windows 8GB Compatibility` completed `success`.
+- [x] AWS Phase-D CDK build/synth gate passed in the certified CI sequence.
+
+Latest completed CI evidence before documentation/UI commits: run `36315946735`.
+After each new repository commit, rerun/inspect CI for the resulting SHA; historical green runs must not be treated as exact-head evidence.
+
+## Historical CI / Vercel finding — PR #10 `f45042b`
+
+PR #10 is already merged. Its commit `f45042b287e5c684983bfdf1d8e1aa7253c1d35b` is historical evidence, not an actionable branch head.
+
+- GitHub Actions run `36256308914`: failed during `Setup pnpm`.
+- Production video benchmark run `36256308907`: failed during `Setup pnpm`.
+- Vercel deployment `dpl_3KNTLPcPVwMR9cckfU7sAdTTbr1G`: `ERROR`, code `lint_or_type_error`.
+- Vercel reported the API build command exited with code `2`.
+
+Do not rewrite or retest the merged commit as though it were the current release head. The certification target is the open PR #11 branch.
 
 ## Gate 2 — Exact-head Vercel
-- [ ] The Vercel production deployment points to the same final SHA.
-- [ ] Deployment state is `READY`.
-- Evidence: current-head production deployment still requires verification.
+- [ ] Current PR #11 head has a Vercel deployment.
+- [ ] Current deployment state is `READY`.
+- [ ] Deployment commit SHA exactly matches the release SHA.
 
-## Gate 3 — Local 8 GB validation
-Run sequentially on the constrained Windows host:
+Current evidence: the Vercel deployment for `216ec56d92d8bd1a0da6c1bc181df62714952cb9` was `CANCELED` because subsequent repository commits superseded it. A prior `READY` deployment exists for an older branch SHA and is not exact-head evidence.
+
+## Gate 3 — Local 8 GB Windows / WSL2
+
+Required operator evidence:
+
 ```text
 pnpm install --frozen-lockfile
 pnpm --filter @swarmx/types typecheck
@@ -23,100 +41,105 @@ pnpm --filter @swarmx/api typecheck
 pnpm --filter @swarmx/api test
 pnpm --filter @swarmx/dashboard typecheck
 pnpm --filter @swarmx/dashboard build
-```
-- [ ] All commands complete without OOM or unresolved-host failures.
-- Evidence: captured stdout/stderr from the operator machine.
-
-## Gate 4 — AWS Phase-D
-- [x] AWS identity verified: account `806168460069`.
-- [x] Exact-head CDK build+synth is green in CI run `36284792657`.
-- [x] CDK source declares private isolated Fargate subnets with `assignPublicIp=DISABLED`.
-- [x] S3, ECR API/Docker and CloudWatch Logs VPC endpoints are declared.
-- [x] Dispatcher claims each manifest with an S3 conditional lock.
-- [x] Dispatcher uses bounded jitter and emits a terminal unrecoverable marker.
-- [x] Render worker produces FFprobe + SHA-256 evidence.
-- [x] EventBridge observes terminal result evidence.
-- [x] Callback authenticates and upserts `render_jobs` idempotently.
-- [ ] CDK environment bootstrapped in `us-east-1`.
-- [ ] Phase-D CloudFormation stack deployed.
-- [ ] A real end-to-end render proves the complete path.
-- [ ] `SWARMX_AWS_RENDER_ENABLED=0` remains in force until all evidence exists.
-
-AWS execution evidence captured 2026-09-27:
-- STS identity: account `806168460069`, ARN `arn:aws:iam::806168460069:root`.
-- `DescribeStacks` in `us-east-1`: no stacks.
-- `DescribeStacks(CDKToolkit)`: stack does not exist.
-- `ListClusters`: zero ECS clusters.
-- Therefore no AWS Phase-D deployment or E2E render has been performed.
-
-Operator deployment sequence:
-```powershell
-cd infra/aws-render-cdk
-pnpm install --no-frozen-lockfile
-$env:AWS_REGION="us-east-1"
-$env:AWS_ACCOUNT_ID="806168460069"
-$env:SWARMX_AWS_RENDER_ENABLED="0"
-$env:API_WEBHOOK_URL="<PUBLIC_FASTIFY_RENDER_CALLBACK_URL>"
-$env:SWARMX_RENDER_CALLBACK_SECRET="<RANDOM_CALLBACK_SECRET>"
-
-pnpm exec cdk bootstrap aws://806168460069/us-east-1
-pnpm run build
-pnpm exec cdk synth
-pnpm exec cdk deploy --require-approval broadening
+pnpm --filter @swarmx/api run test:video:smoke
 ```
 
-After deployment, record `RenderBucketName`, `RenderClusterArn`, `RenderTaskDefinitionArn`, and `RenderDispatcherName`. Do not enable `SWARMX_AWS_RENDER_ENABLED` until the manifest → S3 → dispatcher → Fargate → result evidence → EventBridge → callback → Neon `render_jobs` E2E test passes.
+Also capture effective runtime controls:
 
-## Gate 5 — TikTok controlled verification
-- [ ] Real operator developer app has `video.publish` approved.
-- [ ] Real operator account completes OAuth callback.
-- [ ] Durable `tiktok_accounts` row is `active`.
-- [ ] Creator Info reports `SELF_ONLY` availability.
-- [ ] Direct Post uses `is_aigc=true`.
-- [ ] Upload succeeds.
-- [ ] `status/fetch` reaches provider terminal `PUBLISH_COMPLETE`.
-- [ ] The same durable row becomes `controlled_verified`.
-- [ ] No secret/token appears in evidence.
-- [ ] Public-post flag remains `0`.
+```text
+SWARMX_HOST_PROFILE=constrained_cpu_8gb
+SWARMX_PHASE_ABC_EXECUTION=local
+OLLAMA_NUM_PARALLEL=1
+OLLAMA_MAX_LOADED_MODELS=1
+SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1
+```
 
-## Gate 6 — Empirical monetization
-- [x] Production schema contains observed engagement, attribution and cost fields.
-- [x] No synthetic rows have been inserted in the audited baseline.
-- [x] Production observation count is reported honestly.
-- [ ] Real publish/performance/revenue sources populate observations when available.
-- [x] No RPM constant is introduced.
+- [ ] Commands complete without OOM.
+- [ ] FFmpeg and FFprobe resolve inside WSL2.
+- [ ] At least one real local MP4 is produced and FFprobe-valid.
+- [ ] No TikTok credentials or approval are required by the generation path.
 
-Audited baseline: `tiktok_accounts = 0`; `monetization_observations = 0`.
+Repository-level audit confirms single-job/single-model safeguards and low-RAM model selection. Physical-machine memory/OOM evidence is still operator-owned.
 
-## Gate 7 — UI compliance
-- [x] Canonical Nocturne v2 tokens only.
-- [x] No legacy palette values remain in the audited UI.
-- [x] iPhone-class safe-area handling is present.
+## Gate 4 — Hybrid stack
+
+```text
+Next.js dashboard -> Fastify API -> BullMQ worker -> local/optional render backend
+                                  |-> Neon PostgreSQL
+                                  |-> Redis / Upstash
+                                  |-> optional TikTok publisher
+                                  |-> optional AWS Phase-D
+```
+
+The repository has no `apps/scraper` or Crawlee ingestion service. The relevant Node worker is the BullMQ video worker.
+
+FastAPI is auxiliary: local Kokoro TTS and the optional Modal renderer. Fastify is the primary API server.
+
+## Gate 5 — AWS Phase-D
+- [x] AWS identity previously verified: account `806168460069`.
+- [x] CDK source and synthesis gate covered in CI.
+- [ ] AWS CDK environment bootstrapped.
+- [ ] Phase-D CloudFormation/ECS resources deployed.
+- [ ] Real manifest -> object store -> dispatcher -> worker -> evidence -> callback -> Neon render job E2E tested.
+- [ ] `SWARMX_AWS_RENDER_ENABLED=0` remains in force until the E2E gate passes.
+
+No AWS deployment evidence is currently asserted.
+
+## Gate 6 — TikTok controlled verification
+
+Required before production Direct Post promotion:
+
+- [ ] Application approved for `video.publish`.
+- [ ] Real OAuth callback creates a durable `tiktok_accounts` row in `active` state.
+- [ ] Creator Info returns `SELF_ONLY` as an available privacy option.
+- [ ] Controlled Direct Post initialization uses `video.publish`.
+- [ ] `is_aigc=true` is sent for the controlled test.
+- [ ] FILE_UPLOAD uses bounded `Content-Range` chunks.
+- [ ] Terminal provider status is successful.
+- [ ] Only the real verified row is promoted to `controlled_verified`.
+- [ ] `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0` remains set during controlled verification.
+
+TikTok's current documentation states that Direct Post uses `video.publish`; creator information must be queried first; Direct Post initialization is limited to six requests/minute per user access token; and unaudited clients are restricted to private viewing.
+
+## Gate 7 — Empirical monetization
+- [x] Observation schema includes cost/revenue/engagement/attribution fields.
+- [x] Contribution margin is based on observed revenue minus recorded direct costs.
+- [x] No RPM/CPM constant is used as observed performance.
+- [ ] Real publish/analytics/revenue observations exist.
+
+Current audited baseline remains zero observed monetization data until real sources populate the table.
+
+## Gate 8 — UI / mobile
+- [x] Obsidian Nocturne v2 tokens are centralized.
+- [x] Safe-area handling exists.
 - [x] User zoom is not disabled solely for layout.
-- [x] Publish blockers identify their actual source gate.
-- [x] Monetization has explicit no-data state.
-- [ ] A real iPhone 14 Pro Max viewport audit is captured.
+- [x] Creative Hub exposes distinct state badges.
+- [x] Run-row interaction has a mobile-friendly touch target.
+- [ ] Real iPhone-class viewport evidence captured.
+
+## Local-generation independence invariant
+
+The generation route must never gate on:
+
+```text
+SWARMX_TIKTOK_API_APPROVED
+getTikTokPublishingReadiness
+getVideoPublisher
+enqueueTikTokDirectPost
+tiktokAccountId
+```
+
+The video regression suite now checks this boundary structurally.
 
 ## Merge rule
 
-Do not merge the release branch until every checked item has attached evidence. "Implemented" never substitutes for "verified".
+Do not merge the release branch until every checked item has attached evidence. Implemented, tested or synthesized infrastructure is not equivalent to deployed or verified production behavior.
 
 ## Current blockers
 
-1. Exact-head Vercel production READY evidence for `4ece05c4ad8c2430b95553c8e878f6b1eb860c29` is absent.
-2. Local 8 GB Windows execution has not been observed from this environment.
-3. AWS CDK environment is not bootstrapped; no Phase-D stack or E2E render exists.
-4. TikTok controlled verification requires a human operator and a real account.
-5. Production monetization observations are currently zero.
-6. iPhone 14 Pro Max empirical browser evidence is not available in the current execution environment.
-
-## Audit snapshot — 2026-09-27
-
-- PR #11 exact head: `4ece05c4ad8c2430b95553c8e878f6b1eb860c29`.
-- Exact-head canonical CI run: `36284792657`, completed `success`.
-- AWS account: `806168460069`, region `us-east-1`.
-- CloudFormation stacks: none.
-- CDK bootstrap stack `CDKToolkit`: absent.
-- ECS clusters: none.
-- Production baseline: `tiktok_accounts = 0`, `monetization_observations = 0`.
-- AWS and TikTok remain fail-closed.
+1. Exact-head Vercel `READY` evidence is pending after the final UI/documentation commits.
+2. Local 8 GB physical-machine render evidence is pending.
+3. AWS Phase-D deployment/E2E evidence is pending.
+4. TikTok controlled verification requires a human-operated real account.
+5. Production monetization observations remain zero until real data arrives.
+6. Physical iPhone viewport evidence is pending.
