@@ -44,7 +44,7 @@ import {
 } from "../services/monetization-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
-import { readSecretEnv } from "../lib/env.js";
+import { loadEnv, readSecretEnv } from "../lib/env.js";
 import {
   buildTikTokAuthorizationUrl,
   exchangeTikTokAuthorizationCode,
@@ -706,11 +706,39 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     async (request, reply) => {
       const parsed = MonetizationObservationBodySchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
-      const { attributionWindowDays, observedAt, ...rest } = parsed.data;
+      const data = parsed.data;
       const observation = await recordMonetizationObservation({
-        ...rest,
-        ...(observedAt !== undefined ? { observedAt } : {}),
-        ...(attributionWindowDays !== undefined ? { attributionWindowDays } : {}),
+        userId: data.userId,
+        packageId: data.packageId,
+        platform: data.platform,
+        currency: data.currency,
+        platformRewardsCents: data.platformRewardsCents,
+        viewCount: data.viewCount,
+        qualifiedViews: data.qualifiedViews,
+        watchTimeSeconds: data.watchTimeSeconds,
+        completionRate: data.completionRate,
+        shares: data.shares,
+        comments: data.comments,
+        affiliateClicks: data.affiliateClicks,
+        affiliateConversions: data.affiliateConversions,
+        affiliateRevenueCents: data.affiliateRevenueCents,
+        landingPageVisits: data.landingPageVisits,
+        funnelSessions: data.funnelSessions,
+        checkoutStarts: data.checkoutStarts,
+        ownedProductConversions: data.ownedProductConversions,
+        ownedProductRevenueCents: data.ownedProductRevenueCents,
+        sponsorRevenueCents: data.sponsorRevenueCents,
+        llmCostCents: data.llmCostCents,
+        ttsCostCents: data.ttsCostCents,
+        renderCostCents: data.renderCostCents,
+        storageCostCents: data.storageCostCents,
+        egressCostCents: data.egressCostCents,
+        source: data.source,
+        ...(data.contentId !== undefined ? { contentId: data.contentId } : {}),
+        ...(data.campaignId !== undefined ? { campaignId: data.campaignId } : {}),
+        ...(data.publishId !== undefined ? { publishId: data.publishId } : {}),
+        ...(data.observedAt !== undefined ? { observedAt: data.observedAt } : {}),
+        ...(data.attributionWindowDays !== undefined ? { attributionWindowDays: data.attributionWindowDays } : {}),
       });
       return reply.status(201).send({
         observation,
