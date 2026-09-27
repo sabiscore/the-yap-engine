@@ -47,6 +47,120 @@ DATABASE_URL_UNPOOLED=<Neon direct connection URL>
 
 Do not put TikTok credentials or tokens in `NEXT_PUBLIC_*` variables.
 
+
+## Local operator fast path
+
+Use this section only on the operator's local Windows machine. The local OAuth endpoints are blocked when `NODE_ENV=production` and are also blocked whenever `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=1`.
+
+### `.env.local`
+
+Create at repository root:
+
+```text
+NODE_ENV=development
+LOG_LEVEL=info
+SWARMX_API_HOST=127.0.0.1
+SWARMX_API_PORT=3001
+SWARMX_DASHBOARD_ORIGIN=http://localhost:3000
+SWARMX_HOST_PROFILE=constrained_cpu_8gb
+SWARMX_PHASE_ABC_EXECUTION=local
+SWARMX_PHASE_D_EXECUTION=local
+MAX_CONCURRENT_JOBS=1
+SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1
+OLLAMA_NUM_PARALLEL=1
+OLLAMA_MAX_LOADED_MODELS=1
+OLLAMA_NUM_THREADS=3
+SWARMX_VIDEO_LOW_RAM_MODE=1
+REDIS_URL=redis://127.0.0.1:6379
+DATABASE_URL=<NEON_POOLED_CONNECTION_URL>
+DATABASE_URL_UNPOOLED=<NEON_DIRECT_CONNECTION_URL>
+NEON_BRANCH=production
+SWARMX_TIKTOK_API_APPROVED=1
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
+SWARMX_TIKTOK_CLIENT_KEY=<TIKTOK_CLIENT_KEY>
+SWARMX_TIKTOK_CLIENT_SECRET=<TIKTOK_CLIENT_SECRET>
+SWARMX_TIKTOK_TOKEN_ENCRYPTION_KEY=<BASE64_32_BYTE_KEY>
+SWARMX_TIKTOK_OPERATOR_USER_ID=<REAL_YAP_ENGINE_OPERATOR_USER_ID>
+SWARMX_TIKTOK_OAUTH_REDIRECT_URI=http://localhost:3001/api/video/factory/publishing/tiktok/oauth/callback
+```
+
+Generate the token encryption key with:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Start the API from repository root with the `.env.local` file explicitly loaded:
+
+```powershell
+pnpm --filter @swarmx/api exec node --env-file=../../.env.local --watch --import tsx src/server.ts
+```
+
+### OAuth UI navigation
+
+1. Open `https://developers.tiktok.com/`.
+2. `My Apps` -> select the Yap Engine app -> `Products` -> `Content Posting API`; enable/configure Direct Post.
+3. `My Apps` -> select the app -> `Scopes` -> `Add Scopes` -> `video.publish`; verify the application is approved for the scope.
+4. Configure the exact Web/Desktop redirect URI:
+
+```text
+http://localhost:3001/api/video/factory/publishing/tiktok/oauth/callback
+```
+
+5. In a browser on the operator machine, open:
+
+```text
+http://localhost:3001/api/video/factory/publishing/tiktok/oauth/start
+```
+
+6. Sign in with the controlled TikTok creator account and approve the displayed `video.publish` permission. The callback persists a real account row with `status=active`; it does not create `controlled_verified` directly.
+
+### Durable-state check
+
+```sql
+SELECT id, user_id, open_id, status, scopes, access_expires_at, refresh_expires_at, updated_at
+FROM public.tiktok_accounts
+WHERE user_id = '<REAL_YAP_ENGINE_OPERATOR_USER_ID>'
+ORDER BY updated_at DESC;
+```
+
+Require `status = 'active'` and `video.publish` in `scopes` before running the controlled publish test.
+
+### Controlled verification command
+
+```powershell
+pnpm --filter @swarmx/api tiktok:verify -- `
+  --account-id=<DURABLE_TIKTOK_ACCOUNT_ID> `
+  --output=<PATH_TO_CONTROLLED_MP4> `
+  --prompt="Controlled Yap Engine integration verification — SELF_ONLY" `
+  --confirm-self-only=true
+```
+
+The command must reach a real terminal provider `published` result before the service promotes the durable account to `controlled_verified`.
+
+### Post-verification SQL
+
+```sql
+SELECT id, user_id, open_id, status, scopes, updated_at
+FROM public.tiktok_accounts
+WHERE status = 'controlled_verified'
+ORDER BY updated_at DESC;
+```
+
+### Public-post gate
+
+```powershell
+Select-String -Path .env.local -Pattern '^SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED='
+```
+
+Required:
+
+```text
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
+```
+
+Never set this flag to `1` for the controlled verification.
+
 ## Phase 1 — Authorize the controlled account
 
 1. Generate an application OAuth state value using the application's normal authorization flow.
