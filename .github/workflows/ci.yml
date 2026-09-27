@@ -209,7 +209,7 @@ jobs:
       - name: Gate 6.5 — AWS Phase-D CDK build + synth
         working-directory: infra/aws-render-cdk
         run: |
-          pnpm install --ignore-workspace --no-frozen-lockfile
+          pnpm install --no-frozen-lockfile
           if [ "$?" -ne 0 ]; then exit 1; fi
           pnpm run build
           if [ "$?" -ne 0 ]; then exit 1; fi
