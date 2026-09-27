@@ -191,6 +191,8 @@ const schema = z.object({
   SWARMX_TIKTOK_CLIENT_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_TIKTOK_TOKEN_ENCRYPTION_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_TIKTOK_OAUTH_REDIRECT_URI: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
+  // Local-only operator identity used to bind the TikTok OAuth state to a durable user row.
+  SWARMX_TIKTOK_OPERATOR_USER_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_YOUTUBE_API_APPROVED: boolFlag,
 });
 
