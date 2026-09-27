@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "infra/aws-render-cdk"
 allowBuilds:
   core-js: true
   esbuild: true
