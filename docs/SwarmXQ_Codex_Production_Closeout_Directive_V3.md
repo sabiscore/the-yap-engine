@@ -148,7 +148,7 @@ Treat the following as high-confidence observations from the supplied archive, n
 Revalidate from lockfiles and package manifests:
 
 - root package version around `2026.6.0`;
-- `pnpm@11.9.0`;
+- `pnpm@12.6.0`;
 - Node.js requirement of at least 22 for the API;
 - Fastify 5 in `apps/swarmx-api`;
 - Next.js 16.2.x and React 19.2.x in `apps/swarmx-dashboard`;
