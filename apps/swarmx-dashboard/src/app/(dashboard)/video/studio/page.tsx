@@ -1,6 +1,6 @@
 "use client";
 
-import { WandSparkles } from "lucide-react";
+import { Sparkles, WandSparkles } from "lucide-react";
 import Link from "next/link";
 import { VideoJobForm } from "@/components/video/VideoJobForm";
 import { PRODUCT_BRAND } from "@/lib/brand";
