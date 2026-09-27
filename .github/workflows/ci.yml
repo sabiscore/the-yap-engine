@@ -270,6 +270,7 @@ jobs:
       SWARMX_VIDEO_CLEANUP_INTERVAL_MS: '21600000'
       SWARMX_WARMUP_STATUS_FILE: 'C:\\Temp\\swarmxq-warmup.json'
       NEXT_PUBLIC_SWARMX_VERSION: ci
+      SWARMX_HOST_PROFILE: constrained_cpu_8gb
       MAX_CONCURRENT_JOBS: '1'
       SWARMX_VIDEO_MAX_CONCURRENT_JOBS: '1'
       NODE_OPTIONS: '--max-old-space-size=4096'
