@@ -8,3 +8,6 @@ allowBuilds:
   node-pty: true
   sharp: true
   unrs-resolver: true
+  # AWS Phase-D CDK requires esbuild's install-time binary selection.
+  # This is the sole additional lifecycle script permitted at repo root.
+  esbuild: true
