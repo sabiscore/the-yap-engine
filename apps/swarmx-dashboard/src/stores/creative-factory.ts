@@ -2,6 +2,15 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+export interface TikTokPublishingReadiness {
+  apiApproved: boolean;
+  publicPostsEnabled: boolean;
+  accountCount: number;
+  controlledVerifiedCount: number;
+  state: "blocked" | "controlled_verified" | "ready_for_operator_review";
+  reason: string;
+}
+
 import type {
   AudiencePersona,
   BrandKit,
@@ -43,6 +52,7 @@ export interface CreativeFactoryState {
   audiences: AudiencePersona[];
   blueprints: VideoBlueprint[];
   monetizationSummary: MonetizationSummary | null;
+  tiktokReadiness: TikTokPublishingReadiness | null;
   selectedRunId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -68,6 +78,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
     audiences: [],
     blueprints: [],
     monetizationSummary: null,
+    tiktokReadiness: null,
     selectedRunId: null,
     isLoading: false,
     error: null,
@@ -75,7 +86,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
     fetchFactory: async () => {
       set({ isLoading: true, error: null }, false, "factory/fetch/start");
       try {
-        const [definitions, runs, capabilities, brandKits, audiences, blueprints, monetization] = await Promise.all([
+        const [definitions, runs, capabilities, brandKits, audiences, blueprints, monetization, tiktokReadiness] = await Promise.all([
           apiFetch<{ stages: WorkflowStageDefinition[] }>("/api/video/factory/workflow/definitions"),
           apiFetch<{ runs: CreativeFactoryWorkflowRun[] }>("/api/video/factory/runs"),
           apiFetch<{ capabilities: PlatformCapability[] }>("/api/video/factory/capabilities"),
@@ -83,6 +94,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
           apiFetch<{ audiences: AudiencePersona[] }>("/api/video/factory/audiences"),
           apiFetch<{ blueprints: VideoBlueprint[] }>("/api/video/factory/blueprints"),
           apiFetch<{ summary: MonetizationSummary }>("/api/video/factory/analytics/monetization"),
+          apiFetch<{ readiness: TikTokPublishingReadiness }>("/api/video/factory/publishing/tiktok/readiness"),
         ]);
         set({
           stages: definitions.stages,
@@ -92,6 +104,7 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
           audiences: audiences.audiences,
           blueprints: blueprints.blueprints,
           monetizationSummary: monetization.summary,
+          tiktokReadiness: tiktokReadiness.readiness,
           isLoading: false,
         }, false, "factory/fetch/done");
       } catch (err) {

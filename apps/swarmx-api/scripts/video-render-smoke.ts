@@ -20,7 +20,7 @@ try {
 
   const request: VideoJobRequest = {
     prompt: "Create a 15-second faceless short titled '3 focus habits'.",
-    platform: "tiktok",
+    platform: "generic",
     niche: "tech",
     targetDurationSeconds: 15,
     clientRequestId: `video-smoke-${randomUUID()}`,

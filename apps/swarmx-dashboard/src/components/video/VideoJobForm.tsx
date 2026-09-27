@@ -156,7 +156,7 @@ export function VideoJobForm({
   const { submitJob, isSubmitting, submitError, clearErrors } = useVideoStore();
 
   const [prompt, setPrompt] = useState("");
-  const [platform, setPlatform] = useState<NonNullable<VideoJobRequest["platform"]>>("tiktok");
+  const [platform, setPlatform] = useState<NonNullable<VideoJobRequest["platform"]>>("generic");
   const [niche, setNiche] = useState<NonNullable<VideoJobRequest["niche"]>>("motivational");
   const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [targetDuration, setTargetDuration] = useState("30");
@@ -192,7 +192,6 @@ export function VideoJobForm({
       const detail = (event as CustomEvent<string>).detail;
       if (typeof detail !== "string" || !detail.trim()) return;
       setPrompt(detail);
-      setPlatform("tiktok");
       setNiche("facts");
       setTemplateFamily("none");
       setTargetDuration("30");
@@ -331,7 +330,7 @@ export function VideoJobForm({
           id={`${formId}-prompt`}
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Create a 30-second faceless TikTok-style video titled '3 habits that improve focus'..."
+          placeholder="Create a 30-second faceless short titled '3 habits that improve focus'..."
           rows={4}
           maxLength={2000}
           disabled={isSubmitting}
@@ -375,10 +374,18 @@ export function VideoJobForm({
             onChange={setPlatform}
             disabled={isSubmitting}
             options={[
-              { value: "tiktok", label: "TikTok" },
+              {
+                value: "tiktok",
+                label: "TikTok",
+                help: "Choose this output profile when you intend to publish through TikTok later.",
+              },
               { value: "youtube_shorts", label: "YT Shorts" },
               { value: "reels", label: "Reels" },
-              { value: "generic", label: "Generic" },
+              {
+                value: "generic",
+                label: "Generic",
+                help: "Local-first export. No platform credentials or publishing approval is required to generate the video.",
+              },
             ]}
           />
           <Select

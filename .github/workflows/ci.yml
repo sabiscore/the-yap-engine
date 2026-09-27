@@ -7,7 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/creative-hub-production-hardening-20260926
   pull_request:
     branches: [main]
 
@@ -76,8 +78,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
+        # pnpm v12 is supported by action-setup v6. Omit "version" so the
+        # exact version + integrity remain single-sourced from root package.json.
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -201,6 +204,17 @@ jobs:
           fi
           echo "PASS: no public dashboard video write-token references"
 
+      # ── Gate 6.5 · AWS Phase-D CDK synthesis ───────────────────────────────
+      # Synthesis-only validation; no infrastructure mutation occurs here.
+      - name: Gate 6.5 — AWS Phase-D CDK build + synth
+        working-directory: infra/aws-render-cdk
+        run: |
+          pnpm install --no-frozen-lockfile
+          if [ "$?" -ne 0 ]; then exit 1; fi
+          pnpm run build
+          if [ "$?" -ne 0 ]; then exit 1; fi
+          pnpm exec cdk synth
+
       # ── Gate 7 · Dashboard next build (≥14 routes, 0 build errors) ────────
 
       - name: Restore Next.js build cache
@@ -225,3 +239,98 @@ jobs:
             exit 1
           fi
           echo "PASS: $COUNT routes (≥14 required)"
+
+  # Cross-platform compatibility gate. This runs the same constrained-resource
+  # pipeline on a Windows GitHub-hosted runner. It proves Windows/PowerShell
+  # compatibility and preserves the 8 GB execution envelope at the Node/process
+  # level; it is not a substitute for physical 8 GB device evidence.
+  windows-8gb-validation:
+    name: Windows 8GB Compatibility
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: test
+      LOG_LEVEL: warn
+      SWARMX_API_PORT: '3001'
+      SWARMX_API_HOST: '127.0.0.1'
+      REDIS_URL: 'redis://127.0.0.1:6379'
+      OLLAMA_HOST: 'http://127.0.0.1:11434'
+      OLLAMA_KEEP_ALIVE_PILOT_S: '300'
+      OLLAMA_NUM_PARALLEL: '1'
+      OLLAMA_MAX_LOADED_MODELS: '1'
+      OLLAMA_NUM_THREADS: '3'
+      SWARMX_VIDEO_USE_BULLMQ: '1'
+      SWARMX_VIDEO_LOW_RAM_MODE: '1'
+      SWARMX_VIDEO_RENDER_BACKEND: 'auto'
+      SWARMX_VIDEO_ALLOW_STUB_RENDER: '0'
+      SWARMX_VIDEO_ALLOW_UNSTRUCTURED_INTENT: '0'
+      SWARMX_VIDEO_ALLOW_SILENT_AUDIO: '0'
+      SWARMX_VIDEO_JOB_LIMIT_PER_HOUR: '10'
+      SWARMX_VIDEO_CAPTION_SCORE_LIMIT_PER_MIN: '10'
+      SWARMX_VIDEO_QUEUE_MAX_SIZE: '20'
+      SWARMX_VIDEO_EXPORT_TTL_DAYS: '7'
+      SWARMX_VIDEO_CLEANUP_INTERVAL_MS: '21600000'
+      SWARMX_WARMUP_STATUS_FILE: 'C:\\Temp\\swarmxq-warmup.json'
+      NEXT_PUBLIC_SWARMX_VERSION: ci
+      SWARMX_HOST_PROFILE: constrained_cpu_8gb
+      MAX_CONCURRENT_JOBS: '1'
+      SWARMX_VIDEO_MAX_CONCURRENT_JOBS: '1'
+      NODE_OPTIONS: '--max-old-space-size=4096'
+      UV_THREADPOOL_SIZE: '2'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Windows memory and toolchain preflight
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ram = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+          $ramGb = [math]::Round($ram / 1GB, 2)
+          Write-Host "Windows runner physical RAM: $ramGb GB"
+          node --version
+          pnpm --version
+          if ($ramGb -lt 7.5) {
+            throw "Insufficient physical RAM for compatibility run: $ramGb GB"
+          }
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build workspace types
+        shell: pwsh
+        run: |
+          pnpm --filter @swarmx/types build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Typecheck
+        shell: pwsh
+        run: |
+          pnpm typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test
+        shell: pwsh
+        run: |
+          pnpm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build
+        shell: pwsh
+        run: |
+          pnpm build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

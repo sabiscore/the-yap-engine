@@ -2382,7 +2382,7 @@ python -m mypy src
 python -m pytest
 
 corepack enable
-corepack prepare pnpm@11.9.0 --activate
+corepack prepare pnpm@12.6.0 --activate
 pnpm install --frozen-lockfile
 pnpm --filter @swarmx/types typecheck
 pnpm --filter @swarmx/api typecheck

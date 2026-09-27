@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles, WandSparkles } from "lucide-react";
+import Link from "next/link";
 import { VideoJobForm } from "@/components/video/VideoJobForm";
 import { PRODUCT_BRAND } from "@/lib/brand";
 import { TelemetryWidget } from "@/components/telemetry/TelemetryWidget";
@@ -40,12 +41,12 @@ export default function VideoStudioPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <a
+            <Link
               href="/video"
               className="inline-flex h-9 items-center rounded-md border border-border bg-bg-surface px-3 text-xs font-medium text-text-secondary transition-colors hover:border-border-active hover:text-text-primary"
             >
               Open queue
-            </a>
+            </Link>
           </div>
         </header>
 

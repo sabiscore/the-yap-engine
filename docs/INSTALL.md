@@ -9,7 +9,7 @@
 | OS | Linux (Ubuntu 22.04+ recommended), macOS 13+, WSL2 | WSL2 on Windows 11 |
 | Python | 3.11 | **3.14.6** |
 | Node.js | 22 LTS | **v24.17.0** |
-| pnpm | 11.9.0 | **11.9.0** (`npm install -g pnpm@11.9.0`) |
+| pnpm | 12.6.0 | **12.6.0** (`corepack prepare pnpm@12.6.0 --activate`) |
 | Redis | 7.x | 7.x (optional — only required when `SWARMX_VIDEO_USE_BULLMQ=1`) |
 | Disk | 2 GB free | Models need additional space — see Step 5 |
 | RAM | 8 GB minimum | **16 GB** (this host) |

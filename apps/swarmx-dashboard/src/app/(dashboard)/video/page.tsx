@@ -25,10 +25,8 @@ import {
   Cpu,
   Download,
   ExternalLink,
-  Film,
   GripVertical,
   ListVideo,
-  Play,
   RotateCcw,
   Sparkles,
   Trash2,
@@ -48,7 +46,6 @@ import { VideoJobCard } from "../../../components/video/VideoJobCard";
 import { VideoPipelinePulse } from "@/components/video/VideoPipelinePulse";
 import {
   formatActiveJobHeadline,
-  formatActiveJobPrompt,
   isActiveVideoStatus,
   type VideoJob,
 } from "../../../lib/video-dashboard";
@@ -459,7 +456,7 @@ function StudioMonitor({
       <div className="grid grid-cols-2 gap-2 text-xs font-mono sm:grid-cols-4">
         <div className="rounded border border-border/70 bg-bg-elevated/50 p-2">
           <span className="text-[10px] text-text-muted uppercase">Platform</span>
-          <p className="font-semibold text-text-primary capitalize">{job.request.platform ?? "TikTok"}</p>
+          <p className="font-semibold text-text-primary capitalize">{job.request.platform ?? "Generic"}</p>
         </div>
         <div className="rounded border border-border/70 bg-bg-elevated/50 p-2">
           <span className="text-[10px] text-text-muted uppercase">Duration</span>

@@ -143,6 +143,48 @@ assert.equal(renderBody.includes('ctx.modelsUsed["render_assembly"]'), false);
 const routesSource = await readFile(new URL("../src/routes/video.ts", import.meta.url), "utf8");
 assert.ok(routesSource.includes('"/files/:filename"'));
 assert.equal(routesSource.includes('"/api/video/files/:filename"'), false);
+
+// Local video generation is intentionally independent of platform publishing.
+// TikTok credentials/approval belong only to the explicit publish endpoint.
+const jobsRouteStart = routesSource.indexOf('fastify.post<{ Body: VideoJobRequest');
+const jobsRouteEnd = routesSource.indexOf('// ── GET /jobs', jobsRouteStart);
+assert.ok(jobsRouteStart >= 0 && jobsRouteEnd > jobsRouteStart, "video job route boundary must remain discoverable");
+const jobsRouteSource = routesSource.slice(jobsRouteStart, jobsRouteEnd);
+for (const forbidden of [
+  "SWARMX_TIKTOK_API_APPROVED",
+  "getTikTokPublishingReadiness",
+  "getVideoPublisher",
+  "enqueueTikTokDirectPost",
+  "tiktokAccountId",
+]) {
+  assert.equal(
+    jobsRouteSource.includes(forbidden),
+    false,
+    `video generation route must not depend on TikTok publishing gate: ${forbidden}`,
+  );
+}
+const publishRouteStart = routesSource.indexOf('"/jobs/:id/publish"');
+assert.ok(publishRouteStart >= 0, "explicit publish route must remain present");
+assert.ok(
+  routesSource.slice(publishRouteStart).includes("getVideoPublisher"),
+  "platform publisher resolution must remain confined to the explicit publish route",
+);
+
+// Dashboard defaults must remain local-first so a missing TikTok integration can
+// never block the normal generate-video workflow.
+const formSource = await readFile(
+  new URL("../../swarmx-dashboard/src/components/video/VideoJobForm.tsx", import.meta.url),
+  "utf8",
+);
+assert.ok(
+  formSource.includes('useState<NonNullable<VideoJobRequest["platform"]>>("generic")'),
+  "video form must default to the generic local export profile",
+);
+assert.equal(
+  formSource.includes('setPlatform("tiktok");'),
+  false,
+  "example prompts must not silently switch generation into the TikTok publishing profile",
+);
 // V6.2.15 — SSE handler must close cleanly on terminal jobs, not hang forever.
 assert.ok(routesSource.includes("isTerminalStatus(job.status)"), "SSE must short-circuit on already-terminal jobs");
 assert.ok(routesSource.includes('event.type === "video:completed"'), "SSE must close on terminal lifecycle events");

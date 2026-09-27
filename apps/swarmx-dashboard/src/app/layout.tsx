@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PRODUCT_BRAND } from "@/lib/brand";
 
@@ -6,6 +6,14 @@ const dashboardVersion =
   process.env.NEXT_PUBLIC_SWARMX_VERSION ??
   process.env.npm_package_version ??
   "0.1.0";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#050508",
+  colorScheme: "dark",
+};
 
 export const metadata: Metadata = {
   title: {

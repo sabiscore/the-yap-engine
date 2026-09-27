@@ -11,11 +11,13 @@ Get from zero to a working video generation stack in under five minutes.
 | Requirement | Verified version | Notes |
 |---|---|---|
 | Node.js | **v24.17.0** (min v22) | nodejs.org |
-| pnpm | **11.9.0** | `npm install -g pnpm@11.9.0` |
+| pnpm | **12.6.0** | `npm install -g pnpm@12.6.0` |
 | Python | **3.14.6** (min 3.11) | python.org |
 | Ollama | latest | ollama.com/install.sh |
 | Redis | 7.x | Optional — only needed when `SWARMX_VIDEO_USE_BULLMQ=1` |
 
+> **Local generation note:** TikTok credentials, approval and account state are not required to render or export a local video. Publishing is a separate downstream operation.
+>
 > **Known environment blockers on this host (document only — no code changes needed):**
 > - **FFmpeg not in Windows PATH** — install via `sudo apt install ffmpeg` in WSL2 for local video renders.
 > - **`faster-whisper` not installed** — word-level caption alignment is disabled; video pipeline still runs.
@@ -158,7 +160,7 @@ curl -X POST http://127.0.0.1:3001/api/video/jobs \
   -d '{
     "prompt": "Why multitasking is a cognitive myth that kills focus",
     "templateFamily": "myth-vs-fact",
-    "platform": "tiktok",
+    "platform": "generic",
     "targetDurationSeconds": 15
   }'
 ```

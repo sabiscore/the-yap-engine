@@ -17,7 +17,7 @@ bash scripts/startup-enhanced.sh --dashboard
 **What happens automatically:**
 - Checks Python 3.11+ is installed (verified: **3.14.6**)
 - Checks Node.js 22+ is installed (verified: **v24.17.0**)
-- Verifies pnpm is available (verified: **11.9.0**)
+- Verifies pnpm is available (verified: **12.6.0**)
 - Checks port 3000 and 3001 availability (kills stale processes if needed)
 - Evicts stale SwarmX API/dashboard instances from current and legacy roots before launch
 - Verifies Ollama is running (non-blocking; continues without it)

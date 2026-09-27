@@ -50,3 +50,13 @@ A production promotion record should include:
 7. operator approval for any public-post enablement.
 
 Never infer an external provider success from unit tests, mocks, or a successful Vercel build.
+
+
+## 2026-09-26 Creative Hub hardening
+
+- Current PR #10 merge baseline: `5c41be002b274d22a8ff83b9df92cee3a76ec3e4`.
+- Exact PR #10 head lookup returned no GitHub Actions workflow runs; no neighboring commit is treated as equivalent evidence.
+- Current production Vercel deployment for `main`: `dpl_BrwjQ652WcrzdvobZ9PfGuNCTkit`, READY, commit `c30a0ab6288233786c5ea00b3f9fbecf7005b25a`.
+- Neon production has zero TikTok accounts and zero monetization observations at audit time.
+- AWS STS identity is valid; Phase D was not deployed.
+- TikTok controlled verification remains operator-only and not verified.

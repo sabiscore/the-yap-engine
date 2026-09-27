@@ -90,7 +90,7 @@ swarm up --restart --detach
 
 | Engine / Runtime version | Python | Node.js | pnpm | Redis |
 |---|---|---|---|---|
-| **v6 (`2026.6.0`)** | **3.11+ (verified: 3.14.6)** | **22+ (verified: v24.17.0)** | **11.9.0** | **7.x** (optional) |
+| **v6 (`2026.6.0`)** | **3.11+ (verified: 3.14.6)** | **22+ (verified: v24.17.0)** | **12.6.0** | **7.x** (optional) |
 | 4.x (RC1) | 3.11 – 3.12 | 22 LTS | 9.x | 7.x |
 | 3.x | 3.10+ | 20 LTS | 8.x | 6.x |
 

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type {
@@ -43,6 +44,12 @@ import {
 } from "../services/monetization-analytics.js";
 import { normalizeRuntimeProfileId } from "../services/runtime-profiles.js";
 import { requireVideoWriteAuth } from "../services/video-auth.js";
+import { loadEnv, readSecretEnv } from "../lib/env.js";
+import {
+  buildTikTokAuthorizationUrl,
+  exchangeTikTokAuthorizationCode,
+  getTikTokPublishingReadiness,
+} from "../services/tiktok-accounts.js";
 import { assertEightGbSafe, assertLocalPhase } from "../services/hybrid-execution.js";
 
 const CapabilityRequirementSchema = z.object({
@@ -112,14 +119,24 @@ const PerformanceSnapshotBodySchema = z.object({
 const MonetizationObservationBodySchema = z.object({
   userId: z.string().min(1).max(160),
   packageId: z.string().min(1).max(160),
+  contentId: z.string().min(1).max(160).optional(),
+  campaignId: z.string().min(1).max(160).optional(),
+  publishId: z.string().min(1).max(160).optional(),
   platform: z.enum(["tiktok", "reels", "shorts", "generic"]),
   observedAt: z.string().datetime().optional(),
   currency: z.string().length(3).default("USD"),
   platformRewardsCents: z.number().int().min(0).default(0),
+  viewCount: z.number().int().min(0).default(0),
+  qualifiedViews: z.number().int().min(0).default(0),
+  watchTimeSeconds: z.number().min(0).default(0),
+  completionRate: z.number().min(0).max(1).nullable().default(null),
+  shares: z.number().int().min(0).default(0),
+  comments: z.number().int().min(0).default(0),
   affiliateClicks: z.number().int().min(0).default(0),
   affiliateConversions: z.number().int().min(0).default(0),
   affiliateRevenueCents: z.number().int().min(0).default(0),
   landingPageVisits: z.number().int().min(0).default(0),
+  funnelSessions: z.number().int().min(0).default(0),
   checkoutStarts: z.number().int().min(0).default(0),
   ownedProductConversions: z.number().int().min(0).default(0),
   ownedProductRevenueCents: z.number().int().min(0).default(0),
@@ -131,6 +148,19 @@ const MonetizationObservationBodySchema = z.object({
   egressCostCents: z.number().int().min(0).default(0),
   source: z.string().min(1).max(160),
   attributionWindowDays: z.number().int().min(0).optional(),
+});
+
+const RenderCallbackBodySchema = z.object({
+  bucket: z.string().min(1).max(255),
+  validationKey: z.string().min(1).max(1024),
+  jobId: z.string().min(1).max(160),
+  status: z.enum(["complete", "failed"]),
+  manifestKey: z.string().min(1).max(1024),
+  outputKey: z.string().min(1).max(1024).optional(),
+  checksum: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+  sizeBytes: z.number().int().min(0).optional(),
+  durationMs: z.number().int().min(0).optional(),
+  error: z.string().max(2000).optional(),
 });
 
 const LearningRecordBodySchema = z.object({
@@ -239,6 +269,31 @@ function sendParseError(reply: FastifyReply, error: z.ZodError): FastifyReply {
     message: "Request validation failed",
     details: error.flatten().fieldErrors,
   });
+}
+
+const TIKTOK_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const tiktokOAuthStates = new Map<string, { userId: string; expiresAt: number }>();
+
+function requireLocalTikTokOAuth(): { userId: string; redirectUri: string } {
+  const env = loadEnv();
+  if (env.NODE_ENV === "production") {
+    throw new Error("TikTok operator OAuth is local-only and is blocked in production");
+  }
+  if (env.SWARMX_TIKTOK_API_APPROVED !== "1") {
+    throw new Error("TikTok API approval gate is disabled");
+  }
+  if (env.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED === "1") {
+    throw new Error("Refusing controlled OAuth while public TikTok posting is enabled");
+  }
+  const userId = env.SWARMX_TIKTOK_OPERATOR_USER_ID?.trim() ?? "";
+  const redirectUri = env.SWARMX_TIKTOK_OAUTH_REDIRECT_URI?.trim() ?? "";
+  if (!userId || !redirectUri) {
+    throw new Error("SWARMX_TIKTOK_OPERATOR_USER_ID and SWARMX_TIKTOK_OAUTH_REDIRECT_URI are required");
+  }
+  if (!process.env["SWARMX_TIKTOK_CLIENT_KEY"]?.trim() || !process.env["SWARMX_TIKTOK_CLIENT_SECRET"]?.trim()) {
+    throw new Error("TikTok client key and secret are required");
+  }
+  return { userId, redirectUri };
 }
 
 export async function creativeFactoryRoutes(server: FastifyInstance): Promise<void> {
@@ -523,6 +578,123 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     agents: listRegistryRecords<CreativeAgentSpec>("creative-agent-specs"),
   }));
 
+  server.get("/publishing/tiktok/readiness", { preHandler: requireVideoWriteAuth }, async () => ({
+    readiness: await getTikTokPublishingReadiness(),
+  }));
+
+  server.get("/publishing/tiktok/oauth/start", async (_request, reply) => {
+    try {
+      const { userId, redirectUri } = requireLocalTikTokOAuth();
+      const now = Date.now();
+      for (const [state, record] of tiktokOAuthStates) {
+        if (record.expiresAt <= now) tiktokOAuthStates.delete(state);
+      }
+      const state = randomBytes(32).toString("base64url");
+      tiktokOAuthStates.set(state, { userId, expiresAt: now + TIKTOK_OAUTH_STATE_TTL_MS });
+      const authorizationUrl = buildTikTokAuthorizationUrl({
+        state,
+        redirectUri,
+        scopes: ["user.info.basic", "video.publish"],
+      });
+      return reply.redirect(authorizationUrl);
+    } catch (error) {
+      return reply.status(503).send({
+        error: "tiktok_oauth_unavailable",
+        message: error instanceof Error ? error.message : "TikTok OAuth is unavailable",
+      });
+    }
+  });
+
+  server.get<{ Querystring: Record<string, unknown> }>(
+    "/publishing/tiktok/oauth/callback",
+    async (request, reply) => {
+      reply.header("cache-control", "no-store");
+      try {
+        const querySchema = z.object({
+          code: z.string().min(1).optional(),
+          state: z.string().min(1).optional(),
+          error: z.string().optional(),
+          error_description: z.string().optional(),
+        });
+        const parsed = querySchema.safeParse(request.query);
+        if (!parsed.success) return reply.status(400).type("text/plain").send("Invalid TikTok OAuth callback");
+        if (parsed.data.error) {
+          return reply.status(400).type("text/plain").send(`TikTok authorization denied: ${parsed.data.error_description ?? parsed.data.error}`);
+        }
+        const state = parsed.data.state ?? "";
+        const code = parsed.data.code ?? "";
+        const pending = tiktokOAuthStates.get(state);
+        if (!pending || pending.expiresAt <= Date.now()) {
+          tiktokOAuthStates.delete(state);
+          return reply.status(400).type("text/plain").send("TikTok OAuth state is invalid or expired");
+        }
+        tiktokOAuthStates.delete(state);
+        const { redirectUri } = requireLocalTikTokOAuth();
+        const account = await exchangeTikTokAuthorizationCode({
+          userId: pending.userId,
+          code,
+          redirectUri,
+        });
+        return reply
+          .status(200)
+          .type("text/plain")
+          .send(
+            [
+              "TikTok authorization complete.",
+              `Account ID: ${account.id}`,
+              `Status: ${account.status}`,
+              `Scopes: ${account.scopes.join(", ")}`,
+              "Return to the Yap Engine operator runbook and execute the controlled SELF_ONLY verification command.",
+            ].join("\n"),
+          );
+      } catch (error) {
+        return reply.status(502).type("text/plain").send(`TikTok OAuth callback failed: ${error instanceof Error ? error.message : "unknown error"}`);
+      }
+    },
+  );
+
+  server.post<{ Body: unknown }>(
+    "/render/callback",
+    async (request, reply) => {
+      const expected = readSecretEnv("SWARMX_RENDER_CALLBACK_SECRET");
+      const provided = request.headers["x-swarmx-render-callback-secret"];
+      const candidate = Array.isArray(provided) ? provided[0] : provided;
+      if (!expected || candidate !== expected) {
+        return reply.status(401).send({ error: "unauthorized", message: "Invalid render callback credentials" });
+      }
+
+      const parsed = RenderCallbackBodySchema.safeParse(request.body);
+      if (!parsed.success) return sendParseError(reply, parsed.error);
+
+      const sql = (await import("../lib/neon-db.js")).getNeonSql();
+      const value = parsed.data;
+      const errorJson = value.status === "failed"
+        ? JSON.stringify({ message: value.error ?? "AWS render job failed unrecoverably", source: "aws-render-callback" })
+        : null;
+      const rows = (await sql`
+        INSERT INTO public.render_jobs (
+          id, provider, status, idempotency_key, manifest_key, output_key, checksum,
+          duration_ms, updated_at, error
+        ) VALUES (
+          ${value.jobId}, 'aws_fargate', ${value.status}, ${value.jobId},
+          ${value.manifestKey}, ${value.outputKey ?? null}, ${value.checksum ?? null},
+          ${value.durationMs ?? null}, now(), ${errorJson}::jsonb
+        )
+        ON CONFLICT (idempotency_key) DO UPDATE SET
+          status = EXCLUDED.status,
+          manifest_key = COALESCE(EXCLUDED.manifest_key, public.render_jobs.manifest_key),
+          output_key = COALESCE(EXCLUDED.output_key, public.render_jobs.output_key),
+          checksum = COALESCE(EXCLUDED.checksum, public.render_jobs.checksum),
+          duration_ms = COALESCE(EXCLUDED.duration_ms, public.render_jobs.duration_ms),
+          updated_at = now(),
+          error = EXCLUDED.error
+        RETURNING id, provider, status, idempotency_key, manifest_key, output_key, checksum, duration_ms, updated_at, error
+      `) as unknown as Record<string, unknown>[];
+
+      return reply.status(200).send({ renderJob: rows[0] });
+    },
+  );
+
   server.get("/analytics/monetization", { preHandler: requireVideoWriteAuth }, async () => {
     const observations = await listMonetizationObservations();
     return { observations, summary: summarizeMonetization(observations) };
@@ -534,11 +706,39 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
     async (request, reply) => {
       const parsed = MonetizationObservationBodySchema.safeParse(request.body);
       if (!parsed.success) return sendParseError(reply, parsed.error);
-      const { attributionWindowDays, observedAt, ...rest } = parsed.data;
+      const data = parsed.data;
       const observation = await recordMonetizationObservation({
-        ...rest,
-        ...(observedAt !== undefined ? { observedAt } : {}),
-        ...(attributionWindowDays !== undefined ? { attributionWindowDays } : {}),
+        userId: data.userId,
+        packageId: data.packageId,
+        platform: data.platform,
+        currency: data.currency,
+        platformRewardsCents: data.platformRewardsCents,
+        viewCount: data.viewCount,
+        qualifiedViews: data.qualifiedViews,
+        watchTimeSeconds: data.watchTimeSeconds,
+        completionRate: data.completionRate,
+        shares: data.shares,
+        comments: data.comments,
+        affiliateClicks: data.affiliateClicks,
+        affiliateConversions: data.affiliateConversions,
+        affiliateRevenueCents: data.affiliateRevenueCents,
+        landingPageVisits: data.landingPageVisits,
+        funnelSessions: data.funnelSessions,
+        checkoutStarts: data.checkoutStarts,
+        ownedProductConversions: data.ownedProductConversions,
+        ownedProductRevenueCents: data.ownedProductRevenueCents,
+        sponsorRevenueCents: data.sponsorRevenueCents,
+        llmCostCents: data.llmCostCents,
+        ttsCostCents: data.ttsCostCents,
+        renderCostCents: data.renderCostCents,
+        storageCostCents: data.storageCostCents,
+        egressCostCents: data.egressCostCents,
+        source: data.source,
+        ...(data.contentId !== undefined ? { contentId: data.contentId } : {}),
+        ...(data.campaignId !== undefined ? { campaignId: data.campaignId } : {}),
+        ...(data.publishId !== undefined ? { publishId: data.publishId } : {}),
+        ...(data.observedAt !== undefined ? { observedAt: data.observedAt } : {}),
+        ...(data.attributionWindowDays !== undefined ? { attributionWindowDays: data.attributionWindowDays } : {}),
       });
       return reply.status(201).send({
         observation,

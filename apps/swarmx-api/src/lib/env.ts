@@ -41,6 +41,7 @@ const schema = z.object({
   AWS_REGION: z.string().min(1).default("us-east-1"),
   SWARMX_AWS_RENDER_ENABLED: z.enum(["0", "1"]).default("0"),
   SWARMX_AWS_RENDER_BUCKET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
+  SWARMX_RENDER_CALLBACK_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   NEON_BRANCH: z.string().default("production"),
   NEON_AUTH_BASE_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   NEON_AUTH_JWKS_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
@@ -190,6 +191,8 @@ const schema = z.object({
   SWARMX_TIKTOK_CLIENT_SECRET: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_TIKTOK_TOKEN_ENCRYPTION_KEY: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_TIKTOK_OAUTH_REDIRECT_URI: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
+  // Local-only operator identity used to bind the TikTok OAuth state to a durable user row.
+  SWARMX_TIKTOK_OPERATOR_USER_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_YOUTUBE_API_APPROVED: boolFlag,
 });
 
@@ -200,7 +203,8 @@ export type SecretEnvKey =
   | "SWARMX_TIKTOK_ACCESS_TOKEN"
   | "SWARMX_INSTAGRAM_ACCESS_TOKEN"
   | "SWARMX_YOUTUBE_ACCESS_TOKEN"
-  | "SWARMX_MODAL_RENDER_TOKEN";
+  | "SWARMX_MODAL_RENDER_TOKEN"
+  | "SWARMX_RENDER_CALLBACK_SECRET";
 
 let cached: Env | null = null;
 

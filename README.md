@@ -1,378 +1,331 @@
-# The Yap Engine — Viral Short-Form Video Generation Platform
+# The Yap Engine
 
-> **Powered by SwarmXQ** — an autonomous multi-agent AI runtime<br/>
-> **Runtime:** APEX-17 r8 · CPU-only (HP EliteBook 850 G3 · 16 GB RAM · WSL2)<br/>
-> **Version:** `2026.6.0` · v6 production certification pass (`8f25287`)
+**The Yap Engine** is a local-first short-form video production hub powered by the SwarmXQ runtime. It turns a creative brief into a structured, provenance-aware video package and can render a playable MP4 locally without TikTok, cloud GPU, or public-posting credentials.
 
-The Yap Engine is a viral short-form video generation pipeline — end-to-end, AI-driven, designed for TikTok and YouTube Shorts creators. Feed it a topic; receive a scripted, voiced, captioned MP4 ready to publish. The underlying runtime (SwarmXQ) orchestrates a pressure-aware fleet of local LLMs through Ollama, with memory safety, circuit breakers, and graceful degradation built in for CPU-only hardware.
+> **Production posture:** local generation is independent of social publishing. TikTok is an optional downstream distribution adapter and remains fail-closed until its explicit OAuth, privacy, AI-disclosure, account-verification, and publication gates are satisfied.
 
----
+## Current stack
 
-## Operator Taxonomy
-
-SwarmXQ organizes its model fleet through a **dual-layer naming system** — memorable Operator names for humans, canonical runtime tags for machines.
-
-| Operator | Purpose | Canonical Tag | RAM | 7B? |
-|----------|---------|---------------|-----|-----|
-| **Relay** | Ultra-light routing / intent classification | `route-phi4-lite-q4km-prod` | ~2.5 GB | No |
-| **Pilot** | Fast generalist / intake / session routing | `instruct-phi4-pro-q8-prod` | ~4.3 GB | No |
-| **Architect** | Planning / orchestration / strategy | `plan-{phi4,qwen25,deepseekr1}-pro-*-prod` | 4.3–5.4 GB | Mixed |
-| **Forge** | Code generation / execution / tool use | `code-qwen25-pro-q5km-prod` | ~5.4 GB | Yes |
-| **Oracle** | Deep reasoning / diagnosis / architecture | `reason-deepseekr1-pro-q5km-prod` | ~5.4 GB | Yes |
-| **Auditor** | Adversarial review / critique / safety | `critique-deepseekr1-pro-q5km-prod` | ~5.4 GB | Yes |
-| **Lab** | Experimental / evolution / non-production | `synth-*-exp-*-dev` | 4.4–5.4 GB | Mixed |
-
-**Usage rules:** Code, configs, and Ollama commands use canonical tags. Docs, dashboards, logs, and UI use Operator names. Both layers are synchronized through `MODEL_OPERATOR_MAP` — the single source of truth (defined in `packages/swarmx-types/src/operator-map.ts` and mirrored in `src/swarmx/operator_map.py`).
-
-**Startup behavior by host profile:** the startup script now auto-detects total system RAM and selects either the constrained `8gb` profile or the warmer `16gb` profile. On the `8gb` profile no model is loaded by default, Relay loads on the first eligible request unless `SWARMX_MODEL_STARTUP_PREWARM=1` is set deliberately, and predictive specialist warmup stays off. On the `16gb` profile the startup script allows two resident models, enables a short global reuse window, and opt-in warmups default on. Override auto-detection with `SWARMX_HOST_PROFILE=8gb` or `SWARMX_HOST_PROFILE=16gb` when you need to pin behavior explicitly.
-
----
-
-## Quick Start
-
-### Prerequisites
-
-| Requirement | Verified version | Notes |
+| Layer | Implementation | Role |
 |---|---|---|
-| Node.js | **v24.17.0** | v22 is the package minimum; v24 is the tested runtime |
-| pnpm | **11.9.0** | `npm install -g pnpm@11.9.0` |
-| Python | **3.14.6** | pyproject.toml minimum is 3.11; 3.14 is tested |
-| Ollama | latest | Running locally with GGUF models in `~/llm-local/gguf/` |
-| Redis | 7.x | Required only when `SWARMX_VIDEO_USE_BULLMQ=1` |
-| FFmpeg ≥ 6.0 | system install | **Not in Windows PATH by default** — must be reachable from WSL2 for local video renders |
-| espeak-ng | system install | Fallback TTS for local renders |
-| Kokoro TTS | optional | `pip install '.[tts]'` — recommended for production voice quality |
-| faster-whisper | optional | `pip install '.[video]'` — required for word-level caption alignment |
-| Modal credentials | optional | Required only for cloud GPU renders (`SWARMX_MODAL_RENDER_URL`) |
+| Dashboard | Next.js 16.2.4 + React 19.2.4 + Tailwind CSS v4 | Creator-facing Studio / Creative Hub UI |
+| API | Node.js + Fastify 5 | Video job API, orchestration, auth and publishing adapters |
+| Local AI | Ollama + canonical SwarmXQ model registry | Intent, planning, scripting and storyboard stages |
+| Local media | FFmpeg + FFprobe | Deterministic composition, validation and MP4 export |
+| Local TTS | Piper / espeak-ng; optional Kokoro FastAPI service | Narration |
+| Remote render | Optional Modal GPU / AWS Phase-D | Explicitly optional; disabled by default |
+| Queue | BullMQ + Redis/Upstash | Background job dispatch |
+| Durable state | Neon PostgreSQL | Accounts, render evidence, analytics and attribution |
+| Observability | OpenTelemetry + structured logging | Traceable API and worker execution |
 
-> **Known environment blockers (this host, no code changes needed):**
-> - FFmpeg is not in Windows PATH — run FFmpeg from WSL2 or add it to WSL2's PATH.
-> - `faster-whisper` is not installed — word-level caption alignment is disabled; runs succeed with caption alignment bypassed.
-> - Modal credentials are not provisioned — `SWARMX_VIDEO_RENDER_BACKEND=auto` falls back to local FFmpeg.
+The repository does not contain a separate `apps/scraper` / Crawlee ingestion application. The production Node background worker is the BullMQ video worker under `apps/swarmx-api/src/workers/`.
 
-### Clean Clone Setup
+Fastify is the primary HTTP API. FastAPI is used by the optional local Kokoro TTS microservice and the optional Modal renderer.
+
+## Repository map
+
+```text
+apps/
+  swarmx-api/              Fastify API + BullMQ video worker
+  swarmx-dashboard/        Next.js creator dashboard
+packages/
+  swarmx-types/            Shared contracts + operator/model map
+src/
+  swarmx/                  Python control-plane and optional media services
+docs/                       Operations, video, TikTok, monetization and release gates
+.claude/                    Agent and command governance
+infra/aws-render-cdk/       Optional AWS Phase-D render infrastructure
+benchmarks/coding-agent/    Deterministic coding-agent benchmark harness
+```
+
+## Local 8 GB Windows / WSL2 setup
+
+The constrained profile is the supported safety baseline for an 8 GB Windows machine.
+
+### 1. Requirements
+
+- Windows 10/11 with WSL2
+- Node.js 22+
+- pnpm 12.6.0
+- Python 3.11+
+- Ollama
+- FFmpeg and FFprobe
+- Git
+- local Redis when BullMQ is enabled
+- espeak-ng for the lowest-friction local TTS fallback
+
+Kokoro and faster-whisper are optional. They improve voice quality and caption alignment but are not prerequisites for a basic local FFmpeg MP4.
+
+### 2. Install
 
 ```bash
+git clone https://github.com/sabiscore/the-yap-engine.git
+cd the-yap-engine
 python -m venv .venv
-source .venv/bin/activate          # Windows WSL2 / Linux
+source .venv/bin/activate
 python -m pip install --editable '.[dev]'
+corepack enable
+corepack prepare pnpm@12.6.0 --activate
 pnpm install --frozen-lockfile
 ```
 
-### Launch
+### 3. Verify host tools
 
 ```bash
-bash scripts/startup-enhanced.sh --dashboard
+node --version
+pnpm --version
+python --version
+ollama --version
+which ffmpeg
+which ffprobe
+which espeak-ng
 ```
 
-Dashboard: **http://localhost:3000** · API: **http://localhost:3001/health**
+With Windows + WSL2, FFmpeg must be reachable from the WSL2 process. A Windows installation that is not exposed on the WSL2 PATH is not enough.
 
+### 4. Configure constrained execution
 
-### Environment Variables
+Create `.env.local` at repository root:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `SWARMX_OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama endpoint |
-| `SWARMX_API_URL` | `http://127.0.0.1:3001` | API endpoint for CLI and server-side integrations |
-| `NEXT_PUBLIC_SWARMX_API_URL` | `http://127.0.0.1:3001` | Preferred dashboard API endpoint |
-| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:3001` | Legacy dashboard API fallback |
-| `SWARMX_VIDEO_API_TOKEN` | unset | Write-route token for protected `/api/video/*` mutations |
-| `SWARM_MODEL_FAST` | `instruct-phi4-pro-q8-prod` | Pilot model override |
-| `SWARM_MODEL_CODE` | `code-qwen25-pro-q5km-prod` | Forge model override |
-| `SWARM_MODEL_REASON` | `reason-deepseekr1-pro-q5km-prod` | Oracle model override |
-| `SWARM_MODEL_ULTRA_ROUTER` | `route-phi4-lite-q4km-prod` | Relay model override |
-| `SWARMX_HOST_PROFILE` | `auto` | Auto-detects `constrained_cpu_8gb` or `standard_cpu_16gb`; legacy `8gb`/`16gb` names are accepted as aliases at startup/API boundaries. |
-| `OLLAMA_MAX_LOADED_MODELS` | profile-managed | `1` on `constrained_cpu_8gb`; `2` only under `standard_cpu_16gb` after host measurement and pressure checks. |
-| `OLLAMA_NUM_PARALLEL` | `1` | One inference slot at a time |
-| `OLLAMA_KEEP_ALIVE` | profile-managed | `0` on `constrained_cpu_8gb`; short reuse windows are profile-derived and must not be a universal default. |
-| `SWARMX_MODEL_STARTUP_PREWARM` | profile-managed | Defaults `0` on `constrained_cpu_8gb`; heavyweight startup preload stays off on constrained hosts. |
-| `SWARMX_MODEL_PREDICTIVE_PREWARM` | profile-managed | Defaults `0` on `constrained_cpu_8gb`; standard hosts may opt in after measurement. |
-| `SWARMX_VIDEO_ALLOW_SILENT_AUDIO` | unset | Set to `1` only to permit silent local renders when `espeak-ng` is unavailable |
-
----
-
-## Architecture
-
-The `ModelOrchestrator` singleton enforces memory safety across constrained and standard CPU-only hosts through five mechanisms working in concert. The **single-7B lock** prevents heavyweight co-loads that would overrun physical RAM. **Profile-aware residency policy** keeps the `8gb` profile at strict single-model mode while allowing a short two-model reuse window on the `16gb` profile. **Request-level keep-alive** controls unload behavior per inference. **Warmup controls** avoid silently pinning multi-gigabyte models on constrained hosts. A **serialization mutex** prevents concurrent heavyweight races that cause OOM. Under critical pressure (<800 MB available), **degraded mode** halves context windows and token budgets.
-
-### Pressure Tiers
-
-| Available RAM | Tier | Behavior |
-|---------------|------|----------|
-| ≥ 2500 MB | Normal | Full context, standard keep-alive |
-| 1500–2499 MB | Low-RAM | 75% context, shortened keep-alive |
-| 800–1499 MB | High | Backoff delay before model loads |
-| < 800 MB | Degraded | 50% context, minimal tokens, immediate eviction |
-
-### Core Components
-
-- **Relay** (`route-phi4-lite-q4km-prod`) — lightweight router, loaded on demand unless explicitly prewarmed
-- **ModelOrchestrator** (`apps/swarmx-api/src/services/model-orchestrator.ts`) — SINGLE-7B LOCK, RAM polling, adaptive timeouts
-- **Reasoning Sanitizer** (`apps/swarmx-api/src/services/reasoning-sanitizer.ts`) — strips `<think>` blocks from DeepSeek output
-- **Swarm Pressure Monitor** (`apps/swarmx-api/src/services/swarm-pressure-monitor.ts`) — procfs-based RAM/ZRAM sampling
-- **Evolution Layer** (`src/swarmx/evolution_layer/`) — observe → critique → mutate → validate → deploy cycle, dispatched to Lab Operators
-
----
-
-## Video Generation Pipeline
-
-SwarmXQ includes a pressure-aware, faceless video generation subsystem for TikTok and YouTube Shorts.
-
-The dashboard consumes video API payloads through a local adapter boundary in `apps/swarmx-dashboard/src/lib/video-dashboard.ts`, which normalizes route payloads into dashboard-safe job shapes without coupling the UI to API-internal bridge types.
-
-### Pipeline Stages (Canonical Order)
-
-```
-intent_classification → planning → scripting → storyboard_generation → render_assembly → finalizing
-```
-Post-pipeline (non-blocking): `stageViralityAndCaption()`
-
-1. **Intent Classification** (Pilot by default: `instruct-phi4-pro-q8-prod`) — parse user request into structured intent with deterministic fallback on malformed JSON
-2. **Planning** (Architect by default: `plan-qwen25-pro-q5km-prod`) — generate 5-beat production plan (HOOK, CONTEXT, INSIGHT, PROOF, CTA) tailored to the template family
-3. **Scripting** (Architect by default) — produce narration text conforming to `[HOOK]`, `[BODY]`, `[RESOLUTION]`, `[CTA]` sections and strict tone rules
-4. **Storyboard Generation** (Architect by default) — derive visual scene frames, visual prompts, and camera movements
-5. **Render Assembly** (local FFmpeg by default, ComfyUI optional, Modal GPU cloud fallback) — assemble audio, b-roll/visuals, and kinetic captions into a 1080x1920 MP4
-6. **Finalizing** (API assets layer) — probe artifact with FFprobe, run template-aware QC, and apply metadata
-
-### 10-Template Creative Taxonomy
-
-The Yap Engine provides 10 structured creative templates (`VIDEO_TEMPLATE_FAMILY_VALUES` in `@swarmx/types`):
-
-| Template Family | Structure & Creative Direction |
-|---|---|
-| `myth-vs-fact` | Direct debunking: Hook states the myth, Body reveals the surprising fact, Resolution explains why it persisted |
-| `list/countdown` | Rapid-fire list: Hook establishes stakes, Body cycles through 3–5 items, Resolution synthesizes takeaways (accepts legacy `listicle-countdown`) |
-| `mystery/reveal` | Narrative puzzle: Hook presents an anomaly, Body drops clues/breadcrumbs, Resolution delivers the reveal |
-| `product-demo` | Problem/solution showcase: Hook highlights visceral pain point, Body demonstrates solution in action, Resolution shows outcome |
-| `quote-to-insight` | Powerful quote reframe: Hook drops the quote, Body analyzes deeper meaning, Resolution applies it to life |
-| `chart/data` | Data-driven insight: Hook presents a striking stat, Body visualizes trend/context, Resolution delivers implication |
-| `motivational` | Micro-narrative: Hook identifies moment of defeat, Body shows pivot/grind, Resolution lands triumph |
-| `series-recap` | Fast-paced catch-up: Hook recalls cliffhanger, Body blitzes key plot points, Resolution sets up next episode |
-| `pov-immersion` | First-person immersion: Hook drops viewer into moment without setup, Body unfolds sensory detail, Resolution lands emotional beat |
-| `reddit-story` | Found-story readaloud: Hook quotes provocative thread title, Body escalates through plot turns, Resolution delivers punchline/moral |
-
-Integrations: FFmpeg/FFprobe (>= 6.0), server-side VoiceProvider adapters (Kokoro TTS, Piper, `espeak-ng` fallback), ComfyUI, Modal GPU cloud backend, pressure-aware stage gating, and graceful degradation paths. Dashboard: `/video` route with job list, creative brief controls, package/certification state, and detail timeline. For the exact route and payload contract, see [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md).
-
----
-
-## Dashboard Architecture & Visual Design
-
-The Yap Engine dashboard (`apps/swarmx-dashboard`) is built on **Next.js 15 (App Router)**, **React 19**, and **Tailwind CSS v4** with a container-query-driven layout tailored for local, resource-constrained environments:
-
-- **Container-Query Layout Architecture**: Uses a 4-zone responsive CSS Grid (`AppShell.tsx`) with container query variants (`@container` on `<main>`). Supports collapsible navigation (60px / 240px), non-destructive terminal retention across viewport shifts, and a collapsible/floating telemetry drawer.
-- **High-Contrast Telemetry Module (`TelemetryWidget.tsx`)**: High-contrast, semantic status readouts (`text-status-active`, `text-status-warning`, `text-status-error`) for CPU load, ZRAM utilization, active agent fleet fanout, and Ollama model warming states. Includes accessible `aria-live="polite"` regions and WCAG 2.1 AA compliant contrast.
-- **Progressive Disclosure Video Studio (`VideoJobForm.tsx`)**: Form inputs are organized into 3 domain-specific collapsible groups (`<details>`/`<summary>`):
-  1. *Model Tier & Execution*: Deduplicated template selection and inline model tier architecture reference.
-  2. *Voice & Audio Settings*: Kokoro voice selection, audio previews, and pacing.
-  3. *Creative & Visual Parameters*: Niche, tone, visual style, caption formatting, and audience targeting.
-- **Tabbed Queue Management (`video/page.tsx`)**: Radix UI tabs provide structured queue triage across 4 dedicated views:
-  - **Active**: Real-time rendering stages with emerald status borders, glow, and motion-safe pulse.
-  - **Queued**: Drag-and-drop and one-click reordering controls.
-  - **Failed**: Focused dead-letter triage and stage-level retry affordances.
-  - **History**: Completed video renders with direct download and playback actions.
-- **Contextual Card Quick Actions (`VideoJobCard.tsx`)**: Hover and `focus-within` floating toolbar supporting instant Retry, Cancel, Move Up/Down, Download, and Error Inspection with accessible keyboard focus rings and `stopPropagation` click isolation.
-
-Operational note: the compiled Fastify entrypoint resolves to `apps/swarmx-api/dist/apps/swarmx-api/src/server.js` because the API TypeScript build uses the monorepo root as `rootDir`.
-
----
-
-## Migration & Compatibility
-
-Canonical tags are preferred in all runtime config, scripts, and operator workflows.
-Legacy `-scar` tags still resolve automatically through `MODEL_ALIASES` during the migration window:
-
-```
-phi4-fast-scar         → instruct-phi4-pro-q8-prod   (Pilot)
-deepseek-reasoner-scar → reason-deepseekr1-pro-q5km-prod  (Oracle)
-qwen-worker-scar       → code-qwen25-pro-q5km-prod   (Forge)
+```dotenv
+NODE_ENV=development
+SWARMX_API_HOST=127.0.0.1
+SWARMX_API_PORT=3001
+SWARMX_DASHBOARD_ORIGIN=http://localhost:3000
+NEXT_PUBLIC_SWARMX_API_URL=http://localhost:3001
+SWARMX_HOST_PROFILE=constrained_cpu_8gb
+SWARMX_PHASE_ABC_EXECUTION=local
+SWARMX_PHASE_D_EXECUTION=local
+MAX_CONCURRENT_JOBS=1
+SWARMX_VIDEO_MAX_CONCURRENT_JOBS=1
+OLLAMA_NUM_PARALLEL=1
+OLLAMA_MAX_LOADED_MODELS=1
+OLLAMA_KEEP_ALIVE=0
+SWARMX_VIDEO_LOW_RAM_MODE=1
+SWARMX_VIDEO_USE_BULLMQ=1
+REDIS_URL=redis://127.0.0.1:6379
+SWARMX_AWS_RENDER_ENABLED=0
+SWARMX_TIKTOK_API_APPROVED=0
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
+SWARMX_TIKTOK_PRIVACY_LEVEL=SELF_ONLY
+DATABASE_URL=<NEON_POOLED_CONNECTION>
+DATABASE_URL_UNPOOLED=<NEON_DIRECT_CONNECTION>
+NEON_BRANCH=production
 ```
 
-Pre-scar tags (V5 and earlier) also resolve: `phi4-mini`, `deepseek-r1`, `qwen2.5-coder`, etc.
+Never put TikTok secrets, refresh tokens or server write tokens in `NEXT_PUBLIC_*` variables.
 
-`scripts/startup-enhanced.sh` now auto-detects the host profile from total RAM and applies the matching Ollama defaults automatically. The constrained `constrained_cpu_8gb` profile clamps `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=1`, and `OLLAMA_KEEP_ALIVE=0`; `standard_cpu_16gb` keeps `OLLAMA_NUM_PARALLEL=1` and may allow two resident models only after measurement and pressure checks. Set `SWARMX_HOST_PROFILE=constrained_cpu_8gb` or `SWARMX_HOST_PROFILE=standard_cpu_16gb` in `.env.local` to pin the profile explicitly.
-
-### Legacy r7 migration
-
-The current runtime uses canonical tags. Only repositories still on the legacy r7 naming scheme need the migration guide in **[docs/SETUP_AND_IMPLEMENTATION.md](docs/SETUP_AND_IMPLEMENTATION.md)**:
+### 5. Start
 
 ```bash
-bash scripts/migrate-to-r7.sh --apply
+pnpm --filter @swarmx/api dev
 ```
 
-Validate after migration:
+In another terminal:
 
 ```bash
-source .venv/bin/activate
-python -m pip install --editable '.[dev]'
-pnpm --filter @swarmx/types typecheck
-pnpm --filter @swarmx/api build
-pnpm --filter @swarmx/api test
-pnpm --filter @swarmx/api run test:regression
+pnpm --filter @swarmx/dashboard dev
+```
+
+Use `http://localhost:3000` for the dashboard and `http://127.0.0.1:3001/health` for API health.
+
+## Local video generation
+
+TikTok is not a prerequisite for generation.
+
+```text
+Creative brief
+  -> Intent classification
+  -> Planning
+  -> Scripting
+  -> Storyboard
+  -> Asset and provenance validation
+  -> Audio/TTS + timing
+  -> FFmpeg render
+  -> FFprobe + QC + checksums
+  -> MP4 + production package
+```
+
+The dashboard defaults new video jobs to the **Generic** output profile. Selecting TikTok is a downstream output choice; it does not authenticate or publish during generation.
+
+Smoke test:
+
+```bash
 pnpm --filter @swarmx/api run test:video:smoke
-pnpm --filter @swarmx/dashboard typecheck
-python -m pytest
-python -m ruff check .
-python -m mypy src
-bash scripts/rebuild-all-modelfiles.sh --validate
-python -m pytest tests/test_naming_validation.py -v
-bash scripts/swarm-healthcheck-apex17.sh
 ```
 
-Operational note: on 8 GB hosts, `scripts/swarm-healthcheck-apex17.sh` may report `HEALTH: DEGRADED`
-when free RAM falls below 800 MB or Ollama probe latency pushes Relay/model checks past their timeout.
-That result indicates runtime pressure, not necessarily a build or type-safety regression.
-
-### Validate Before Release
-
-Run after activating `.venv`. The Makefile automatically uses `.venv/bin/python` when present.
+Regression contracts:
 
 ```bash
-# TypeScript type-checking
-pnpm -F @swarmx/types typecheck
-pnpm -F @swarmx/api typecheck
-pnpm -F @swarmx/dashboard typecheck
-# (or from repository root: pnpm typecheck)
-
-# Tests
-pnpm -F @swarmx/dashboard test              # 69 passing (9 test files)
-pnpm -F @swarmx/api test                    # 377 passing (26 test files)
-# (or from repository root: pnpm test)
-
-# API regression scripts (require running API / local environment)
-pnpm -F @swarmx/api run test:video          # video pipeline regression assertions
-pnpm -F @swarmx/api run test:regression     # full regression suite (7 scripts)
-pnpm -F @swarmx/api run test:models         # model registry / Modelfile check
-pnpm -F @swarmx/api run test:factory        # creative factory release check
-
-# Python
-make test
-make typecheck-py
-
-# Build
-pnpm -F @swarmx/dashboard build
-pnpm -F @swarmx/api build
-# (or from repository root: pnpm build)
-
-# Invariant checks
-grep -rn 'console\.' apps/swarmx-api/src/services apps/swarmx-api/src/routes  # → 0 hits
-grep -rn '\-scar' apps/ packages/ src/                                          # → 0 hits
+pnpm --filter @swarmx/api run test:video
+pnpm --filter @swarmx/api run test:video:quality
 ```
 
+## 8 GB memory policy
 
----
+The constrained profile enforces a single inference and single video job:
 
-## CLI Entry Points
+```text
+OLLAMA_NUM_PARALLEL              = 1
+OLLAMA_MAX_LOADED_MODELS         = 1
+SWARMX_VIDEO_MAX_CONCURRENT_JOBS = 1
+worker concurrency               = 1
+```
 
-| Command | Purpose |
-|---------|---------|
-| `swarm run` | Mission execution |
-| `swarm evolve` | Proposal generation and gated application |
-| `swarm evolve-layer` | Autonomous self-improvement cycle (Lab Operators) |
-| `swarm status` | Runtime state and telemetry |
-| `swarm dashboard` | Browser dashboard |
-| `swarm doctor` | Health diagnostics |
+The runtime also monitors available RAM, selects a low-RAM model when admission requires it, evicts incompatible resident models, serializes heavyweight transitions, and reduces context/token budgets under pressure.
 
----
+These controls are implemented in `hybrid-execution.ts`, `video-runtime-config.ts`, `video-queue.ts` and `model-orchestrator.ts`.
+
+## Creative originality and provenance
+
+```text
+Creative DNA
+   -> Concept generation / tournament
+   -> Scene graph / storyboard
+   -> Substantive visual composition
+   -> Audio timing + caption alignment
+   -> Rights / provenance package
+   -> Technical + creative + continuity + compliance QC
+   -> Render / export
+```
+
+The creative compiler creates a content-addressed cache key from Creative DNA identity, scenes, background recipes, audio timing, renderer version and asset hashes. Invalid scene intervals and overlaps are rejected.
+
+The platform-integrity policy requires original narrative, substantive editorial structure, meaningful scene composition, rights-cleared assets and provenance. No fingerprint spoofing, hash manipulation, proxy rotation, CAPTCHA bypass or artificial engagement is supported.
+
+## Hybrid execution
+
+| Phase | Responsibility | Execution |
+|---|---|---|
+| A | Creative architecture / intent / planning | Local |
+| B | Asset sourcing / provenance / composition planning | Local |
+| C | Audio Timing Spine / TTS orchestration | Local |
+| D | Heavy asynchronous rendering | Local FFmpeg unless explicitly enabled |
+| E | Managed state / analytics / learning evidence | Cloud-backed where configured |
+
+AWS Phase-D remains disabled until its deployment and end-to-end release gate is independently evidenced:
+
+```dotenv
+SWARMX_AWS_RENDER_ENABLED=0
+```
+
+## Cloud integration
+
+### Vercel
+
+The current Vercel project is the Fastify API deployment. Its build contract is `pnpm install --frozen-lockfile`, then `@swarmx/types build` and `@swarmx/api build`. The dashboard remains its own Next.js application in the monorepo.
+
+### Render
+
+`render.yaml` defines the authoritative BullMQ worker. It connects to Upstash Redis and Neon, runs one video job at a time, keeps A-C local, and leaves AWS rendering disabled.
+
+### Neon
+
+Neon stores durable TikTok account state, render evidence and monetization observations. Use pooled connections for normal queries and the direct/unpooled connection for schema operations where required by the repository.
+
+### Upstash Redis
+
+Upstash Redis provides the managed queue/cache coordination used by BullMQ in the worker deployment. Keep `SWARMX_REDIS_PROVIDER=upstash` and `SWARMX_VIDEO_USE_BULLMQ=1` for the managed worker.
+
+## TikTok publishing
+
+TikTok is an optional downstream distribution adapter.
+
+```text
+OAuth 2.0
+  -> durable tiktok_accounts row (active)
+  -> creator_info/query
+  -> controlled SELF_ONLY verification
+  -> video/init using video.publish
+  -> chunked FILE_UPLOAD
+  -> status/fetch
+  -> controlled_verified
+  -> separate public-post gate and applicable audit requirements
+```
+
+The controlled verification path requires `privacy_level=SELF_ONLY` and `is_aigc=true`. Direct Post uses `video.publish`; `video.upload` is the separate draft-upload flow.
+
+The publisher uses the provider-returned upload URL and bounded `Content-Range` chunks, then polls post status. Public posting remains independently disabled until the applicable TikTok requirements are satisfied.
+
+See [docs/TIKTOK_SETUP.md](docs/TIKTOK_SETUP.md) and [docs/TIKTOK-CONTROLLED-VERIFICATION.md](docs/TIKTOK-CONTROLLED-VERIFICATION.md).
+
+## Durable multi-account TikTok storage
+
+`public.tiktok_accounts` stores one durable account identity per `user_id + open_id`, including encrypted token ciphertext, expiry timestamps, granted scopes and lifecycle status.
+
+Supported status values are `active`, `controlled_verified`, `reauthorization_required`, `revoked` and `disabled`.
+
+The normal Direct Post scope set is `user.info.basic` plus `video.publish`. Client keys, client secrets, access tokens and refresh tokens stay server-side.
+
+Never manually write `controlled_verified`; the controlled-verification command promotes the real durable row only after a real successful provider result.
+
+## Empirical monetization
+
+Monetization is observation-based, not projection-based.
+
+Track platform rewards, affiliate revenue, owned-product revenue, sponsorship revenue, LLM/TTS/render/storage/egress costs, view and watch metrics, engagement and deterministic attribution identifiers.
+
+```text
+contribution margin = observed revenue - observed LLM/TTS/render/storage/egress cost
+```
+
+Do not treat assumed RPM, CPM or expected virality as observed performance. P25/P50/P75 distributions are meaningful only after enough real observations exist.
+
+See [docs/CREATIVE-HUB-MONETIZATION.md](docs/CREATIVE-HUB-MONETIZATION.md).
+
+## UI / UX
+
+The dashboard uses Obsidian Nocturne v2:
+
+```text
+#050508  base
+#0B0D12  panel
+#11141B  raised panel
+#252A33  border
+#3A424E  active border
+#00E5FF  cyan
+#00FF66  green accent
+#F1F5F9  primary text
+#7C8794  muted text
+#FF5C5C  error
+#F5C451  pending / warning
+```
+
+Creative Hub surfaces the states `RUNNING`, `QC_FAILED`, `NEEDS_REVISION`, `REVIEW_REQUIRED` and `READY_TO_POST`. Publishing authorization remains a separate gate from generation.
+
+The dashboard includes safe-area handling, visible focus states, reduced-motion support and touch-friendly controls for mobile production use.
+
+## Validation
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm validate:openclaw
+pnpm --filter @swarmx/api run test:video
+pnpm --filter @swarmx/api run test:video:quality
+pnpm --filter @swarmx/api run test:video:smoke
+```
+
+Use [docs/RELEASE-GATE-CHECKLIST.md](docs/RELEASE-GATE-CHECKLIST.md) for exact-head CI, deployment, AWS, TikTok, monetization and mobile evidence.
+
+## Evidence posture
+
+Automated green CI does not by itself certify local hardware, AWS deployment, TikTok controlled verification, public posting or physical-device UX. Those gates require their own evidence and remain fail-closed when absent.
 
 ## Documentation
 
 | Document | Purpose |
-|----------|---------|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | **Get running in five minutes** |
-| [docs/STARTUP_GUIDE.md](docs/STARTUP_GUIDE.md) | Full startup, env-var reference, cold-start tuning |
-| [docs/INSTALL.md](docs/INSTALL.md) | Detailed prerequisites, models, Redis, environment |
-| [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md) | All environment variables and runtime config options |
-| [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md) | Video pipeline route/payload contract, stage details |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common problems, debug flags, `swarm doctor` flow |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Day-to-day operator commands |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Full version history |
-| `ARCHITECTURE.md` | System architecture deep dive |
-| `SAFETY.md` | Safety guardrails and execution policy |
-| [docs/SETUP_AND_IMPLEMENTATION.md](docs/SETUP_AND_IMPLEMENTATION.md) | Historical r7 migration guide (r8 repos: skip this) |
-| `manifests/swarmx_model_manifest.yaml` | Bundle manifest with replacement matrix |
+|---|---|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Fast local startup |
+| [docs/VIDEO-GENERATION.md](docs/VIDEO-GENERATION.md) | Video route, stage and local-generation contract |
+| [docs/CREATIVE-HUB-MONETIZATION.md](docs/CREATIVE-HUB-MONETIZATION.md) | Empirical contribution-margin model |
+| [docs/TIKTOK_SETUP.md](docs/TIKTOK_SETUP.md) | OAuth, scopes and publishing setup |
+| [docs/TIKTOK-CONTROLLED-VERIFICATION.md](docs/TIKTOK-CONTROLLED-VERIFICATION.md) | Controlled SELF_ONLY verification |
+| [docs/RELEASE-GATE-CHECKLIST.md](docs/RELEASE-GATE-CHECKLIST.md) | Production evidence gates |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Operational diagnosis |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Day-to-day operations |
 
+## Project policy
 
----
-
-## Troubleshooting
-
-**Dashboard shows 404** — Ensure API is running: `curl http://127.0.0.1:3001/health`
-
-**Composer hangs on first call** — Cold model loads take 60–120s on constrained hosts. Startup and predictive warmup are off by default on 8 GB machines. Use the "SwarmX: Warm Relay Opt-In" VS Code task only when you intentionally want a short prewarm window.
-
-**OOM on 7B load** — Run the "Evict 7B Models" VS Code task or `ollama ps` followed by `ollama stop <model>`, then retry. The API pre-evicts incompatible resident models before 7B loads, but a manually pinned Ollama model can still consume headroom.
-
-**Video render fails before completion** — Verify local media binaries. On Windows/WSL2, FFmpeg must be on the WSL2 PATH (not Windows PATH):
-
-```bash
-which ffmpeg                                # must resolve in WSL2
-which ffprobe
-which espeak-ng
-pnpm -F @swarmx/api run test:video:smoke   # smoke render test
-```
-
-**Naming validation fails** — Run `bash scripts/migrate-to-r7.sh --dry-run` to see what's out of sync, then `bash scripts/migrate-to-r7.sh --apply`.
-
-**Port conflict** — `lsof -i :3000` / `lsof -i :3001` to find and kill stale processes.
-
----
-
-## Philosophy
-
-*The incision is precise.* The Yap Engine (powered by SwarmXQ) rejects ornamental complexity. Every layer — naming, orchestration, pressure governance, video pipeline — answers a specific failure mode observed on real constrained hardware. When something feels over-engineered, it's because the alternative crashed.
-
-## OpenClaw Coding-Agent & Creative Intelligence Integration
-
-OpenClaw operates as an outer human-facing control plane and bounded coding/research worker around SwarmXQ. It does **not** replace SwarmXQ's `ModelOrchestrator`, pressure governor, Operator taxonomy, or fail-closed invariants.
-
-```
-Telegram / Discord / Local Operator
-                 │
-                 ▼
-             OpenClaw
-    (Human Control + Coding Agent)
-                 │
-         Approved Tools Only
-                 │
-                 ▼
-           SwarmXQ API / CLI
-                 │
-         ModelOrchestrator
-                 │
-                 ▼
-               Ollama
-      (Single Inference Slot)
-                 │
-                 ▼
-          SwarmX Operators
-```
-
-### Components & Contracts
-- **Reference Configuration**: `integrations/openclaw/config.json5` (lean local-model mode, non-main docker sandboxing, network/browser tools denied).
-- **Engineering Directive**: `docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md` (canonical boundaries, SINGLE-7B lock, hardware profiles).
-- **Static Invariant Validator**: `pnpm validate:openclaw` (validates authority, residency gates, and skill completeness).
-- **Deterministic Coding Benchmark**: `benchmarks/coding-agent/` (bounded 5-tool surface: `list_files`, `read_file`, `search_repo`, `write_file`, `run_validation`).
-- **Baseline Harness**: `pnpm bench:coding-agent --model code-qwen25-pro-q5km-prod` (Forge control model).
-- **Advisory Multimodal Vision**: `integrations/openclaw/skills/swarmx-vision-storyboard/` (`qwen3-vl:4b` on-demand advisory worker for composition and OCR safety).
-- **Creative Skills Suite**: 5 production skills in `integrations/openclaw/skills/` (`swarmx-creative-director`, `swarmx-virality-critic`, `swarmx-doctor`, `swarmx-vision-storyboard`, `swarmx-virality-cheatbook`).
-
----
-
-## Test & Certification Matrix
-
-All production gates are verified and passing across the monorepo:
-
-| Quality Gate | Command | Result |
-|---|---|---|
-| OpenClaw Validator | `pnpm validate:openclaw` | **PASS** (0 errors) |
-| Monorepo Typecheck | `pnpm typecheck` | **PASS** (0 errors across `@swarmx/types`, `@swarmx/api`, `@swarmx/dashboard`) |
-| Dashboard Test Suite | `pnpm -F @swarmx/dashboard test` | **PASS** (89/89 tests passing across 10 suites) |
-| API Test Suite | `pnpm -F @swarmx/api test` | **PASS** (377/377 tests passing across 26 suites) |
-| Video Smoke Render | `pnpm -F @swarmx/api run test:video:smoke` | **PASS** (720x1280 MP4 rendered with FFmpeg) |
-| Video Regression Check | `pnpm -F @swarmx/api run test:video` | **PASS** (State machine, idempotency, retry, circuit breakers) |
-| Reasoning Sanitizer Check | `pnpm -F @swarmx/api exec tsx scripts/reasoning-sanitizer-regression.ts` | **PASS** (DeepSeek `<think>` block sanitization) |
-| Invariant Audits | `grep -rn 'console\.' ...` / `grep -rn '\-scar' ...` | **PASS** (0 console hits in services/routes, 0 legacy tags) |
-| Next.js Production Build | `pnpm -F @swarmx/dashboard build` | **PASS** (All 16 routes compiled) |
-
-Total Automated Tests: **466 / 466 (100% GREEN)**
-\n
+Read `CLAUDE.md`, `SAFETY.md` and the release-gate documents before changing execution, memory or publication behavior.
