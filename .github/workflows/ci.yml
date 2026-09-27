@@ -78,9 +78,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 12.6.0
+        # pnpm v12 is supported by action-setup v6. Omit "version" so the
+        # exact version + integrity remain single-sourced from root package.json.
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
