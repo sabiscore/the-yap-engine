@@ -206,11 +206,11 @@ jobs:
 
       # ── Gate 6.5 · AWS Phase-D CDK synthesis ───────────────────────────────
       # Synthesis-only validation; no infrastructure mutation occurs here.
-      - name: Gate 6.5 — AWS Phase-D CDK synth
-        working-directory: infra/aws-render-cdk
+      - name: Gate 6.5 — AWS Phase-D CDK build + synth
         run: |
-          pnpm install --no-frozen-lockfile
-          pnpm exec cdk synth
+          pnpm --filter yap-engine-aws-render-cdk build
+          if [ "$?" -ne 0 ]; then exit 1; fi
+          pnpm --filter yap-engine-aws-render-cdk synth
 
       # ── Gate 7 · Dashboard next build (≥14 routes, 0 build errors) ────────
 
@@ -331,3 +331,30 @@ jobs:
         run: |
           pnpm build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  # Temporary lockfile materialization job. Remove this job immediately after
+  # committing the generated pnpm-lock.yaml to the branch.
+  lockfile-materialization:
+    name: Materialize pnpm lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pnpm-lockfile
+          path: pnpm-lock.yaml
+          if-no-files-found: error
