@@ -209,7 +209,7 @@ jobs:
       - name: Gate 6.5 — AWS Phase-D CDK synth
         working-directory: infra/aws-render-cdk
         run: |
-          pnpm install --no-frozen-lockfile
+          pnpm install --no-frozen-lockfile --config.strict-dep-builds=false
           pnpm exec cdk synth
 
       # ── Gate 7 · Dashboard next build (≥14 routes, 0 build errors) ────────
