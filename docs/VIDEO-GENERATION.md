@@ -440,7 +440,7 @@ Observed smoke result on the current local stack: the route returns `201 Created
 ```bash
 curl -X POST http://localhost:3001/api/video/jobs \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Explain compound interest in a way that motivates a first-time investor", "platform": "tiktok", "niche": "finance", "targetDurationSeconds": 45, "audience":"first-time investors", "tone":"warm", "style":"faceless_broll", "captionStyle":"bold_center", "voice":"narrator", "voiceProfileId":"kokoro_narrator", "storyMode":"single_narrator"}'
+  -d '{"prompt": "Explain compound interest in a way that motivates a first-time investor", "platform": "generic", "niche": "finance", "targetDurationSeconds": 45, "audience":"first-time investors", "tone":"warm", "style":"faceless_broll", "captionStyle":"bold_center", "voice":"narrator", "voiceProfileId":"kokoro_narrator", "storyMode":"single_narrator"}'
 ```
 
 **Response `201`:**
@@ -498,7 +498,7 @@ curl "http://localhost:3001/api/video/jobs?limit=10"
       "status": "running",
       "request": {
         "prompt": "A 30-second motivational video about starting your first business",
-        "platform": "tiktok"
+        "platform": "generic"
       },
       "overallProgress": 35,
       "createdAt": "2026-05-21T09:55:00.000Z",
@@ -533,7 +533,7 @@ curl http://localhost:3001/api/video/jobs/550e8400-e29b-41d4-a716-446655440000
   "status": "running",
   "request": {
     "prompt": "A 30-second motivational video about starting your first business",
-    "platform": "tiktok"
+    "platform": "generic"
   },
   "stages": {
     "scripting": {
@@ -629,7 +629,7 @@ Create a platform-specific publish handoff record. The API persists the publish 
 curl -X POST http://localhost:3001/api/video/jobs/550e8400-e29b-41d4-a716-446655440000/publish \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SWARMX_VIDEO_API_TOKEN" \
-  -d '{"platform":"tiktok"}'
+  -d '{"platform":"generic"}'
 ```
 
 **Response shape:**
@@ -642,7 +642,7 @@ curl -X POST http://localhost:3001/api/video/jobs/550e8400-e29b-41d4-a716-446655
     "publishHistory": [
       {
         "publishId": "2d24...",
-        "platform": "tiktok",
+        "platform": "generic",
         "status": "pending_review",
         "approvalState": "pending_review",
         "deliveryMode": "studio_export",
@@ -656,7 +656,7 @@ curl -X POST http://localhost:3001/api/video/jobs/550e8400-e29b-41d4-a716-446655
   },
   "result": {
     "publishId": "2d24...",
-    "platform": "tiktok",
+    "platform": "generic",
     "status": "pending_review"
   }
 }
@@ -679,7 +679,7 @@ Generate a standalone caption draft without creating a full video job.
 curl -X POST http://localhost:3001/api/video/caption-draft \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SWARMX_VIDEO_API_TOKEN" \
-  -d '{"prompt":"How compound interest changes your life","platform":"tiktok"}'
+  -d '{"prompt":"How compound interest changes your life","platform":"generic"}'
 ```
 
 Observed smoke result on the current local stack: the route reaches handler logic and returns `503 caption_generation_unavailable` when the caption generator cannot complete within the available runtime conditions.
@@ -696,7 +696,7 @@ video will become viral.
 curl -X POST http://localhost:3001/api/video/virality-score \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SWARMX_VIDEO_API_TOKEN" \
-  -d '{"prompt":"How compound interest changes your life","platform":"tiktok","durationSec":30}'
+  -d '{"prompt":"How compound interest changes your life","platform":"generic","durationSec":30}'
 ```
 
 ### POST /api/video/caption/score
@@ -710,7 +710,7 @@ Rate limit: 10 requests/minute per connection by default
 curl -X POST http://localhost:3001/api/video/caption/score \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SWARMX_VIDEO_API_TOKEN" \
-  -d '{"prompt":"How compound interest changes your life","platform":"tiktok"}'
+  -d '{"prompt":"How compound interest changes your life","platform":"generic"}'
 ```
 
 Returns `429` when the per-connection rate limit is exceeded.
