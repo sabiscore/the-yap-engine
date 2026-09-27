@@ -1,82 +1,129 @@
 # TikTok Publishing Setup
 
-The Yap Engine uses TikTok's official OAuth 2.0 and Content Posting API.
+The Yap Engine uses TikTok Login Kit / OAuth 2.0 and the official Content Posting API. TikTok is a downstream publishing integration; it is never a prerequisite for local video generation.
 
-## Direct Post prerequisites
-1. Register a TikTok developer application.
-2. Add the Content Posting API product.
-3. Obtain approval for the video.publish scope.
-4. Configure the application's web redirect URI.
-5. Authorize the target creator account.
-6. Store tokens only on the server.
-7. Complete TikTok's applicable audit/review before expecting public Direct Posts from an unaudited client.
+## 1. Developer application
 
-TikTok documents the current Direct Post flow as creator-info query → video init → upload to the returned upload URL → status fetch.
+1. Create/select the TikTok developer application.
+2. Add the **Content Posting API** product.
+3. Request/obtain the `video.publish` scope for Direct Post.
+4. Register the exact web redirect URI used by the Yap Engine.
+5. Keep client secrets server-side.
 
-## Environment
-Set server-side secrets:
+`video.upload` is a different draft-upload flow. It does not replace `video.publish` for Direct Post.
 
-SWARMX_TIKTOK_ACCESS_TOKEN=
-SWARMX_TIKTOK_CLIENT_KEY=
-SWARMX_TIKTOK_CLIENT_SECRET=
+## 2. Server environment
+
+```dotenv
 SWARMX_TIKTOK_API_APPROVED=0
 SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
 SWARMX_TIKTOK_PRIVACY_LEVEL=SELF_ONLY
+SWARMX_TIKTOK_CLIENT_KEY=<server-secret>
+SWARMX_TIKTOK_CLIENT_SECRET=<server-secret>
+SWARMX_TIKTOK_TOKEN_ENCRYPTION_KEY=<32-byte-base64-key>
+SWARMX_TIKTOK_OAUTH_REDIRECT_URI=<registered-redirect-uri>
+```
 
-SWARMX_TIKTOK_PRIVACY_LEVEL must match an option returned by TikTok's creator-info endpoint. SELF_ONLY is the safe default. Public/privacy selections are ignored until the second-stage public-post gate is explicitly enabled after controlled verification.
-Never use NEXT_PUBLIC_* for TikTok credentials.
+Never use `NEXT_PUBLIC_*` for TikTok credentials, tokens or encryption keys.
 
-## OAuth lifecycle
-TikTok's current OAuth documentation states access tokens are valid for 24 hours and refresh tokens for 365 days. Refresh proactively 10–30 minutes before access-token expiry and persist any rotated refresh token.
-The production implementation should persist the token set by creator/account identity in durable server-side state rather than relying on a static environment access token for multi-account operation.
+## 3. OAuth and durable multi-account state
 
-## Direct Post
-The publisher implementation lives at apps/swarmx-api/src/services/publishers/tiktok.ts.
-It must:
-1. query creator information;
-2. honor available privacy choices;
-3. initialize /v2/post/publish/video/init/;
-4. upload using the returned upload_url;
-5. query /v2/post/publish/status/fetch/ with POST;
-6. persist/return the publish identifier and terminal state;
-7. mark AI-generated content with the documented AIGC field.
-The production adapter fails closed to `pending_review` / Studio export when approval, authorization, durable account state, or controlled verification is unavailable.
+The OAuth callback exchanges the authorization code server-side and persists the real TikTok identity in `public.tiktok_accounts`.
 
-## Upload limits and reliability
-TikTok currently documents six requests per minute per user access token for Direct Post initialization; creator-info and status endpoints have separate limits. Use provider-scoped rate limiting, bounded retries and exponential backoff.
-Do not retry indefinitely and do not bypass rate limits.
+The durable row stores:
 
-## AI and originality
-The Yap Engine must not conceal AI generation or attempt to evade originality systems.
-Use genuine creative authorship: original script, original Creative DNA, substantive scene composition, rights-cleared assets, original or authorized audio, and documented provenance.
-Do not use fingerprint spoofing, hash manipulation, proxy rotation, browser stealth or artificial engagement.
+| Field | Purpose |
+|---|---|
+| `user_id` | Yap Engine owner |
+| `open_id` | TikTok creator identity |
+| `access_token_ciphertext` | Encrypted access token |
+| `refresh_token_ciphertext` | Encrypted refresh token |
+| `access_expires_at` | Access-token expiry |
+| `refresh_expires_at` | Refresh-token expiry |
+| `scopes` | Granted OAuth scopes |
+| `status` | Account lifecycle state |
 
-## Review checklist
-- [ ] TikTok app approved for required scope
-- [ ] creator authorization completed
-- [ ] creator privacy options queried
-- [ ] token expiry/refresh lifecycle implemented
-- [ ] AI disclosure handled
-- [ ] rights/QC gates pass
-- [ ] artifact checksum verified
-- [ ] production publish tested with a controlled account
-- [ ] audit/public-visibility requirements satisfied
+Supported status values are `active`, `controlled_verified`, `reauthorization_required`, `revoked` and `disabled`.
+
+TikTok currently documents access tokens as valid for 24 hours and refresh tokens for 365 days. Refreshing may return a new refresh token; the server must persist the returned value. citeturn110339search0
+
+Generate the token-encryption key locally:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+## 4. Exact Direct Post flow
+
+```text
+authorized account
+  -> creator_info/query
+  -> honor returned privacy options
+  -> video/init using video.publish
+  -> FILE_UPLOAD to returned upload_url
+  -> bounded Content-Range chunks
+  -> status/fetch
+  -> persist terminal result
+```
+
+TikTok requires creator information before the export/post experience and the `video.publish` scope for Direct Post. The `privacy_level` sent to initialization must be one of the options returned for that creator. citeturn932929search1turn932929search5
+
+Each Direct Post initialization request is limited to six requests per minute per user access token. The Yap Engine therefore uses a per-account queue lane and bounded retry behavior rather than brute-force retries. citeturn932929search1
+
+For `FILE_UPLOAD`, TikTok documents 5 MB–64 MB chunks (with a larger final chunk allowed) and a maximum video size of 4 GB. citeturn932929search7
+
+## 5. Controlled verification
+
+Controlled verification is deliberately private and evidence-oriented:
+
+```text
+privacy_level = SELF_ONLY
+is_aigc = true
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED = 0
+```
+
+The verification command must query creator info, confirm `SELF_ONLY`, initialize Direct Post, upload the media, poll `status/fetch`, and only then promote the real durable row from `active` to `controlled_verified`.
+
+Do not manually insert or update `controlled_verified`.
+
+Run:
+
+```powershell
+pnpm --filter @swarmx/api tiktok:verify -- `
+  --account-id=<DURABLE_TIKTOK_ACCOUNT_ID> `
+  --output=<PATH_TO_CONTROLLED_MP4> `
+  --prompt="Controlled Yap Engine integration verification — SELF_ONLY" `
+  --confirm-self-only=true
+```
+
+See [docs/TIKTOK-CONTROLLED-VERIFICATION.md](./TIKTOK-CONTROLLED-VERIFICATION.md) for the full operator evidence protocol.
+
+## 6. Public-post gate
+
+Public posting is a separate control:
+
+```dotenv
+SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
+```
+
+Keep it at `0` through controlled verification and until any applicable TikTok audit/visibility requirements have been satisfied. TikTok states that unaudited clients are restricted to private viewing. citeturn932929search1
+
+`READY_TO_POST` in the Creative Hub means the Yap Engine package passed its internal gates. It does not mean that TikTok authorization or public publication is available.
+
+## 7. Security and originality
+
+Never expose client secrets or refresh tokens to browser code or logs.
+
+Do not bypass TikTok controls through CAPTCHA circumvention, proxy rotation, identity rotation, fingerprint spoofing, hash manipulation or artificial engagement.
+
+Generated content should retain substantive originality, rights-cleared assets, audio lineage and provenance evidence.
 
 ## Official references
-- TikTok Content Posting API — Direct Post
-- TikTok Content Posting API — Upload
-- TikTok OAuth User Access Token Management
 
-## Controlled verification runbook
-
-See [`docs/TIKTOK-CONTROLLED-VERIFICATION.md`](./TIKTOK-CONTROLLED-VERIFICATION.md) for the operator checklist, evidence requirements, negative-path checks, and rollback procedure.
-
-## Production promotion gate
-Keep `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0` until the controlled verification command completes successfully for the durable account. The promotion record must show `controlled_verified` before any production Direct Post may honor a non-`SELF_ONLY` privacy selection.
-
-Operational sequence:
-1. Register the exact OAuth redirect URI and required TikTok scopes.
-2. Complete authorization and persist encrypted token state in `tiktok_accounts`.
-3. Run the controlled verification with `--confirm-self-only=true`.
-4. Confirm `creator_info/query` exposes `SELF_ONLY`, the upload succeeds, and `status/fetch` reaches the terminal published state.
-5. Only then enable the second-stage public-post flag, after the applicable TikTok audit/visibility requirements are satisfied.
+- [Direct Post](https://developers.tiktok.com/docs/en/content-posting-api-reference-direct-post)
+- [Get Started — Direct Post](https://developers.tiktok.com/docs/en/content-posting-api-get-started)
+- [Creator Info](https://developers.tiktok.com/docs/en/content-posting-api-reference-query-creator-info)
+- [Upload](https://developers.tiktok.com/docs/en/content-posting-api-reference-upload-video)
+- [Media Transfer Guide](https://developers.tiktok.com/docs/en/content-posting-api-media-transfer-guide)
+- [Get Post Status](https://developers.tiktok.com/docs/en/content-posting-api-reference-get-video-status)
+- [User Access Token Management](https://developers.tiktok.com/docs/en/oauth-user-access-token-management)
