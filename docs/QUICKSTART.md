@@ -158,7 +158,7 @@ curl -X POST http://127.0.0.1:3001/api/video/jobs \
   -d '{
     "prompt": "Why multitasking is a cognitive myth that kills focus",
     "templateFamily": "myth-vs-fact",
-    "platform": "tiktok",
+    "platform": "generic",
     "targetDurationSeconds": 15
   }'
 ```
