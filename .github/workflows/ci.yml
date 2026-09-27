@@ -308,6 +308,12 @@ jobs:
           pnpm install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Build workspace types
+        shell: pwsh
+        run: |
+          pnpm --filter @swarmx/types build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Typecheck
         shell: pwsh
         run: |
