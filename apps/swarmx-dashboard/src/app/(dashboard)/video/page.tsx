@@ -25,10 +25,8 @@ import {
   Cpu,
   Download,
   ExternalLink,
-  Film,
   GripVertical,
   ListVideo,
-  Play,
   RotateCcw,
   Sparkles,
   Trash2,
@@ -48,7 +46,6 @@ import { VideoJobCard } from "../../../components/video/VideoJobCard";
 import { VideoPipelinePulse } from "@/components/video/VideoPipelinePulse";
 import {
   formatActiveJobHeadline,
-  formatActiveJobPrompt,
   isActiveVideoStatus,
   type VideoJob,
 } from "../../../lib/video-dashboard";
