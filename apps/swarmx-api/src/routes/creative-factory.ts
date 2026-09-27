@@ -637,8 +637,16 @@ export async function creativeFactoryRoutes(server: FastifyInstance): Promise<vo
         });
         return reply
           .status(200)
-          .type("text/html")
-          .send(`<!doctype html><html><head><meta charset="utf-8"><title>TikTok OAuth complete</title></head><body><h1>TikTok authorization complete</h1><p>Account ID: <code>${account.id}</code></p><p>Status: <code>${account.status}</code></p><p>Scopes: <code>${account.scopes.join(", ")}</code></p><p>Return to the Yap Engine operator runbook and execute the controlled SELF_ONLY verification command.</p></body></html>`);
+          .type("text/plain")
+          .send(
+            [
+              "TikTok authorization complete.",
+              `Account ID: ${account.id}`,
+              `Status: ${account.status}`,
+              `Scopes: ${account.scopes.join(", ")}`,
+              "Return to the Yap Engine operator runbook and execute the controlled SELF_ONLY verification command.",
+            ].join("\n"),
+          );
       } catch (error) {
         return reply.status(502).type("text/plain").send(`TikTok OAuth callback failed: ${error instanceof Error ? error.message : "unknown error"}`);
       }
