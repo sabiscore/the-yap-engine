@@ -317,7 +317,7 @@ function RunRow({
       type="button"
       onClick={() => onSelect(run.id)}
       className={cn(
-        "flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left last:border-b-0",
+        "min-h-11 flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 touch-manipulation",
         "transition-colors duration-(--duration-micro) hover:bg-bg-surface/60",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0",
         selected && "bg-bg-surface/80",
@@ -327,13 +327,13 @@ function RunRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn(
-            "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
+            "min-h-6 whitespace-nowrap rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide",
             runStatusColor(run.status),
           )}>
             {run.status}
           </span>
           <span className={cn(
-            "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase",
+            "min-h-6 whitespace-nowrap rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide",
             hubStateTone(creativeHubState(run)),
           )}>
             {creativeHubState(run)}
