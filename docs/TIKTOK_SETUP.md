@@ -45,7 +45,7 @@ The durable row stores:
 
 Supported status values are `active`, `controlled_verified`, `reauthorization_required`, `revoked` and `disabled`.
 
-TikTok currently documents access tokens as valid for 24 hours and refresh tokens for 365 days. Refreshing may return a new refresh token; the server must persist the returned value. citeturn110339search0
+TikTok currently documents access tokens as valid for 24 hours and refresh tokens for 365 days. Refreshing may return a new refresh token; the server must persist the returned value.
 
 Generate the token-encryption key locally:
 
@@ -66,11 +66,11 @@ authorized account
   -> persist terminal result
 ```
 
-TikTok requires creator information before the export/post experience and the `video.publish` scope for Direct Post. The `privacy_level` sent to initialization must be one of the options returned for that creator. citeturn932929search1turn932929search5
+TikTok requires creator information before the export/post experience and the `video.publish` scope for Direct Post. The `privacy_level` sent to initialization must be one of the options returned for that creator.
 
-Each Direct Post initialization request is limited to six requests per minute per user access token. The Yap Engine therefore uses a per-account queue lane and bounded retry behavior rather than brute-force retries. citeturn932929search1
+Each Direct Post initialization request is limited to six requests per minute per user access token. The Yap Engine therefore uses a per-account queue lane and bounded retry behavior rather than brute-force retries.
 
-For `FILE_UPLOAD`, TikTok documents 5 MB–64 MB chunks (with a larger final chunk allowed) and a maximum video size of 4 GB. citeturn932929search7
+For `FILE_UPLOAD`, TikTok documents 5 MB–64 MB chunks (with a larger final chunk allowed) and a maximum video size of 4 GB.
 
 ## 5. Controlled verification
 
@@ -106,7 +106,7 @@ Public posting is a separate control:
 SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
 ```
 
-Keep it at `0` through controlled verification and until any applicable TikTok audit/visibility requirements have been satisfied. TikTok states that unaudited clients are restricted to private viewing. citeturn932929search1
+Keep it at `0` through controlled verification and until any applicable TikTok audit/visibility requirements have been satisfied. TikTok states that unaudited clients are restricted to private viewing.
 
 `READY_TO_POST` in the Creative Hub means the Yap Engine package passed its internal gates. It does not mean that TikTok authorization or public publication is available.
 
