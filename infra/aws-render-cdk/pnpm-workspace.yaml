@@ -1,0 +1,5 @@
+# pnpm v12 lifecycle-build policy for the isolated CDK project.
+# Only esbuild is permitted to execute its install-time build script.
+# All other dependency lifecycle scripts remain blocked by pnpm 12.
+allowBuilds:
+  esbuild: true
