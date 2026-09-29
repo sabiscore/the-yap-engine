@@ -50,7 +50,7 @@ function creativeHubState(run: CreativeFactoryWorkflowRun): CreativeHubState {
   if (revision === "running" || revision === "failed" || revision === "checkpointed") return "NEEDS_REVISION";
   const review = run.checkpoints.HUMAN_REVIEW?.status;
   if (review && review !== "complete" && review !== "skipped") return "REVIEW_REQUIRED";
-  if (run.checkpoints.PUBLISHING?.status === "running") return "PUBLISHING";
+  if (run.checkpoints.PUBLISH_OR_EXPORT?.status === "running") return "PUBLISHING";
   if (run.checkpoints.PLATFORM_PACKAGE?.status === "complete" && run.status === "complete") return "READY_TO_POST";
   return "RUNNING";
 }
