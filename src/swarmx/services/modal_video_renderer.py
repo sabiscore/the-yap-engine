@@ -24,12 +24,14 @@ from pydantic import BaseModel, Field, field_validator
 
 APP_NAME = os.getenv("SWARMX_MODAL_APP", "swarmxq-video-renderer")
 VOLUME_NAME = os.getenv("SWARMX_MODAL_VOLUME", "swarmxq-video-artifacts")
-MODEL_NAME = os.getenv("SWARMX_VIDEO_MODEL", "wan22").strip().lower()
+MODEL_NAME = os.getenv("SWARMX_MODAL_VIDEO_MODEL", os.getenv("SWARMX_VIDEO_MODEL", "wan22")).strip().lower()
+ENABLED_MODELS = {item.strip().lower() for item in os.getenv("SWARMX_MODAL_VIDEO_MODELS", "wan22").split(",") if item.strip()}
 SECRET_NAME = os.getenv("SWARMX_MODAL_SECRET_NAME", "swarmxq-video-renderer")
 MAX_CONTAINERS = max(1, min(4, int(os.getenv("SWARMX_MODAL_MAX_CONTAINERS", "4"))))
 OUTPUT_ROOT = Path("/outputs")
 MODEL_IDS = {
     "wan22": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+    "mochi": os.getenv("SWARMX_MODAL_MOCHI_MODEL_ID", "genmo/mochi-1-preview"),
     "ltx": os.getenv("SWARMX_MODAL_LTX_MODEL_ID", "Lightricks/LTX-Video"),
 }
 MODEL_CACHE: dict[str, Any] = {}
@@ -77,6 +79,8 @@ class RenderSegmentTask(BaseModel):
         normalized = value.strip().lower()
         if normalized not in MODEL_IDS:
             raise ValueError(f"unsupported Modal model: {normalized}")
+        if normalized not in ENABLED_MODELS:
+            raise ValueError(f"Modal model disabled by SWARMX_MODAL_VIDEO_MODELS: {normalized}")
         return normalized
 
     @field_validator("aspectRatio")
@@ -156,6 +160,11 @@ def _load_pipeline(model: str):
     if model == "wan22":
         from diffusers import WanPipeline
         pipe = WanPipeline.from_pretrained(MODEL_IDS[model], torch_dtype=torch.bfloat16).to("cuda")
+    elif model == "mochi":
+        from diffusers import MochiPipeline
+        pipe = MochiPipeline.from_pretrained(MODEL_IDS[model], torch_dtype=torch.bfloat16)
+        pipe.enable_model_cpu_offload()
+        pipe.vae.enable_tiling()
     elif model == "ltx":
         from diffusers import LTXVideoPipeline
         pipe = LTXVideoPipeline.from_pretrained(MODEL_IDS[model], torch_dtype=torch.bfloat16).to("cuda")
@@ -188,6 +197,28 @@ def _render_wan(task: RenderSegmentTask, output: Path) -> None:
     torch.cuda.empty_cache()
 
 
+
+def _render_mochi(task: RenderSegmentTask, output: Path) -> None:
+    import torch
+    from diffusers.utils import export_to_video
+
+    pipe = _load_pipeline("mochi")
+    frames = max(19, min(int(round(task.durationSeconds * task.fps)), 85))
+    result = pipe(
+        prompt=task.prompt,
+        negative_prompt=task.negativePrompt or "",
+        height=min(task.height, 848),
+        width=min(task.width, 848),
+        num_frames=frames,
+        num_inference_steps=task.steps,
+        guidance_scale=4.5,
+        generator=torch.Generator(device="cuda").manual_seed(task.seed),
+    )
+    export_to_video(result.frames[0], str(output), fps=task.fps)
+    del result
+    torch.cuda.empty_cache()
+
+
 def _render_ltx(task: RenderSegmentTask, output: Path) -> None:
     import torch
     from diffusers.utils import export_to_video
@@ -212,6 +243,8 @@ def _render(task: RenderSegmentTask) -> RenderSegmentArtifact:
     output = _output_path(task.jobId, task.segmentId)
     if task.model == "wan22":
         _render_wan(task, output)
+    elif task.model == "mochi":
+        _render_mochi(task, output)
     elif task.model == "ltx":
         _render_ltx(task, output)
     else:

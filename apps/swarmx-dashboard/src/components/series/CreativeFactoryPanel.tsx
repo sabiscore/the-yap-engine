@@ -40,7 +40,7 @@ function runStatusColor(status: CreativeFactoryWorkflowRun["status"]): string {
 }
 
 
-type CreativeHubState = "RUNNING" | "QC_FAILED" | "NEEDS_REVISION" | "REVIEW_REQUIRED" | "READY_TO_POST";
+type CreativeHubState = "RUNNING" | "QC_FAILED" | "NEEDS_REVISION" | "REVIEW_REQUIRED" | "READY_TO_POST" | "PUBLISHING";
 
 const QC_STAGES = ["TECHNICAL_QC", "CREATIVE_QC", "CONTINUITY_QC", "COMPLIANCE_QC"] as const;
 
@@ -50,6 +50,7 @@ function creativeHubState(run: CreativeFactoryWorkflowRun): CreativeHubState {
   if (revision === "running" || revision === "failed" || revision === "checkpointed") return "NEEDS_REVISION";
   const review = run.checkpoints.HUMAN_REVIEW?.status;
   if (review && review !== "complete" && review !== "skipped") return "REVIEW_REQUIRED";
+  if (run.checkpoints.PUBLISH_OR_EXPORT?.status === "running") return "PUBLISHING";
   if (run.checkpoints.PLATFORM_PACKAGE?.status === "complete" && run.status === "complete") return "READY_TO_POST";
   return "RUNNING";
 }
@@ -58,6 +59,7 @@ function hubStateTone(state: CreativeHubState): string {
   switch (state) {
     case "READY_TO_POST": return "border-status-success/30 bg-status-success/10 text-status-success";
     case "QC_FAILED": return "border-status-error/30 bg-status-error/10 text-status-error";
+    case "PUBLISHING": return "border-accent/30 bg-accent/10 text-accent";
     case "NEEDS_REVISION": return "border-status-warning/30 bg-status-warning/10 text-status-warning";
     case "REVIEW_REQUIRED": return "border-accent/30 bg-accent/10 text-accent";
     default: return "border-border bg-bg-surface text-text-muted";
@@ -336,7 +338,7 @@ function RunRow({
           </span>
           <span className={cn(
             "min-h-6 whitespace-nowrap rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide",
-            hubStateTone(creativeHubState(run)),
+            cn("nocturne-state-transition", hubStateTone(creativeHubState(run))),
           )}>
             {creativeHubState(run)}
           </span>
@@ -392,7 +394,7 @@ function RunDetail({
     <div>
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">Production state</span>
-        <span className={cn("rounded border px-2 py-1 font-mono text-[10px] font-semibold", hubStateTone(state))}>{state}</span>
+        <span className={cn("nocturne-state-transition rounded border px-2 py-1 font-mono text-[10px] font-semibold", hubStateTone(state))}>{state}</span>
       </div>
       {state === "READY_TO_POST" && blockers.length > 0 ? (
         <div className="border-b border-border bg-status-warning/5 px-4 py-3" role="status" aria-live="polite">

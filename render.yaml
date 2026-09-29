@@ -6,6 +6,7 @@
 # Type: worker (Authoritative Background Worker)
 # Repository: sabiscore/the-yap-engine
 # Branch: main
+# Release-candidate validation: keep this blueprint Node-native; do not invoke Corepack enable on Render.
 #
 # Processes BullMQ video rendering jobs with single-job concurrency and fail-closed
 # local execution gates. Connects to Upstash Redis and Neon durable state.
@@ -18,7 +19,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: corepack enable && corepack prepare pnpm@12.6.0 --activate && pnpm install --frozen-lockfile && pnpm -F @swarmx/types build && pnpm -F @swarmx/api build
+    buildCommand: npx --yes pnpm@12.6.0 install --frozen-lockfile && npx --yes pnpm@12.6.0 -F @swarmx/types build && npx --yes pnpm@12.6.0 -F @swarmx/api build
     startCommand: node apps/swarmx-api/dist/apps/swarmx-api/src/workers/start-worker.js
 
     envVars:
