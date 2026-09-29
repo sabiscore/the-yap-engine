@@ -53,14 +53,15 @@
 @theme inline {
   --font-mono: var(--font-jetbrains-mono, "JetBrains Mono", "Cascadia Code", "Fira Code", ui-monospace, monospace);
   /* [V5.9-FIX-07] Match next/font GeistSans CSS variable to avoid unused preload warnings. */
-  --font-ui: var(--font-geist-sans, "Geist Sans", "DM Sans", system-ui, sans-serif);
+  --font-ui: var(--font-space-grotesk, "Space Grotesk", var(--font-geist-sans, "Geist Sans"), "DM Sans", system-ui, sans-serif);
+  --font-heading: var(--font-space-grotesk, "Space Grotesk", var(--font-geist-sans, "Geist Sans"), "DM Sans", system-ui, sans-serif);
 }
 
 :root {
   /* Obsidian Nocturne v2 — canonical tokens. */
-  --nocturne-bg: #050508;
-  --nocturne-panel: #0B0D12;
-  --nocturne-panel-raised: #11141B;
+  --nocturne-bg: #0E0E10;
+  --nocturne-panel: #1B1B1D;
+  --nocturne-panel-raised: #2A2A2E;
   --nocturne-border: #252A33;
   --nocturne-border-active: #3A424E;
   --nocturne-cyan: #00E5FF;
@@ -107,7 +108,7 @@ html {
 body {
   height: 100%;
   margin: 0;
-  background: var(--nocturne-bg);
+  background: #0E0E10;
   color: var(--color-text-primary);
   font-family: var(--font-ui);
   overflow: hidden;
@@ -1009,7 +1010,7 @@ body::after {
 }
 
 body {
-  background: #050508 !important;
+  background: #0E0E10 !important;
   background-image: none !important;
 }
 
@@ -1058,5 +1059,32 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   body::after {
     display: none !important;
+  }
+}
+
+
+/* Release-candidate typography/surface contract. */
+:where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+:where(code, pre, [data-metric], .tabular-nums, .telemetry, .font-mono) {
+  font-family: var(--font-mono);
+}
+.nocturne-state-transition {
+  transition:
+    opacity 140ms var(--ease-out),
+    transform 180ms var(--ease-snap),
+    border-color 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
+  will-change: opacity, transform;
+}
+@media (max-width: 767px) {
+  .nocturne-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  main {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
