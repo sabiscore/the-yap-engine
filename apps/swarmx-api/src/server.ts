@@ -244,6 +244,11 @@ server.log.info(
 );
 
 // ── Health checks ─────────────────────────────────────────────────────────────
+server.get("/favicon.ico", { logLevel: "silent" }, async (_request, reply) => {
+  reply.code(204).header("Cache-Control", "public, max-age=86400");
+  return reply.send();
+});
+
 server.get("/", { logLevel: "silent" }, async () => ({
   status: "ok",
   service: "swarmx-api",
