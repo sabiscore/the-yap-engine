@@ -129,6 +129,22 @@ pnpm --filter @swarmx/dashboard dev
 
 Use `http://localhost:3000` for the dashboard and `http://127.0.0.1:3001/health` for API health.
 
+## Production-readiness posture
+
+The repository is **fail-closed** by design. A green build does not imply that TikTok public posting, AWS rendering, physical 8 GB hardware, or mobile-device UX has been verified. Each boundary has its own evidence gate.
+
+### Current verified deployment baseline
+
+- Vercel production deployment: `dpl_FczEzdqMHVyyRzQCpMjRYkgCu9aw`
+- Deployment SHA: `25e38a342f8fc94bd67fc2400a5f6d26893c3489`
+- Deployment state: `READY`
+- Historical PR #10 commit `f45042b` is **not** a release baseline: its Vercel deployment failed with `lint_or_type_error`.
+- GitHub Actions exact-head evidence must be re-established after every subsequent commit; historical green runs are never substituted for the current SHA.
+
+### Important stack clarification
+
+The current repository uses **Next.js 16.2.4 / React 19.2.4**, not Next.js 15. This is the actual production baseline on `main`; do not downgrade the dashboard merely to match an older architecture description without a compatibility migration and a fresh certification run.
+
 ## Local video generation
 
 TikTok is not a prerequisite for generation.
@@ -162,6 +178,8 @@ pnpm --filter @swarmx/api run test:video:quality
 ```
 
 ## 8 GB memory policy
+
+Use [docs/8GB-PROFILING-RUNBOOK.md](docs/8GB-PROFILING-RUNBOOK.md) for operator evidence. The CI Windows compatibility gate is regression evidence, not proof of behavior on an 8 GB physical machine.
 
 The constrained profile enforces a single inference and single video job:
 
@@ -229,6 +247,8 @@ Upstash Redis provides the managed queue/cache coordination used by BullMQ in th
 
 ## TikTok publishing
 
+Use [docs/TIKTOK-RELEASE-GATE-TEST.md](docs/TIKTOK-RELEASE-GATE-TEST.md) before enabling any automated Direct Post path.
+
 TikTok is an optional downstream distribution adapter.
 
 ```text
@@ -243,7 +263,7 @@ OAuth 2.0
   -> separate public-post gate and applicable audit requirements
 ```
 
-The controlled verification path requires `privacy_level=SELF_ONLY` and `is_aigc=true`. Direct Post uses `video.publish`; `video.upload` is the separate draft-upload flow.
+The controlled verification path requires `privacy_level=SELF_ONLY` and `is_aigc=true`. Direct Post uses `video.publish`; `video.upload` is the separate draft-upload flow. The production publisher additionally requires a durable `controlled_verified` account; public posting remains a separate, explicitly disabled-by-default gate.
 
 The publisher uses the provider-returned upload URL and bounded `Content-Range` chunks, then polls post status. Public posting remains independently disabled until the applicable TikTok requirements are satisfied.
 
@@ -312,6 +332,18 @@ Use [docs/RELEASE-GATE-CHECKLIST.md](docs/RELEASE-GATE-CHECKLIST.md) for exact-h
 ## Evidence posture
 
 Automated green CI does not by itself certify local hardware, AWS deployment, TikTok controlled verification, public posting or physical-device UX. Those gates require their own evidence and remain fail-closed when absent.
+
+## Release commands
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm --filter @swarmx/api run test:video
+pnpm --filter @swarmx/api run test:video:quality
+pnpm --filter @swarmx/api run test:video:smoke
+pnpm --filter @swarmx/api test -- tiktok-protocol.test.ts
+```
 
 ## Documentation
 
