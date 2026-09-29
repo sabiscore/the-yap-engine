@@ -70,7 +70,7 @@ TikTok requires creator information before the export/post experience and the `v
 
 Each Direct Post initialization request is limited to six requests per minute per user access token. The Yap Engine therefore uses a per-account queue lane and bounded retry behavior rather than brute-force retries.
 
-For `FILE_UPLOAD`, TikTok documents 5 MB–64 MB chunks (with a larger final chunk allowed) and a maximum video size of 4 GB.
+For `FILE_UPLOAD`, TikTok documents 5 MB–64 MB chunks, sequential upload order, and a maximum of 1000 chunks. Videos below 5 MB are uploaded as one whole chunk. For larger files, `total_chunk_count` is the floor of `video_size / chunk_size`; trailing bytes are folded into the final chunk, which may exceed `chunk_size` up to TikTok's documented final-chunk allowance.
 
 ## 5. Controlled verification
 
@@ -82,7 +82,7 @@ is_aigc = true
 SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED = 0
 ```
 
-The verification command must query creator info, confirm `SELF_ONLY`, initialize Direct Post, upload the media, poll `status/fetch`, and only then promote the real durable row from `active` to `controlled_verified`.
+The verification command must query creator info, confirm `SELF_ONLY`, initialize Direct Post with `video.publish`, send `is_aigc=true`, upload sequential `FILE_UPLOAD` chunks, poll `status/fetch`, and only then promote the real durable row from `active` to `controlled_verified`.
 
 Do not manually insert or update `controlled_verified`.
 
@@ -106,7 +106,7 @@ Public posting is a separate control:
 SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0
 ```
 
-Keep it at `0` through controlled verification and until any applicable TikTok audit/visibility requirements have been satisfied. TikTok states that unaudited clients are restricted to private viewing.
+Keep it at `0` through controlled verification and until any applicable TikTok audit/visibility requirements have been satisfied. `READY_TO_POST` in the Creative Hub is not permission to make a public TikTok post. TikTok states that unaudited clients are restricted to private viewing.
 
 `READY_TO_POST` in the Creative Hub means the Yap Engine package passed its internal gates. It does not mean that TikTok authorization or public publication is available.
 
@@ -127,3 +127,7 @@ Generated content should retain substantive originality, rights-cleared assets, 
 - [Media Transfer Guide](https://developers.tiktok.com/docs/en/content-posting-api-media-transfer-guide)
 - [Get Post Status](https://developers.tiktok.com/docs/en/content-posting-api-reference-get-video-status)
 - [User Access Token Management](https://developers.tiktok.com/docs/en/oauth-user-access-token-management)
+
+## Release-gate test
+
+The automated protocol regression is `apps/swarmx-api/__tests__/tiktok-protocol.test.ts`. It verifies the creator-info → init → sequential upload → status sequence, `SELF_ONLY` controlled verification, `is_aigc=true`, and the chunk-count/final-chunk contract. A live TikTok account test is still required to promote a real durable account to `controlled_verified`.
