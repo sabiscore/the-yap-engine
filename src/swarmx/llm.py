@@ -78,6 +78,7 @@ from urllib.error import URLError
 import structlog
 
 from .config import SwarmConfig
+from .providers.gemini import enabled_for_role as gemini_enabled_for_role, generate as gemini_generate
 
 _log = structlog.get_logger("swarmx.llm")
 
@@ -1171,6 +1172,40 @@ def generate(
     if provider in {"deterministic", "mock", "local"}:
         text = deterministic_response(prompt, model)
         return GenerateResult(text=text, model_used=model, role=role, elapsed_ms=0)
+
+    # Optional Gemini routing is role-scoped and fail-closed. If Gemini is
+    # unavailable, the normal local Ollama escalation chain remains authoritative.
+    if gemini_enabled_for_role(role):
+        gemini_model = os.environ.get("SWARMX_GEMINI_MODEL", "").strip()
+        try:
+            t0 = time.monotonic()
+            text = gemini_generate(
+                model=gemini_model,
+                prompt=prompt,
+                system=system,
+                timeout=int(os.environ.get("SWARMX_GEMINI_TIMEOUT_MS", "45000")) / 1000,
+                max_output_tokens=int(os.environ.get("SWARMX_GEMINI_MAX_OUTPUT_TOKENS", "1024")),
+                temperature=_model_temperature(model),
+            )
+            elapsed_ms = int((time.monotonic() - t0) * 1000)
+            _record_latency("gemini:" + gemini_model, elapsed_ms)
+            return GenerateResult(
+                text=text,
+                model_used="gemini:" + gemini_model,
+                role=role,
+                elapsed_ms=elapsed_ms,
+                escalation_path=["gemini:" + gemini_model],
+                cache_key=_cache_key("gemini:" + gemini_model, prompt),
+                quant_level="provider-managed",
+            )
+        except Exception as exc:
+            _log.warning(
+                "llm.gemini_fallback",
+                role=role,
+                model=gemini_model,
+                exc_type=type(exc).__name__,
+                exc=str(exc),
+            )
 
     # Build system prompt enrichments
     system_parts: list[str] = []
