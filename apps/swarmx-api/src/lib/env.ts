@@ -41,7 +41,7 @@ const schema = z.object({
   // Provider-agnostic Gemini adapter. Disabled unless explicitly enabled and keyed.
   SWARMX_GEMINI_ENABLED: boolFlag,
   SWARMX_GEMINI_API_URL: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
-  SWARMX_GEMINI_MODEL: z.string().min(1).default(""),
+  SWARMX_GEMINI_MODEL: z.string().default(""),
   SWARMX_GEMINI_ROLES: z.string().default("trend-discovery,scriptwriting"),
   SWARMX_GEMINI_TIMEOUT_MS: positiveInt.default(45_000),
   SWARMX_GEMINI_MAX_OUTPUT_TOKENS: positiveInt.default(1024),
