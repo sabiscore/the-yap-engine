@@ -4,6 +4,8 @@ const TIKTOK_API_BASE = "https://open.tiktokapis.com";
 const DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024;
 const DEFAULT_POLL_ATTEMPTS = 12;
 const DEFAULT_POLL_DELAY_MS = 5_000;
+const MIN_CHUNK_SIZE = 5 * 1024 * 1024;
+const MAX_CHUNK_SIZE = 64 * 1024 * 1024;
 
 interface TikTokApiEnvelope<T> {
   data?: T;
@@ -49,6 +51,37 @@ export interface TikTokDirectPostInput {
 
 async function readJson<T>(response: Response): Promise<TikTokApiEnvelope<T>> {
   return (await response.json().catch(() => ({}))) as TikTokApiEnvelope<T>;
+}
+
+export interface TikTokChunkRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * TikTok requires total_chunk_count to be floor(video_size / chunk_size).
+ * Any trailing bytes are folded into the final chunk (up to TikTok's 128 MB
+ * final-chunk allowance). Files below 5 MB are uploaded as one whole chunk.
+ */
+export function buildTikTokChunkPlan(fileSize: number, preferredChunkSize = DEFAULT_CHUNK_SIZE): {
+  chunkSize: number;
+  totalChunkCount: number;
+  ranges: TikTokChunkRange[];
+} {
+  if (!Number.isSafeInteger(fileSize) || fileSize <= 0) {
+    throw new Error("TikTok chunk planning requires a positive safe-integer file size");
+  }
+  const chunkSize = Math.min(MAX_CHUNK_SIZE, Math.max(MIN_CHUNK_SIZE, preferredChunkSize));
+  const totalChunkCount = fileSize < MIN_CHUNK_SIZE ? 1 : Math.max(1, Math.floor(fileSize / chunkSize));
+  const ranges: TikTokChunkRange[] = [];
+  let start = 0;
+  for (let index = 0; index < totalChunkCount; index += 1) {
+    const isFinal = index === totalChunkCount - 1;
+    const endExclusive = isFinal ? fileSize : Math.min(fileSize, start + chunkSize);
+    ranges.push({ start, end: endExclusive - 1 });
+    start = endExclusive;
+  }
+  return { chunkSize: totalChunkCount === 1 ? fileSize : chunkSize, totalChunkCount, ranges };
 }
 
 function apiError(prefix: string, response: Response, payload: TikTokApiEnvelope<unknown>): Error {
@@ -112,8 +145,8 @@ async function initializeDirectPost(
     );
   }
 
-  const chunkSize = Math.min(DEFAULT_CHUNK_SIZE, Math.max(1, fileStat.size));
-  const totalChunkCount = Math.ceil(fileStat.size / chunkSize);
+  const chunkPlan = buildTikTokChunkPlan(fileStat.size);
+  const { chunkSize, totalChunkCount } = chunkPlan;
   const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
     method: "POST",
     headers: {
@@ -146,11 +179,11 @@ async function uploadFileInChunks(uploadUrl: string, outputPath: string): Promis
   const file = await open(outputPath, "r");
   try {
     const fileStat = await file.stat();
-    const chunkSize = Math.min(DEFAULT_CHUNK_SIZE, Math.max(1, fileStat.size));
-    let offset = 0;
+    const chunkPlan = buildTikTokChunkPlan(fileStat.size);
 
-    while (offset < fileStat.size) {
-      const length = Math.min(chunkSize, fileStat.size - offset);
+    for (const range of chunkPlan.ranges) {
+      const offset = range.start;
+      const length = range.end - range.start + 1;
       const buffer = Buffer.allocUnsafe(length);
       const { bytesRead } = await file.read(buffer, 0, length, offset);
       if (bytesRead !== length) {
@@ -173,7 +206,6 @@ async function uploadFileInChunks(uploadUrl: string, outputPath: string): Promis
         throw apiError("TikTok media upload failed", response, payload);
       }
 
-      offset += bytesRead;
     }
   } finally {
     await file.close();
@@ -238,9 +270,10 @@ export async function executeTikTokDirectPostWithAccessToken(
     throw new Error("TikTok Direct Post response missing publish_id");
   }
 
-  if (publish.upload_url) {
-    await uploadFileInChunks(publish.upload_url, input.outputPath);
+  if (!publish.upload_url) {
+    throw new Error("TikTok FILE_UPLOAD response missing upload_url");
   }
+  await uploadFileInChunks(publish.upload_url, input.outputPath);
 
   const attempts = input.pollAttempts ?? DEFAULT_POLL_ATTEMPTS;
   const delayMs = input.pollDelayMs ?? DEFAULT_POLL_DELAY_MS;
