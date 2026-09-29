@@ -10,7 +10,7 @@ describe("TikTok Direct Post protocol", () => {
   it("executes creator-info -> init -> bounded PUT -> status fetch and discloses AIGC", async () => {
     const dir = mkdtempSync(join(tmpdir(), "tiktok-protocol-"));
     const file = join(dir, "sample.mp4");
-    writeFileSync(file, Buffer.alloc(10 * 1024 * 1024 + 123));
+    writeFileSync(file, Buffer.alloc(20 * 1024 * 1024 + 123));
 
     const calls: Array<{ url: string; method: string; body?: string | Uint8Array | null }> = [];
     let statusCalls = 0;
