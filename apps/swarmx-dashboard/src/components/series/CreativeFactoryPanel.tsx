@@ -311,18 +311,20 @@ function RunRow({
     (cp) => cp?.status === "complete",
   ).length;
   const totalCount = Object.keys(run.checkpoints).length;
+  const state = creativeHubState(run);
 
   return (
     <button
       type="button"
       onClick={() => onSelect(run.id)}
       className={cn(
-        "min-h-11 flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 touch-manipulation",
+        "min-h-12 flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 touch-manipulation",
         "transition-colors duration-(--duration-micro) hover:bg-bg-surface/60",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0",
         selected && "bg-bg-surface/80",
       )}
       aria-pressed={selected}
+      aria-label={"Run " + run.id + ": " + state + "; " + run.status + "; " + (totalCount > 0 ? completedCount + " of " + totalCount + " stages complete" : "no checkpoints")}
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -370,7 +372,12 @@ function RunDetail({
   const authorizationBlocked = state === "READY_TO_POST" && tiktokReadiness?.state !== "controlled_verified";
   const blockers = [
     ...failedGates,
-    ...(authorizationBlocked && tiktokReadiness ? [{ label: "AUTHORIZATION", reason: tiktokReadiness.reason }] : []),
+    ...(authorizationBlocked
+      ? [{
+          label: "AUTHORIZATION",
+          reason: tiktokReadiness?.reason ?? "TikTok publishing readiness is unavailable; automated publishing remains blocked.",
+        }]
+      : []),
   ];
 
   if (checkpoints.length === 0) {

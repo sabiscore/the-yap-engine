@@ -24,6 +24,8 @@ PR #10 is already merged. Its commit `f45042b287e5c684983bfdf1d8e1aa7253c1d35b` 
 Do not rewrite or retest the merged commit as though it were the current release head. The certification target is the open PR #11 branch.
 
 ## Gate 2 — Exact-head Vercel
+
+Verified deployment baseline currently on `main`: Vercel deployment `dpl_FczEzdqMHVyyRzQCpMjRYkgCu9aw`, state `READY`, SHA `25e38a342f8fc94bd67fc2400a5f6d26893c3489`. This is deployment evidence for that SHA only; every new commit requires a new exact-head deployment.
 - [ ] Current PR #11 head has a Vercel deployment.
 - [ ] Current deployment state is `READY`.
 - [ ] Deployment commit SHA exactly matches the release SHA.
@@ -94,7 +96,7 @@ Required before production Direct Post promotion:
 - [ ] Creator Info returns `SELF_ONLY` as an available privacy option.
 - [ ] Controlled Direct Post initialization uses `video.publish`.
 - [ ] `is_aigc=true` is sent for the controlled test.
-- [ ] FILE_UPLOAD uses bounded `Content-Range` chunks.
+- [x] FILE_UPLOAD uses sequential bounded `Content-Range` chunks; regression coverage locks TikTok's floor-count/final-chunk rule.
 - [ ] Terminal provider status is successful.
 - [ ] Only the real verified row is promoted to `controlled_verified`.
 - [ ] `SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED=0` remains set during controlled verification.
@@ -117,6 +119,12 @@ Current audited baseline remains zero observed monetization data until real sour
 - [x] Run-row interaction has a mobile-friendly touch target.
 - [ ] Real iPhone-class viewport evidence captured.
 
+## Gate 9 — Automated release-gate tests
+
+- [x] TikTok protocol regression covers `SELF_ONLY`, `is_aigc=true`, sequential FILE_UPLOAD and terminal status polling.
+- [x] 8 GB operator profiling runbook added.
+- [ ] Final readiness branch has fresh exact-head CI and Vercel evidence.
+
 ## Local-generation independence invariant
 
 The generation route must never gate on:
@@ -137,9 +145,10 @@ Do not merge the release branch until every checked item has attached evidence. 
 
 ## Current blockers
 
-1. Exact-head Vercel `READY` evidence is pending for the final branch HEAD.
+1. Exact-head Vercel `READY` evidence is pending for the final readiness branch SHA.
 2. Local 8 GB physical-machine render evidence is pending.
 3. AWS Phase-D deployment/E2E evidence is pending.
 4. TikTok controlled verification requires a human-operated real account.
 5. Production monetization observations remain zero until real data arrives.
 6. Physical iPhone viewport evidence is pending.
+7. Final readiness branch requires a fresh exact-head CI + Vercel certification after these changes.
