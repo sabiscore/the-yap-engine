@@ -42,7 +42,7 @@ type MiniLog = {
 export function initOtel(log: MiniLog): void {
   const endpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
   if (!endpoint) {
-    log.info({ otelActive: false }, "OTel: OTEL_EXPORTER_OTLP_ENDPOINT not set — spans are no-ops");
+    log.info({ otelActive: false }, "OTel: disabled (no OTEL_EXPORTER_OTLP_ENDPOINT)");
     return;
   }
 
