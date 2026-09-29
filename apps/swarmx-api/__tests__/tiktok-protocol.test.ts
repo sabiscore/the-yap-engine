@@ -44,7 +44,8 @@ describe("TikTok Direct Post protocol", () => {
             ? new TextEncoder().encode(body).byteLength
             : 0;
         expect(chunkLength).toBeGreaterThan(0);
-        expect(chunkLength).toBeGreaterThanOrEqual(5 * 1024 * 1024);\n        expect(chunkLength).toBeLessThanOrEqual(10 * 1024 * 1024 + 123);
+        expect(chunkLength).toBeGreaterThanOrEqual(5 * 1024 * 1024);
+        expect(chunkLength).toBeLessThanOrEqual(10 * 1024 * 1024 + 123);
         return new Response("", { status: 201 });
       }
       if (url.endsWith("/status/fetch/")) {
