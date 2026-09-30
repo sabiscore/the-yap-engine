@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["generatedAt", "gates"],
+  "properties": {
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gate", "status", "evidenceUrl", "sha", "utc", "executor"],
+        "properties": {
+          "gate": { "type": "string" },
+          "status": { "enum": ["PASS", "FAIL", "IN PROGRESS", "OPEN (needs operator)", "NOT EXECUTED"] },
+          "evidenceUrl": { "type": "string" },
+          "sha": { "type": "string" },
+          "utc": { "type": "string", "format": "date-time" },
+          "executor": { "type": "string" }
+        }
+      }
+    }
+  }
+}
