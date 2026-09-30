@@ -149,6 +149,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      SWARMX_VIDEO_API_TOKEN: "${SWARMX_VIDEO_API_TOKEN:?SWARMX_VIDEO_API_TOKEN is required}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
       SWARMX_API_PORT: "3001"
       # 0.0.0.0 inside container — nginx/Caddy on the host handles TLS termination
@@ -209,6 +210,9 @@ services:
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
+      SWARMX_VIDEO_API_TOKEN: "${SWARMX_VIDEO_API_TOKEN:?SWARMX_VIDEO_API_TOKEN is required}"
+      SWARMX_DASHBOARD_ACCESS_TOKEN: "${SWARMX_DASHBOARD_ACCESS_TOKEN:?SWARMX_DASHBOARD_ACCESS_TOKEN is required}"
+      SWARMX_VIDEO_MAX_CONCURRENT_JOBS: "1"
       NEXT_PUBLIC_SWARMX_VERSION: "${NEXT_PUBLIC_SWARMX_VERSION:-2026.6.0}"
       # Internal container-to-container URL for Next.js server-side API calls
       SWARMX_API_URL: "http://swarmx-api:3001"
