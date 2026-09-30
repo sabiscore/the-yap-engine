@@ -112,6 +112,10 @@ These gates are intentionally not automated or simulated by the coding agent.
 6. Confirm no public publication occurred.
 7. Any public visibility, missing AI disclosure, or mismatched privacy level is an immediate gate failure.
 
+## Vercel verification note
+
+The live deployment record for `dpl_EeDUdCShry7pjhNbNUuVT3GFRaDd` is READY and is tied to commit `411e34a2dad2e75d73a6046a00087f833615ac20`. The Vercel project is the Fastify API project, not a separate Next.js dashboard project. Direct unauthenticated requests to the deployment currently receive Vercel Authentication HTTP 302 responses, so this verification does not establish application-level 200 responses for `/`, `/health`, or `/api/health`. Vercel runtime-error inspection for the selected 24-hour window returned no runtime errors. Treat dashboard deployment topology and authenticated endpoint smoke tests as separate release evidence.
+
 ## Release declaration
 
 Creative Hub v3 remains **HOLD / NOT CERTIFIED** until all three operator gates above have timestamped evidence for the exact release SHA. A READY Vercel deployment or green automated CI does not substitute for BullMQ telemetry, physical-device QA, or TikTok controlled verification.
