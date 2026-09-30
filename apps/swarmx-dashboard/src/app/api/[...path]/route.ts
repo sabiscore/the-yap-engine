@@ -4,6 +4,7 @@ import { resolveServerApiUrl } from "@/lib/api-config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const API_URL = resolveServerApiUrl();
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -140,7 +141,7 @@ async function proxyRequest(
     headers: forwardedHeaders(request, id, isWrite || isAnalyticsRead),
     cache: "no-store",
     redirect: "manual",
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(pathname.endsWith("/sse") ? 55_000 : 8_000),
   };
   if (method !== "GET" && method !== "HEAD") {
     init.body = request.body;
