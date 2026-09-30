@@ -218,25 +218,38 @@ exports.handler = async (event) => {
       }
     });
 
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["ecs:RunTask"],
-      resources: [taskDefinition.taskDefinitionArn]
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["iam:PassRole"],
-      resources: [
-        taskDefinition.taskRole!.roleArn,
-        taskDefinition.executionRole!.roleArn
-      ]
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["s3:GetObject"],
-      resources: [bucket.arnForObjects("jobs/*")],
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["s3:PutObject"],
-      resources: [bucket.arnForObjects("locks/*"), bucket.arnForObjects("results/*")],
-    }));
+    // Application/dispatcher policy is deliberately narrower than the AWS-managed
+    // ECS task-execution policy. The dispatcher only coordinates the render task;
+    // the Fargate execution role remains responsible for ECR/CloudWatch plumbing.
+    const applicationPolicy = new iam.ManagedPolicy(this, "RenderApplicationPolicy", {
+      statements: [
+        new iam.PolicyStatement({
+          actions: ["s3:ListBucket"],
+          resources: [bucket.bucketArn],
+          conditions: { StringLike: { "s3:prefix": ["jobs/*", "locks/*", "results/*"] } },
+        }),
+        new iam.PolicyStatement({
+          actions: ["s3:GetObject"],
+          resources: [bucket.arnForObjects("jobs/*")],
+        }),
+        new iam.PolicyStatement({
+          actions: ["s3:PutObject"],
+          resources: [bucket.arnForObjects("locks/*"), bucket.arnForObjects("results/*")],
+        }),
+        new iam.PolicyStatement({
+          actions: ["ecs:RunTask", "ecs:DescribeTasks"],
+          resources: [taskDefinition.taskDefinitionArn],
+        }),
+        new iam.PolicyStatement({
+          actions: ["iam:PassRole"],
+          resources: [taskDefinition.taskRole!.roleArn, taskDefinition.executionRole!.roleArn],
+          conditions: {
+            StringEquals: { "iam:PassedToService": "ecs-tasks.amazonaws.com" },
+          },
+        }),
+      ],
+    });
+    dispatcher.role?.addManagedPolicy(applicationPolicy);
 
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
