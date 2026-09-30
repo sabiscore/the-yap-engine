@@ -9,7 +9,13 @@
     "test": "pnpm --filter @swarmx/dashboard test && pnpm --filter @swarmx/api test",
     "typecheck": "pnpm --filter @swarmx/types typecheck && pnpm --filter @swarmx/api typecheck && pnpm --filter @swarmx/dashboard typecheck",
     "validate:openclaw": "${PYTHON:-python3} scripts/validate-openclaw-integration.py",
-    "bench:coding-agent": "${PYTHON:-python3} benchmarks/coding-agent/run.py"
+    "bench:coding-agent": "${PYTHON:-python3} benchmarks/coding-agent/run.py",
+    "dev:hub": "pnpm --filter @swarmx/dashboard dev",
+    "docker:up:8gb": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.8gb.yml up -d --wait",
+    "docker:up:16gb": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.16gb.yml up -d --wait",
+    "docker:down": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.8gb.yml down",
+    "test:mobile": "echo 'OPEN — needs operator: run the Playwright iPhone 14 Pro Max + 320px suites against preview'",
+    "doctor": "node scripts/doctor.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",
