@@ -1,0 +1,25 @@
+services:
+  redis:
+    mem_limit: 256m
+    cpus: "0.25"
+  ollama:
+    mem_limit: 3500m
+    cpus: "2.0"
+    environment:
+      OLLAMA_KEEP_ALIVE: "0"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_NUM_THREADS: "2"
+  swarmx-python:
+    mem_limit: 1200m
+    cpus: "1.5"
+  swarmx-api:
+    mem_limit: 768m
+    cpus: "1.0"
+    environment:
+      SWARMX_VIDEO_MAX_CONCURRENT_JOBS: "1"
+  swarmx-dashboard:
+    mem_limit: 512m
+    cpus: "0.75"
+    environment:
+      SWARMX_VIDEO_MAX_CONCURRENT_JOBS: "1"
