@@ -101,13 +101,8 @@ async function createServerlessGateway() {
   return server;
 }
 
-let server: Awaited<ReturnType<typeof createServerlessGateway>>;
-
-if (IS_VERCEL) {
-  server = await createServerlessGateway();
-} else {
-  const runtime = await import("./server-runtime.js");
-  server = runtime.default;
-}
+const server = IS_VERCEL
+  ? await createServerlessGateway()
+  : (await import("./server-runtime.js")).default;
 
 export default server;
