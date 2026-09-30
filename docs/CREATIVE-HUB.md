@@ -63,3 +63,55 @@ See docs/accessibility/creative-hub-audit.md. Test iPhone 14 Pro Max and a 320 p
 ## Release evidence
 
 docs/release-gates.json defines the evidence shape. It is not a claim that any gate passed. The release board must use the exact SHA and UTC timestamp supplied by the executor.
+
+
+## Accessibility audit matrix
+
+| Surface | Automated axe gate | Keyboard/manual | VoiceOver/manual | Evidence |
+|---|---|---|---|---|
+| Buttons / links | Run axe; no critical/serious target-name violations | Tab order, visible 2 px focus ring, Enter/Space activation | Control name, role and state announced | **OPEN — operator run** |
+| Tabs | Run axe; no critical/serious violations | Arrow/Home/End follow Radix Tabs behavior; focus remains visible | Tab name + selected state announced | **OPEN — operator run** |
+| StateBadge | No color-only status violation | Glyph + text visible at focus/zoom | Glyph is decorative; label is announced | Source contract implemented; **OPEN — operator run** |
+| Forms | Label/name/description checks | Error recovery and submit reachable without pointer | Labels, required/error state and validation message announced | **OPEN — operator run** |
+| Degraded shell | No empty landmark/heading violations | Offline/503/504 banner reachable and actionable | Error message announced once; recovery action exposed | Source review PASS; **OPEN — operator run** |
+| Mobile layout | Axe + viewport smoke | No keyboard trap; sheet/dialog focus returns correctly | Safe-area content remains discoverable | **OPEN — iPhone operator run** |
+| Motion | Axe does not certify motion preferences | Reduced-motion disables decorative loops/transitions | No critical information depends on animation | Source review PASS; **OPEN — operator run** |
+| Typography | Automated font-family assertion where browser harness exists | 200% zoom without clipping | Font fallback does not change semantic reading order | **OPEN — operator run** |
+| Contrast | axe color-contrast rule | Focus ring remains visible against both base and raised surfaces | Same information is available without color | Tokens updated; **OPEN — axe/manual run** |
+
+Required manual evidence: Playwright/WebKit at iPhone 14 Pro Max dimensions, 320 px narrow viewport, keyboard traversal, VoiceOver pass, document.fonts.check() for Space Grotesk and JetBrains Mono, and a captured axe result with timestamp + exact branch SHA.
+
+## Operator release gates
+
+These gates are intentionally not automated or simulated by the coding agent.
+
+### Gate 1 — BullMQ synthetic execution
+
+1. Authenticate to the operator-only dashboard/API.
+2. Submit exactly one synthetic render job to the swarmx-video queue with a unique test job ID.
+3. Record UTC timestamps for WAITING, ACTIVE, and COMPLETED.
+4. Inspect the BullMQ job record and worker telemetry.
+5. Required terminal evidence: state sequence is exactly WAITING → ACTIVE → COMPLETED; attemptsMade = 1; configured retries = 0; no duplicate worker execution; output checksum/job ID matches the submitted job.
+6. If any retry, duplicate execution, or missing telemetry occurs, leave the release gate OPEN.
+
+### Gate 2 — Pixel-perfect mobile QA
+
+1. Use Playwright with WebKit and an iPhone 14 Pro Max emulation profile.
+2. Exercise /, /video, /video/studio, /video/[id], and the primary settings/system surfaces.
+3. Repeat at a 320 px wide viewport.
+4. Verify document.documentElement.scrollWidth <= document.documentElement.clientWidth; all four safe-area insets; controls at least 44 × 44 CSS px; no keyboard/bottom-nav obstruction; both required fonts pass document.fonts.check(); no horizontal scroll or clipped primary actions; degraded/offline states retain the shell and actionable messaging.
+5. Attach screenshots plus test output to the release evidence record.
+
+### Gate 3 — TikTok safety gate
+
+1. Use a dedicated operator-controlled TikTok account and a non-public test asset.
+2. Confirm OAuth scopes and account lifecycle are valid for controlled verification.
+3. Submit only with privacy_level=SELF_ONLY.
+4. Require is_aigc=true.
+5. Verify the provider result, post status, and durable evidence record.
+6. Confirm no public publication occurred.
+7. Any public visibility, missing AI disclosure, or mismatched privacy level is an immediate gate failure.
+
+## Release declaration
+
+Creative Hub v3 remains **HOLD / NOT CERTIFIED** until all three operator gates above have timestamped evidence for the exact release SHA. A READY Vercel deployment or green automated CI does not substitute for BullMQ telemetry, physical-device QA, or TikTok controlled verification.
