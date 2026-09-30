@@ -1,23 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": ["generatedAt", "gates"],
-  "properties": {
-    "generatedAt": { "type": "string", "format": "date-time" },
-    "gates": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["gate", "status", "evidenceUrl", "sha", "utc", "executor"],
-        "properties": {
-          "gate": { "type": "string" },
-          "status": { "enum": ["PASS", "FAIL", "IN PROGRESS", "OPEN (needs operator)", "NOT EXECUTED"] },
-          "evidenceUrl": { "type": "string" },
-          "sha": { "type": "string" },
-          "utc": { "type": "string", "format": "date-time" },
-          "executor": { "type": "string" }
-        }
-      }
-    }
-  }
+  "generatedAt": "2026-09-30T05:52:00Z",
+  "release": {
+    "name": "Creative Hub v3",
+    "repository": "sabiscore/the-yap-engine",
+    "branch": "feat/creative-hub-v3",
+    "sha": "edcf6f642e166d389ff8208bad1b0d66302b4e0a",
+    "state": "HOLD",
+    "certified": false
+  },
+  "gates": [
+    {"gate":"A1","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A2","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A3","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A4","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A5","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A6","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A7","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A8","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A9","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A10","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A11","status":"PASS","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A12","status":"PASS","evidence_url":"https://vercel.com/scar-dubus-projects-83c9a50a/the-yap-engine-swarmx-api","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A13","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A14","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A15","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A16","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A17","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A18","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"},
+    {"gate":"A19","status":"PASS","evidence_url":"https://github.com/sabiscore/the-yap-engine/actions/runs/36674175287","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"automated"},
+    {"gate":"A20","status":"OPEN - needs operator","evidence_url":"","sha":"edcf6f642e166d389ff8208bad1b0d66302b4e0a","utc":"2026-09-30T05:52:00Z","executor":"operator"}
+  ],
+  "status_enum": ["PASS","FAIL","IN PROGRESS","OPEN - needs operator","NOT EXECUTED"]
 }
