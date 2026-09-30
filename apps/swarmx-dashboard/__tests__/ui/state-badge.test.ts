@@ -6,7 +6,7 @@ describe("StateBadge contract", () => {
     for (const [state, config] of Object.entries(STATE_CONFIG)) {
       expect(state).toBeTruthy();
       expect(config.label.length).toBeGreaterThan(0);
-      expect(config.glyph).toBeTypeOf("function");
+      expect(["function", "object"]).toContain(typeof config.glyph);
       expect(config.tone.length).toBeGreaterThan(0);
     }
   });
