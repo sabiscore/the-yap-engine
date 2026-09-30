@@ -1,5 +1,5 @@
 /**
- * SignalMeter — 5-dimension engagement heuristic display
+ * SignalEstimate — 5-dimension engagement heuristic display
  *
  * Renders Hook / Completion / Shareability / SEO / Overall as labeled bars
  * with colour-coded thresholds:
@@ -14,12 +14,12 @@
 "use client";
 
 import * as Tooltip from "@radix-ui/react-tooltip";
-import type { SignalSignal } from "@swarmx/types/video-types";
+import type { ViralitySignal } from "@swarmx/types/video-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface SignalMeterProps {
-  signal: SignalSignal;
+interface SignalEstimateProps {
+  signal: ViralitySignal;
   isScoring?: boolean;
   /** When true renders a single-row compact variant for use inside cards. */
   compact?: boolean;
@@ -52,7 +52,7 @@ function barColour(norm: number): string {
 // ─── Recommendation excerpts per dimension ────────────────────────────────────
 
 function dimensionReasoning(
-  signal: SignalSignal,
+  signal: ViralitySignal,
   dimension: string,
 ): string {
   const recs = signal.recommendations;
@@ -138,7 +138,7 @@ function DimensionBar({ label, value, reasoning, compact = false }: DimensionBar
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const DIMENSIONS: Array<{ key: keyof SignalSignal; label: string }> = [
+const DIMENSIONS: Array<{ key: keyof ViralitySignal; label: string }> = [
   { key: "hookStrength", label: "Hook" },
   { key: "completionProxy", label: "Completion" },
   { key: "shareability", label: "Shareability" },
@@ -146,14 +146,14 @@ const DIMENSIONS: Array<{ key: keyof SignalSignal; label: string }> = [
   { key: "overall", label: "Overall" },
 ];
 
-export function SignalMeter({ signal, isScoring = false, compact = false, onImprove }: SignalMeterProps) {
+export function SignalEstimate({ signal, isScoring = false, compact = false, onImprove }: SignalEstimateProps) {
   const overallNorm = normalise(signal.overall);
   const overallPct = Math.round(overallNorm * 100);
   const overallColour = scoreColour(overallNorm);
 
   if (isScoring) {
     return (
-      <section aria-label="Signal estimate loading" className="rounded border border-border bg-bg-elevated p-3">
+      <section aria-label="signal estimate loading" className="rounded border border-border bg-bg-elevated p-3">
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="h-2 animate-pulse bg-bg-elevated rounded" />
@@ -256,4 +256,4 @@ export function SignalMeter({ signal, isScoring = false, compact = false, onImpr
 }
 
 
-/* Claim-integrity contract: this component is a planning signal, not a measured outcome. */
+/* Claim-integrity contract: displayed values are unmeasured planning signals, not predictions. */
