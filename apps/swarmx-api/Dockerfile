@@ -7,7 +7,7 @@
 #   docker build -f apps/swarmx-api/Dockerfile -t swarmx-api .
 #
 # tsconfig: outDir=dist, rootDir=../.. (repo root)
-# Compiled server path: apps/swarmx-api/dist/apps/swarmx-api/src/server.js
+# Compiled server path: apps/swarmx-api/dist/apps/swarmx-api/src/server-runtime.js
 
 ARG NODE_VERSION=22.13.1
 ARG PNPM_VERSION=12.6.0
@@ -37,7 +37,7 @@ COPY apps/swarmx-api/src/        ./apps/swarmx-api/src/
 COPY apps/swarmx-api/tsconfig.json ./apps/swarmx-api/tsconfig.json
 
 # tsc rootDir=../.. + outDir=dist →
-#   apps/swarmx-api/dist/apps/swarmx-api/src/server.js
+#   apps/swarmx-api/dist/apps/swarmx-api/src/server-runtime.js
 RUN pnpm -F swarmx-api build
 
 # ── Minimal production runtime ────────────────────────────────────────────────
@@ -65,4 +65,4 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=6 \
 
 USER node
 
-CMD ["node", "dist/apps/swarmx-api/src/server.js"]
+CMD ["node", "dist/apps/swarmx-api/src/server-runtime.js"]
