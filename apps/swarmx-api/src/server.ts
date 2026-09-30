@@ -217,9 +217,15 @@ await server.register(fastifyCors, {
 });
 
 // ── WebSocket and SSE plugins ────────────────────────────────────────────────
-await server.register(fastifyWebSocket);
 await server.register(ssePlugin);
-await server.register(websocketPlugin);
+
+// Vercel does not provide a Node HTTP upgrade server for terminal PTY WebSockets.
+// Keep the terminal surface disabled in production/serverless execution rather
+// than registering @fastify/websocket and allowing a platform-level boot failure.
+if (!process.env["VERCEL"]) {
+  await server.register(fastifyWebSocket);
+  await server.register(websocketPlugin);
+}
 
 // ── Route registration ───────────────────────────────────────────────────────
 await server.register(agentsRouter,    { prefix: "/api/agents" });
