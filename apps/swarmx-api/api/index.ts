@@ -48,10 +48,10 @@ function targetBaseUrl(): URL | null {
 }
 
 function copyResponseHeaders(upstream: Response, res: ServerResponse): void {
-  for (const [name, value] of upstream.headers) {
-    if (["connection", "transfer-encoding", "content-length"].includes(name.toLowerCase())) continue;
+  upstream.headers.forEach((value, name) => {
+    if (["connection", "transfer-encoding", "content-length"].includes(name.toLowerCase())) return;
     res.setHeader(name, value);
-  }
+  });
   res.setHeader("Cache-Control", "no-store");
 }
 
