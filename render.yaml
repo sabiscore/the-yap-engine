@@ -19,7 +19,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: npx --yes pnpm@12.6.0 install --frozen-lockfile && npx --yes pnpm@12.6.0 -F @swarmx/types build && npx --yes pnpm@12.6.0 -F @swarmx/api build
+    buildCommand: npx --yes pnpm@12.6.0 install --frozen-lockfile && npx --yes pnpm@12.6.0 -F @swarmx/types build && npx --yes pnpm@12.6.0 -F @swarmx/api build && node scripts/assert-render-worker-artifact.mjs
     startCommand: node apps/swarmx-api/dist/apps/swarmx-api/src/workers/start-worker.js
 
     envVars:
