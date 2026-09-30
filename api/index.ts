@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-type FastifyServer = typeof import("../apps/swarmx-api/src/server.js").default;
+type FastifyModule = typeof import("../apps/swarmx-api/src/server.js");
 
-let serverPromise: Promise<FastifyServer> | undefined;
+let serverPromise: Promise<FastifyModule> | undefined;
 
-function getServer(): Promise<FastifyServer> {
-  serverPromise ??= import("../apps/swarmx-api/src/server.js").then((module) => module.default);
+function getServer(): Promise<FastifyModule> {
+  serverPromise ??= import("../apps/swarmx-api/src/server.js");
   return serverPromise;
 }
 
@@ -43,7 +43,8 @@ export default async function handler(
   }
 
   try {
-    const server = await getServer();
+    const module = await getServer();
+    const server = module.default;
     await server.ready();
     server.server.emit("request", req, res);
   } catch (error) {
