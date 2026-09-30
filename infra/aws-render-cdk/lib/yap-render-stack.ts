@@ -73,7 +73,6 @@ export class YapRenderStack extends cdk.Stack {
     taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.tcp(443), "HTTPS to private AWS interface/gateway endpoints");
     taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.udp(53), "VPC DNS");
     taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.tcp(53), "VPC DNS over TCP");
-    });
 
     const taskRole = new iam.Role(this, "RenderTaskRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com")
