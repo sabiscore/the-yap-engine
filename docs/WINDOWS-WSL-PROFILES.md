@@ -13,7 +13,7 @@ processors=4
 swap=4GB
 ```
 
-The 6 GB WSL ceiling leaves Windows headroom while the compose override keeps Ollama at 3.5 GB and limits execution to one model and one video job.
+The 6 GB WSL ceiling is paired with the 6 GB Ollama hard cap in the compose profile; Docker service limits for Redis, API, dashboard and Python worker remain deliberately small. Keep one model and one video job active at a time. Treat the profile as a starting point and validate peak RSS on the physical host.
 
 ## 16 GB host
 
