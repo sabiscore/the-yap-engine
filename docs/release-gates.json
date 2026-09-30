@@ -1,35 +1,181 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "generatedAt": "2026-09-30T06:21:14Z",
+  "generatedAt": "2026-09-30T06:44:58Z",
   "release": {
     "name": "Creative Hub v3",
     "repository": "sabiscore/the-yap-engine",
     "branch": "feat/creative-hub-v3",
-    "sha": "bd1f54f5aff4e31a717a5c796bbdb505a18ec713",
+    "sha": "061e23776579472011334969ab1b53ce703010c9",
     "state": "HOLD",
     "certified": false
   },
   "gates": [
-    {"gate":"A1","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A2","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A3","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A4","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A5","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A6","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A7","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A8","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A9","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A10","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A11","status":"PASS","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A12","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A13","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A14","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A15","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A16","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A17","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A18","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"},
-    {"gate":"A19","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"automated"},
-    {"gate":"A20","status":"OPEN (needs operator)","evidenceUrl":"","sha":"bd1f54f5aff4e31a717a5c796bbdb505a18ec713","utc":"2026-09-30T06:21:14Z","executor":"operator"}
+    {
+      "gate": "A1",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A2",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A3",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A4",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A5",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A6",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A7",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A8",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A9",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A10",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A11",
+      "status": "IN PROGRESS",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A12",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A13",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A14",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A15",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A16",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A17",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A18",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    },
+    {
+      "gate": "A19",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "automated"
+    },
+    {
+      "gate": "A20",
+      "status": "OPEN (needs operator)",
+      "evidenceUrl": "",
+      "sha": "061e23776579472011334969ab1b53ce703010c9",
+      "utc": "2026-09-30T06:44:58Z",
+      "executor": "operator"
+    }
   ],
-  "statusEnum": ["PASS","FAIL","IN PROGRESS","OPEN (needs operator)","NOT EXECUTED"]
+  "statusEnum": [
+    "PASS",
+    "FAIL",
+    "IN PROGRESS",
+    "OPEN (needs operator)",
+    "NOT EXECUTED"
+  ]
 }
