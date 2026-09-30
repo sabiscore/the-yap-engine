@@ -10,7 +10,7 @@
 # Compiled server path: apps/swarmx-api/dist/apps/swarmx-api/src/server.js
 
 ARG NODE_VERSION=22.13.1
-ARG PNPM_VERSION=11.9.0
+ARG PNPM_VERSION=12.6.0
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV NODE_ENV=production
