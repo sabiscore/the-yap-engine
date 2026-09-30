@@ -1,5 +1,5 @@
 /**
- * SignalEstimate — 5-dimension engagement heuristic display
+ * ViralityMeter — 5-dimension engagement heuristic display
  *
  * Renders Hook / Completion / Shareability / SEO / Overall as labeled bars
  * with colour-coded thresholds:
@@ -18,7 +18,7 @@ import type { ViralitySignal } from "@swarmx/types/video-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface SignalEstimateProps {
+interface ViralityMeterProps {
   signal: ViralitySignal;
   isScoring?: boolean;
   /** When true renders a single-row compact variant for use inside cards. */
@@ -146,7 +146,7 @@ const DIMENSIONS: Array<{ key: keyof ViralitySignal; label: string }> = [
   { key: "overall", label: "Overall" },
 ];
 
-export function SignalEstimate({ signal, isScoring = false, compact = false, onImprove }: SignalEstimateProps) {
+export function ViralityMeter({ signal, isScoring = false, compact = false, onImprove }: ViralityMeterProps) {
   const overallNorm = normalise(signal.overall);
   const overallPct = Math.round(overallNorm * 100);
   const overallColour = scoreColour(overallNorm);
