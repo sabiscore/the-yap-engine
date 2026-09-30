@@ -36,9 +36,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     await server.ready();
     server.server.emit("request", req, res);
   } catch (error) {
-    console.error("[vercel-adapter] Fastify invocation failed", error);
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error("[vercel-adapter] Fastify initialization/invocation failed", {
+      message,
+      stack,
+    });
     if (!res.headersSent) {
-      sendJson(res, 503, { status: "unavailable", service: "swarmx-api" });
+      sendJson(res, 503, {
+        status: "unavailable",
+        service: "swarmx-api",
+        error: "server_initialization_failed",
+        message,
+      });
     }
   }
 }
