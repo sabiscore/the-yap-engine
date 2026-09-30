@@ -1,7 +1,11 @@
 import { access, mkdir, readdir, copyFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join, resolve } from "node:path";
 
-const root = process.cwd();
+// This script is invoked both from the repository root (Render build command)
+// and from apps/swarmx-api (the package-level build script). Anchor all paths
+// to this file so the assertion is independent of process.cwd().
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const canonical = resolve(root, "apps/swarmx-api/dist/apps/swarmx-api/src/workers/start-worker.js");
 
 async function exists(path) {
