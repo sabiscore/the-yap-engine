@@ -9,6 +9,7 @@ export const maxDuration = 60;
 const API_URL = resolveServerApiUrl();
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const ALLOWED_PROXY_PREFIXES = ["/api/system/","/api/video/","/api/series/","/api/agents/","/api/workflows/","/api/logs/","/api/settings/"] as const;
+const ALLOWED_EXACT_READS = new Set(["/api/health"]);
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 30;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -18,7 +19,7 @@ function requestId(request: NextRequest): string {
 }
 
 export function isAllowedPath(pathname: string): boolean {
-  return ALLOWED_PROXY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return ALLOWED_EXACT_READS.has(pathname) || ALLOWED_PROXY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export function isLoopbackUrl(value: string): boolean {
@@ -150,6 +151,16 @@ async function proxyRequest(
 
   try {
     const upstream = await fetch(buildTargetUrl(path, request), init);
+    if (upstream.status === 502 || upstream.status === 503 || upstream.status === 504) {
+      return jsonError(
+        upstream.status,
+        upstream.status === 503 ? "upstream_unavailable" : "upstream_gateway_error",
+        upstream.status === 503
+          ? "The video service is temporarily unavailable. Check System → Health."
+          : "The video service returned a gateway error. Retry only after checking the service state.",
+        id,
+      );
+    }
     const responseHeaders = new Headers();
     const contentType = upstream.headers.get("content-type");
     if (contentType) responseHeaders.set("content-type", contentType);
