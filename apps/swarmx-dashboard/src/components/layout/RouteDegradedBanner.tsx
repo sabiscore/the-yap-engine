@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertTriangle, WifiOff } from "lucide-react";
+
 import { getRuntimeGuidance } from "@/lib/runtime-guidance";
+import { StateBadge } from "@/components/ui/state-badge";
 
 interface RouteDegradedBannerProps {
   readonly pressureLevel: string | undefined;
@@ -27,7 +28,6 @@ export function RouteDegradedBanner({
     return null;
   }
 
-  const Icon = guidance.tone === "critical" ? WifiOff : AlertTriangle;
 
   return (
     <div
@@ -39,8 +39,8 @@ export function RouteDegradedBanner({
       role={guidance.tone === "critical" ? "alert" : "status"}
       aria-live={guidance.tone === "critical" ? "assertive" : "polite"}
     >
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-status-warning/35 bg-status-warning/12">
-        <Icon className="h-4 w-4 text-status-warning" aria-hidden="true" />
+      <div className="mt-0.5 flex shrink-0 items-center">
+        <StateBadge state={guidance.tone === "critical" ? "offline" : "degraded"} />
       </div>
       <div className="min-w-0">
         <p className="text-xs font-semibold text-status-warning">{guidance.title}</p>
