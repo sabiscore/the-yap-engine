@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)"
 cd "$ROOT"
 
+if [[ -f env.local ]]; then
+  set -a
+  source env.local
+  set +a
+fi
+
 echo "[hub] preflight"
 node scripts/doctor.mjs
 
