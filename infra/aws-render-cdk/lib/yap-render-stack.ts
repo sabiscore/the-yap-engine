@@ -237,8 +237,14 @@ exports.handler = async (event) => {
           resources: [bucket.arnForObjects("locks/*"), bucket.arnForObjects("results/*")],
         }),
         new iam.PolicyStatement({
-          actions: ["ecs:RunTask", "ecs:DescribeTasks"],
+          actions: ["ecs:RunTask"],
           resources: [taskDefinition.taskDefinitionArn],
+        }),
+        // DescribeTasks targets runtime task ARNs, which are not known at synthesis time.
+        new iam.PolicyStatement({
+          actions: ["ecs:DescribeTasks"],
+          resources: ["*"],
+          conditions: { ArnEquals: { "ecs:cluster": cluster.clusterArn } },
         }),
         new iam.PolicyStatement({
           actions: ["iam:PassRole"],
