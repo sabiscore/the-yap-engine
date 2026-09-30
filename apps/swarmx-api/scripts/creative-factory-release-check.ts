@@ -128,8 +128,9 @@ assertIncludes(seriesTypesSource, "EpisodePreProductionErrorCode", "episode pre-
 assertIncludes(seriesTypesSource, "QUALITY_GATE_FAILED", "quality-gate failures must have a canonical error code");
 
 const dashboardProxySource = await readRepoFile("apps/swarmx-dashboard/src/app/api/[...path]/route.ts");
-assertIncludes(dashboardProxySource, 'headers.delete("authorization")', "proxy must strip browser Authorization headers");
-assertIncludes(dashboardProxySource, 'headers.delete("x-video-api-key")', "proxy must strip browser video API-key headers");
+assertIncludes(dashboardProxySource, 'for (const name of ["accept", "content-type", "user-agent"])', "proxy must allowlist forwarded browser headers");
+assert.equal(dashboardProxySource.includes('request.headers.get("authorization")'), false, "proxy must never forward browser Authorization headers");
+assert.equal(dashboardProxySource.includes('request.headers.get("x-video-api-key")'), false, "proxy must never forward browser video API-key headers");
 assertIncludes(dashboardProxySource, "process.env.SWARMX_VIDEO_API_TOKEN", "proxy must use server-only video token");
 assert.equal(
   dashboardProxySource.includes(PUBLIC_VIDEO_TOKEN_ENV),
@@ -156,8 +157,8 @@ for (const requiredDefault of [
 
 const apiDockerfileSource = await readRepoFile("apps/swarmx-api/Dockerfile");
 const dashboardDockerfileSource = await readRepoFile("apps/swarmx-dashboard/Dockerfile");
-assertIncludes(apiDockerfileSource, "ARG PNPM_VERSION=11.9.0", "API Dockerfile must pin pnpm to repository packageManager");
-assertIncludes(dashboardDockerfileSource, "ARG PNPM_VERSION=11.9.0", "Dashboard Dockerfile must pin pnpm to repository packageManager");
+assertIncludes(apiDockerfileSource, "ARG PNPM_VERSION=12.6.0", "API Dockerfile must pin pnpm to repository packageManager");
+assertIncludes(dashboardDockerfileSource, "ARG PNPM_VERSION=12.6.0", "Dashboard Dockerfile must pin pnpm to repository packageManager");
 assertIncludes(dashboardDockerfileSource, "COPY pnpm-lock.yaml", "Dashboard Dockerfile must install from the workspace lockfile");
 assert.equal(
   dashboardDockerfileSource.includes("next.config.override.js"),

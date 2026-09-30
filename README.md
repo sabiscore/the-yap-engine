@@ -315,6 +315,22 @@ Creative Hub surfaces the states `RUNNING`, `QC_FAILED`, `NEEDS_REVISION`, `REVI
 
 The dashboard includes safe-area handling, visible focus states, reduced-motion support and touch-friendly controls for mobile production use.
 
+
+## Creative Hub v3
+
+The canonical dashboard is apps/swarmx-dashboard. Creative Hub v3 extends the existing dashboard rather than introducing a parallel UI. Protected production writes require the server-configured dashboard access gate; the API token remains server-side.
+
+### Local profiles
+
+- 8 GB: docker-compose.8gb.yml — one model and one video job; validate peak memory with docs/8GB-PROFILING-RUNBOOK.md.
+- 16 GB: docker-compose.16gb.yml — larger memory ceiling with the same one-job safety invariant.
+
+Start with env.local, then use package scripts docker:up:8gb, docker:down, doctor and dev:hub. The hub-up script performs preflight, compose validation, health wait and a dashboard smoke test.
+
+For cloud deployment, keep the same dashboard/API split and configure the non-loopback SWARMX_API_URL plus server-side secrets on the hosting platform. Certification remains SHA-specific; preview deployments are the validation surface for this branch.
+
+See docs/CREATIVE-HUB.md and docs/accessibility/creative-hub-audit.md.
+
 ## Validation
 
 ```bash

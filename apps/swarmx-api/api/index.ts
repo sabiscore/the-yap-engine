@@ -1,12 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { FastifyInstance } from "fastify";
 
-type FastifyServer = typeof import("../src/server.js").default;
+type ServerModule = typeof import("../src/server.js");
 
-let serverPromise: Promise<FastifyServer> | undefined;
+let serverModulePromise: Promise<ServerModule> | undefined;
 
-function getServer(): Promise<FastifyServer> {
-  serverPromise ??= import("../src/server.js").then((module) => module.default);
-  return serverPromise;
+async function getServer(): Promise<FastifyInstance> {
+  const module = await (serverModulePromise ??= import("../src/server.js"));
+  const instance: FastifyInstance = module.default;
+  return instance;
 }
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {

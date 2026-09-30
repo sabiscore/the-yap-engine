@@ -67,9 +67,12 @@ export class YapRenderStack extends cdk.Stack {
 
     const taskSecurityGroup = new ec2.SecurityGroup(this, "RenderSecurityGroup", {
       vpc,
-      allowAllOutbound: true,
-      description: "Render tasks have no inbound ports."
+      allowAllOutbound: false,
+      description: "Render tasks have no inbound ports; egress is limited to VPC-resident service endpoints and DNS."
     });
+    taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.tcp(443), "HTTPS to private AWS interface/gateway endpoints");
+    taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.udp(53), "VPC DNS");
+    taskSecurityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.tcp(53), "VPC DNS over TCP");
 
     const taskRole = new iam.Role(this, "RenderTaskRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com")
@@ -218,25 +221,44 @@ exports.handler = async (event) => {
       }
     });
 
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["ecs:RunTask"],
-      resources: [taskDefinition.taskDefinitionArn]
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["iam:PassRole"],
-      resources: [
-        taskDefinition.taskRole!.roleArn,
-        taskDefinition.executionRole!.roleArn
-      ]
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["s3:GetObject"],
-      resources: [bucket.arnForObjects("jobs/*")],
-    }));
-    dispatcher.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["s3:PutObject"],
-      resources: [bucket.arnForObjects("locks/*"), bucket.arnForObjects("results/*")],
-    }));
+    // Application/dispatcher policy is deliberately narrower than the AWS-managed
+    // ECS task-execution policy. The dispatcher only coordinates the render task;
+    // the Fargate execution role remains responsible for ECR/CloudWatch plumbing.
+    const applicationPolicy = new iam.ManagedPolicy(this, "RenderApplicationPolicy", {
+      statements: [
+        new iam.PolicyStatement({
+          actions: ["s3:ListBucket"],
+          resources: [bucket.bucketArn],
+          conditions: { StringLike: { "s3:prefix": ["jobs/*", "locks/*", "results/*"] } },
+        }),
+        new iam.PolicyStatement({
+          actions: ["s3:GetObject"],
+          resources: [bucket.arnForObjects("jobs/*")],
+        }),
+        new iam.PolicyStatement({
+          actions: ["s3:PutObject"],
+          resources: [bucket.arnForObjects("locks/*"), bucket.arnForObjects("results/*")],
+        }),
+        new iam.PolicyStatement({
+          actions: ["ecs:RunTask"],
+          resources: [taskDefinition.taskDefinitionArn],
+        }),
+        // DescribeTasks targets runtime task ARNs, which are not known at synthesis time.
+        new iam.PolicyStatement({
+          actions: ["ecs:DescribeTasks"],
+          resources: ["*"],
+          conditions: { ArnEquals: { "ecs:cluster": cluster.clusterArn } },
+        }),
+        new iam.PolicyStatement({
+          actions: ["iam:PassRole"],
+          resources: [taskDefinition.taskRole!.roleArn, taskDefinition.executionRole!.roleArn],
+          conditions: {
+            StringEquals: { "iam:PassedToService": "ecs-tasks.amazonaws.com" },
+          },
+        }),
+      ],
+    });
+    dispatcher.role?.addManagedPolicy(applicationPolicy);
 
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
