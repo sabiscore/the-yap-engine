@@ -14,7 +14,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { VideoJobForm } from "@/components/video/VideoJobForm";
 import { isActiveVideoStatus, type VideoJob } from "@/lib/video-dashboard";
 import { useVideoStore } from "@/stores/video";
@@ -58,7 +57,7 @@ function JobPreview({ job }: { readonly job: VideoJob }) {
           aria-label="Generated video preview"
         />
       ) : (
-        <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.12),transparent_42%),#0E0E10]">
+        <div className="flex h-full items-center justify-center bg-bg-base">
           <Clapperboard className="h-10 w-10 text-text-muted" aria-hidden="true" />
         </div>
       )}
