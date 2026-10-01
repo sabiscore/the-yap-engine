@@ -7,6 +7,7 @@ import {
   Cpu,
   Gauge,
   ListChecks,
+  type LucideIcon,
   Server,
   Wifi,
   WifiOff,
@@ -148,7 +149,7 @@ function TelemetryMetric({
   detail,
   valueClassName,
 }: {
-  icon: typeof Cpu;
+  icon: LucideIcon;
   label: string;
   value: number | string;
   detail: string;
