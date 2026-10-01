@@ -67,7 +67,7 @@
   --nocturne-border-active: #3A424E;
   --nocturne-control-border: #6B7583;
   --nocturne-cyan: #00E5FF;
-  --nocturne-green: #00FF66;
+  --nocturne-green: #10B981;
   --nocturne-text: #F1F5F9;
   --nocturne-secondary: color-mix(in srgb, var(--nocturne-text) 74%, var(--nocturne-muted));
   --nocturne-muted: #8E99A6;
@@ -79,9 +79,9 @@
   --shadow-accent-pulse: none;
   --shadow-error-glow: none;
 
-  --color-accent-dim: rgb(0 255 102 / 8%);
-  --color-border-accent: rgb(0 255 102 / 28%);
-  --color-selection-bg: rgb(0 255 102 / 18%);
+  --color-accent-dim: rgb(16 185 129 / 8%);
+  --color-border-accent: rgb(16 185 129 / 28%);
+  --color-selection-bg: rgb(16 185 129 / 18%);
 
   --nav-rail-width: 60px;
   --nav-rail-expanded: 240px;
@@ -310,7 +310,7 @@ body::after {
 
 /* Active nav item accent glow */
 .nav-item-active-glow {
-  box-shadow: inset 2px 0 10px rgb(0 255 102 / 15%);
+  box-shadow: inset 2px 0 10px rgb(16 185 129 / 15%);
 }
 
 /* Panel danger variant — border pulses red when there are active errors */
@@ -355,9 +355,9 @@ body::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgb(0 255 102 / 40%) 30%,
-    rgb(0 255 102 / 60%) 50%,
-    rgb(0 255 102 / 40%) 70%,
+    rgb(16 185 129 / 40%) 30%,
+    rgb(16 185 129 / 60%) 50%,
+    rgb(16 185 129 / 40%) 70%,
     transparent 100%
   );
   animation: live-edge-pulse 3s ease-in-out infinite;
@@ -691,9 +691,9 @@ body::after {
 
 /* ── Swarm activity pulse ring ───────────────────────────────────────────── */
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0    rgb(0 255 102 / 40%); }
-  70%  { box-shadow: 0 0 0 10px rgb(0 255 102 / 0%); }
-  100% { box-shadow: 0 0 0 0    rgb(0 255 102 / 0%); }
+  0%   { box-shadow: 0 0 0 0    rgb(16 185 129 / 40%); }
+  70%  { box-shadow: 0 0 0 10px rgb(16 185 129 / 0%); }
+  100% { box-shadow: 0 0 0 0    rgb(16 185 129 / 0%); }
 }
 
 /* ── Card surface lift on hover ──────────────────────────────────────────── */
@@ -733,8 +733,8 @@ body::after {
   gap: 0.25rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  border: 1px solid rgb(0 255 102 / 28%);
-  background: rgb(0 255 102 / 8%);
+  border: 1px solid rgb(16 185 129 / 28%);
+  background: rgb(16 185 129 / 8%);
   color: var(--color-accent);
   font-size: 0.6rem;
   font-family: var(--font-mono);
@@ -828,7 +828,7 @@ body::after {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgb(0 255 102 / 3%) 50%,
+    rgb(16 185 129 / 3%) 50%,
     transparent 100%
   );
   animation: scan-sweep 6s ease-in-out infinite;
@@ -854,7 +854,7 @@ body::after {
 .insight-info    { border-color: rgb(0 229 255 / 30%);  background: rgb(0 229 255 / 6%);  color: #00E5FF; }
 .insight-warn    { border-color: rgb(245 196 81 / 30%);  background: rgb(245 196 81 / 6%);  color: var(--color-status-queued); }
 .insight-error   { border-color: rgb(255 92 92 / 30%); background: rgb(255 92 92 / 6%); color: var(--color-status-error); }
-.insight-success { border-color: rgb(0 255 102 / 30%);  background: rgb(0 255 102 / 6%);  color: var(--color-status-success); }
+.insight-success { border-color: rgb(16 185 129 / 30%);  background: rgb(16 185 129 / 6%);  color: var(--color-status-success); }
 
 /* ── Scan lines — the original body::after handles this — no override needed ── */
 
@@ -905,7 +905,7 @@ body::after {
 .mission-bar {
   background: linear-gradient(
     90deg,
-    rgb(0 255 102 / 8%) 0%,
+    rgb(16 185 129 / 8%) 0%,
     transparent 100%
   );
   border-left: 2px solid var(--color-accent);
@@ -953,7 +953,7 @@ body::after {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(circle at 12% 8%, rgb(0 255 102 / 6%), transparent 28%),
+    radial-gradient(circle at 12% 8%, rgb(16 185 129 / 6%), transparent 28%),
     radial-gradient(circle at 88% 28%, rgb(0 229 255 / 5%), transparent 30%);
 }
 .yap-video-frame {
