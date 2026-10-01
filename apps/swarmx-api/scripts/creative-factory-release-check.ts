@@ -108,7 +108,7 @@ assertIncludes(rendererSource, "template-lineage.json", "production package must
 assertIncludes(rendererSource, "thumbnail.jpg", "production package must emit a thumbnail");
 assertIncludes(rendererSource, "ffmpeg_cinematic_explainer", "cinematic requests must select the cinematic template tier");
 
-const serverSource = await readRepoFile("apps/swarmx-api/src/server.ts");
+const serverSource = await readRepoFile("apps/swarmx-api/src/server-runtime.ts");
 assertIncludes(serverSource, "hydrateVideoQueueFromDisk", "API startup must hydrate video jobs");
 assertIncludes(serverSource, "hydrateSeriesRegistryFromDisk", "API startup must hydrate series jobs");
 assertIncludes(serverSource, "hydrateWorkflowRunsFromDisk", "API startup must hydrate workflow runs");
