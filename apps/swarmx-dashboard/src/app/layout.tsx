@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clapperboard, Home, Menu, Settings, UserCircle2, Workflow } from "lucide-react";
 import "./globals.css";
 import { PRODUCT_BRAND } from "@/lib/brand";
+import { MobileChrome } from "@/components/layout/MobileChrome";
 
 const dashboardVersion =
   process.env.NEXT_PUBLIC_SWARMX_VERSION ??

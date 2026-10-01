@@ -1,18 +1,9 @@
 /**
- * apps/swarmx-dashboard/src/app/(dashboard)/video/page.tsx
+ * Primary Creative Hub studio route.
  *
- * VIDEO-ALPHA r2 — Upgraded video production studio workspace.
- *
- * Key upgrades:
- *  - Studio Monitor & Active Render Visualizer replaces empty right-hand void
- *  - Live video preview player for completed jobs with 1-click download & inspector
- *  - Real-time animated pipeline stage tracker (VideoPipelinePulse) for active jobs
- *  - Interactive concept starter prompt chips that feed the brief form immediately
- *  - Clean dead-letter queue management with 1-click "Clear All" and individual dismiss
- *  - Seamless responsive two-column grid (lg:grid-cols) with sticky viewport retention
- *  - Natural headline formatting without awkward text truncation ("about fo...")
+ * The presentation shell lives in YapStudio; it owns the existing video store
+ * and VideoJobForm contracts so generation behavior remains unchanged.
  */
-
 "use client";
 
 import { useEffect, useCallback, useState } from "react";

@@ -161,6 +161,8 @@ export function VideoJobForm({
   const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
+  const [manualModelRoute, setManualModelRoute] = useState<ModelRoute>("fast");
+  const [autoRoute, setAutoRoute] = useState(true);
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
@@ -218,6 +220,8 @@ export function VideoJobForm({
     setNiche(draft.niche);
     setTemplateFamily(draft.templateFamily ?? "none");
     setTargetDuration(draft.targetDuration);
+    setAutoRoute(true);
+    setModelRoute("auto");
     setTone(draft.tone);
     setStyle(draft.style);
     setCaptionStyle(draft.captionStyle);
@@ -281,7 +285,7 @@ export function VideoJobForm({
           </p>
         </div>
         <span className="shrink-0 rounded border border-border-accent bg-[var(--color-accent-dim)] px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-accent">
-          {modelRoute === "auto" ? "Auto route" : "Override"}
+          {autoRoute ? "Auto route" : "Manual route"}
         </span>
       </div>
 
@@ -340,7 +344,7 @@ export function VideoJobForm({
           maxLength={2000}
           disabled={isSubmitting}
           className={cn(
-            "min-h-28 w-full resize-none rounded border border-border bg-bg-input px-3 py-2.5",
+            "min-h-32 w-full resize-none rounded border border-border bg-bg-input px-3 py-3 text-base",
             "text-sm leading-6 text-text-primary placeholder:text-text-muted",
             "transition-colors duration-(--duration-micro)",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
@@ -384,6 +388,38 @@ export function VideoJobForm({
           <span className="shrink-0 rounded-md border border-border bg-bg-elevated px-2.5 py-2 font-mono text-[10px] text-text-muted tabular-nums">
             {prompt.length}/2000
           </span>
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded border border-border bg-bg-surface/70 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-text-primary">Auto Route</p>
+            <p className="mt-0.5 text-[10px] leading-4 text-text-muted">
+              Choose the safest compatible model automatically for current host pressure.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoRoute}
+            aria-label="Toggle automatic model routing"
+            disabled={isSubmitting}
+            onClick={() => handleAutoRouteChange(!autoRoute)}
+            className={cn(
+              "relative inline-flex min-h-11 min-w-[3.25rem] shrink-0 items-center rounded-full border px-1 transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+              autoRoute
+                ? "border-status-success/50 bg-status-success/15"
+                : "border-border-active bg-bg-elevated",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          >
+            <span
+              className={cn(
+                "h-5 w-5 rounded-full transition-transform",
+                autoRoute ? "translate-x-5 bg-status-success" : "translate-x-0 bg-text-muted",
+              )}
+              aria-hidden="true"
+            />
+          </button>
         </div>
         <p className="text-[10px] leading-4 text-text-muted">
           High-signal prompts specify: (1){" "}
@@ -476,11 +512,11 @@ export function VideoJobForm({
             </span>
             <span className={cn(
               "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide",
-              modelRoute === "auto"
+              autoRoute
                 ? "border-border bg-bg-elevated text-text-muted"
                 : "border-status-warning/40 bg-status-warning/10 text-status-warning"
             )}>
-              {modelRoute === "auto" ? "Auto (Safe)" : `Override: ${modelRoute}`}
+              {autoRoute ? "Auto (Safe)" : `Override: ${modelRoute}`}
             </span>
           </div>
           <ChevronDown className="h-3.5 w-3.5 text-text-muted transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
@@ -491,9 +527,9 @@ export function VideoJobForm({
             <Select
               id={`${formId}-model`}
               label="Model Tier"
-              value={modelRoute}
-              onChange={setModelRoute}
-              disabled={isSubmitting}
+              value={modelRoute === "auto" ? manualModelRoute : modelRoute}
+              onChange={handleModelRouteChange}
+              disabled={isSubmitting || autoRoute}
               options={[
                 { value: "auto", label: "Auto (recommended)", help: "Safe auto-route: Pilot-lite on low-RAM hosts, 7B on unconstrained hosts." },
                 { value: "fast", label: "Fast (3.8B)", help: "Uses Pilot-lite for every text stage. Fastest generation." },
