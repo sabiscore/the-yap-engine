@@ -119,12 +119,6 @@ export function YapStudio() {
           />
         </section>
 
-        {runtimeGuidance?.tone === "critical" ? (
-          <div className="rounded border border-status-error/30 bg-status-error/6 px-3 py-2 text-[10px] font-mono text-status-error" role="status">
-            {runtimeGuidance.title}
-          </div>
-        ) : null}
-
         <section id="queue" aria-labelledby="studio-queue-title" className="scroll-mt-20">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -198,7 +192,7 @@ export function YapStudio() {
                     selectedJobId === job.id && "border-border-accent",
                   )}
                 >
-                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/65 text-white">
+                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-accent-cyan">
                     <Play className="ml-0.5 h-4 w-4 fill-current" aria-hidden="true" />
                   </div>
                   <VideoJobCard
