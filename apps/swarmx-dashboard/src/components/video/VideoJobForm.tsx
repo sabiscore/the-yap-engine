@@ -162,7 +162,6 @@ export function VideoJobForm({
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
   const [manualModelRoute, setManualModelRoute] = useState<ModelRoute>("fast");
-  const [autoRoute, setAutoRoute] = useState(true);
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
@@ -183,8 +182,17 @@ export function VideoJobForm({
   const autoRoute = modelRoute === "auto";
   const modelTier = modelRoute === "auto" ? undefined : modelRoute;
 
+  const handleAutoRouteChange = (enabled: boolean) => {
+    setModelRoute(enabled ? "auto" : modelRoute === "auto" ? manualModelRoute : modelRoute);
+  };
+
   const handleAutoRouteToggle = (enabled: boolean) => {
-    setModelRoute(enabled ? "auto" : modelRoute === "auto" ? "fast" : modelRoute);
+    handleAutoRouteChange(enabled);
+  };
+
+  const handleModelRouteChange = (route: ModelRoute) => {
+    setManualModelRoute(route === "auto" ? "fast" : route);
+    setModelRoute(route === "auto" ? "auto" : route);
   };
   const submitDescriptionId = submissionBlocked ? `${formId}-submit-blocked` : undefined;
 
@@ -220,7 +228,6 @@ export function VideoJobForm({
     setNiche(draft.niche);
     setTemplateFamily(draft.templateFamily ?? "none");
     setTargetDuration(draft.targetDuration);
-    setAutoRoute(true);
     setModelRoute("auto");
     setTone(draft.tone);
     setStyle(draft.style);
