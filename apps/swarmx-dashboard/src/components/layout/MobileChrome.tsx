@@ -114,7 +114,7 @@ export function MobileChrome() {
                   <Menu className="h-5 w-5" aria-hidden="true" />
                 )}
               </summary>
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-64 rounded border border-border bg-bg-surface p-2 shadow-xl">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-64 rounded border border-border bg-bg-surface p-2">
                 <p className="px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
                   Workspace
                 </p>
