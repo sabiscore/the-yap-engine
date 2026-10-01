@@ -1,20 +1,15 @@
 "use client";
 
 import React from "react";
-import { AppShell } from "@/components/layout/AppShell";
-import { CommandBar } from "@/components/layout/CommandBar";
-import { ConnectionBanner } from "@/components/layout/ConnectionBanner";
-import { NavRail } from "@/components/layout/NavRail";
-import { TelemetryRail } from "@/components/layout/TelemetryRail";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SystemStatus } from "@/components/SystemStatus";
 import { TerminalStrip } from "@/components/layout/TerminalStrip";
 import { ShortcutsOverlay } from "@/components/layout/ShortcutsOverlay";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useSwarmXEvents } from "@/hooks/useSwarmXEvents";
-import { useApiHealth } from "@/hooks/useApiHealth";
 import { useKeyboard } from "@/hooks/useKeyboard";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { usePathname } from "next/navigation";
+import { useSwarmXEvents } from "@/hooks/useSwarmXEvents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,58 +27,51 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/workflows": "Workflows",
   "/composer": "Composer",
   "/logs": "Logs",
-  "/video": "Video",
+  "/video": "Video Studio",
   "/series": "Series",
   "/system": "System",
   "/settings": "Settings",
 };
 
-// Inner client component that mounts hooks (must be "use client")
 function DashboardShell({ children }: { readonly children: React.ReactNode }) {
   useSwarmXEvents();
   useKeyboard();
 
-  const breadcrumb = useBreadcrumb();
-  const apiHealth = useApiHealth();
+  const pathname = usePathname();
+  const breadcrumb = BREADCRUMB_MAP[pathname] ?? "The Yap Engine";
 
   return (
-    <AppShell>
-      {/* Row 1, Col 1-3 */}
-      <CommandBar breadcrumb={breadcrumb} apiHealth={apiHealth} />
-
-      {/* Row 2, Col 1 */}
-      <NavRail />
-
-      {/* Row 2, Col 2 — scrollable content zone */}
-      <main
-        className="@container row-start-2 col-start-2 overflow-hidden flex flex-col bg-bg-base"
-        id="main-content"
-        tabIndex={-1}
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-bg-base">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-16 focus:z-[70] focus:rounded focus:border focus:border-border-active focus:bg-bg-elevated focus:px-3 focus:py-2 focus:text-xs focus:text-text-primary"
       >
-        <ConnectionBanner apiHealth={apiHealth} />
-        <ScrollArea className="flex-1 h-full">
-          <div className="min-h-full">
-            {children}
-          </div>
-        </ScrollArea>
-      </main>
+        Skip to main content
+      </a>
 
-      {/* Row 2, Col 3 */}
-      <TelemetryRail />
+      <SystemStatus />
 
-      {/* Row 3, Col 1-3 */}
-      <TerminalStrip />
+      <div className="min-h-0 flex-1">
+        <main
+          className="@container mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-col bg-bg-base"
+          id="main-content"
+          tabIndex={-1}
+          aria-label={breadcrumb}
+        >
+          <ScrollArea className="h-full flex-1">
+            <div className="min-h-full pb-24 md:pb-0">{children}</div>
+          </ScrollArea>
+        </main>
+      </div>
 
-      {/* Portals */}
+      <div className="shrink-0">
+        <TerminalStrip />
+      </div>
+
       <CommandPalette />
       <ShortcutsOverlay />
-    </AppShell>
+    </div>
   );
-}
-
-function useBreadcrumb(): string {
-  const pathname = usePathname();
-  return BREADCRUMB_MAP[pathname] ?? "The Yap Engine";
 }
 
 export default function DashboardLayout({
@@ -93,12 +81,6 @@ export default function DashboardLayout({
 }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-2 focus:z-50 focus:rounded focus:border focus:border-border-active focus:bg-bg-elevated focus:px-2 focus:py-1 focus:text-xs focus:text-text-primary"
-      >
-        Skip to main content
-      </a>
       <DashboardShell>{children}</DashboardShell>
     </QueryClientProvider>
   );
