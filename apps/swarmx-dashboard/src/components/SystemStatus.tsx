@@ -156,29 +156,29 @@ export function SystemStatus() {
             </div>
           </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <TelemetryMetric icon={Cpu} label="Active Nodes" value={activeAgentCount} detail={`${totalAgentCount} registered`} />
-          <TelemetryMetric icon={ListChecks} label="Job Queue" value={queuedJobs} detail={videoQueue ? `${videoQueue.waiting} waiting` : "video jobs"} />
-          <TelemetryMetric icon={CheckCircle2} label="Processed Jobs" value={processedJobs} detail="completed" />
-          <TelemetryMetric
-            icon={Gauge}
-            label="Pipeline Health"
-            value={pipelineHealth.toUpperCase()}
-            detail={
-              pipelineHealth === "healthy"
-                ? "runtime nominal"
-                : pipelineHealth === "degraded"
-                  ? `pressure ${pressureLevel}`
-                  : "Awaiting API connection"
-            }
-            valueClassName={
-              pipelineHealth === "healthy"
-                ? "text-status-success"
-                : pipelineHealth === "degraded"
-                  ? "text-status-warning"
-                  : "text-status-error"
-            }
-          />
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <TelemetryMetric
+              icon={Server}
+              label="Active Nodes"
+              value={formatCount(activeAgentCount)}
+            />
+            <TelemetryMetric
+              icon={ListVideo}
+              label="Job Queue"
+              value={formatCount(jobQueue)}
+            />
+            <TelemetryMetric
+              icon={CheckCircle2}
+              label="Processed Jobs"
+              value={formatCount(processedJobs)}
+            />
+            <TelemetryMetric
+              icon={Activity}
+              label="Pipeline Health"
+              value={pipeline.label}
+              valueClassName={pipeline.className}
+            />
+          </div>
         </div>
       </div>
     </section>
