@@ -608,8 +608,9 @@ assert.ok(
   cleanupSource.includes("SWARMX_VIDEO_EXPORT_TTL_DAYS"),
   "cleanup service TTL must be configurable via SWARMX_VIDEO_EXPORT_TTL_DAYS",
 );
-// Server must import and call the cleanup service.
-const serverSource2 = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
+// The Render runtime server owns background cleanup; the Vercel gateway must
+// remain dependency-light and must not import worker/runtime services.
+const serverSource2 = await readFile(new URL("../src/server-runtime.ts", import.meta.url), "utf8");
 assert.ok(
   serverSource2.includes("startVideoCleanup()"),
   "server must call startVideoCleanup() after pollers are started",
