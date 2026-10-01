@@ -54,7 +54,7 @@ export function MobileChrome() {
   return (
     <>
       <header
-        className="sticky top-0 z-50 border-b border-border bg-bg-base/95 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-bg-base/85 sm:px-5"
+        className="sticky top-0 z-50 border-b border-border bg-bg-base px-3 sm:px-5"
         role="banner"
       >
         <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3">
@@ -148,7 +148,7 @@ export function MobileChrome() {
       </header>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg-base/97 px-2 pt-1.5 shadow-[0_-12px_30px_rgb(0_0_0_/18%)] backdrop-blur-md supports-[backdrop-filter]:bg-bg-base/90 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg-base px-2 pt-1.5 md:hidden"
         style={{ paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))" }}
         aria-label="Mobile navigation"
       >
