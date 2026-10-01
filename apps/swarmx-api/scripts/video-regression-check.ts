@@ -189,17 +189,19 @@ assert.equal(
 assert.ok(routesSource.includes("isTerminalStatus(job.status)"), "SSE must short-circuit on already-terminal jobs");
 assert.ok(routesSource.includes('event.type === "video:completed"'), "SSE must close on terminal lifecycle events");
 
-// V6.2.15 — server auto-configures LOW_RAM_MODE and prewarms video model on constrained hosts.
-const serverSource = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
-assert.ok(serverSource.includes("shouldAutoEnableLowRamMode()"), "server must auto-enable low-RAM mode");
-assert.ok(serverSource.includes("LOW_RAM_VIDEO_MODEL"), "server must reference the video prewarm model");
+// V6.2.15 — the Render runtime server auto-configures LOW_RAM_MODE and prewarms
+// the video model on constrained hosts. The Vercel entrypoint (server.ts) is
+// intentionally a dependency-light gateway and must not own runtime worker logic.
+const serverSource = await readFile(new URL("../src/server-runtime.ts", import.meta.url), "utf8");
+assert.ok(serverSource.includes("shouldAutoEnableLowRamMode()"), "runtime server must auto-enable low-RAM mode");
+assert.ok(serverSource.includes("LOW_RAM_VIDEO_MODEL"), "runtime server must reference the video prewarm model");
 assert.ok(
   serverSource.includes('import { fetchBackend } from "./services/backend-fetch-errors.js";'),
-  "server startup prewarm must use fetchBackend() for stable Ollama failure classification",
+  "runtime server startup prewarm must use fetchBackend() for stable Ollama failure classification",
 );
 assert.ok(
   serverSource.includes('fetchBackend(`${ollamaUrl}/api/generate`'),
-  "server startup prewarm /api/generate call must use fetchBackend() rather than bare fetch()",
+  "runtime server startup prewarm /api/generate call must use fetchBackend() rather than bare fetch()",
 );
 // Post-M13 fix — the shouldAutoEnableLowRamMode() check + process.env mutation
 // MUST run BEFORE the first loadEnv() call. loadEnv() caches its parsed result
