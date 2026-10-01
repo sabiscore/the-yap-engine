@@ -151,7 +151,7 @@ export function YapStudio({
                   className="relative min-w-0 snap-start overflow-hidden rounded-xl border border-border bg-bg-elevated/70"
                   role="listitem"
                 >
-                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-accent-cyan" aria-hidden="true">
+                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-[color:var(--color-accent-cyan)]" aria-hidden="true">
                     <Play className="ml-0.5 h-4 w-4 fill-current" />
                   </div>
                   {renderJob(job)}
