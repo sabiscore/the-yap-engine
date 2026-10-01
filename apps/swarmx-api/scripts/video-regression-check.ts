@@ -190,6 +190,7 @@ assert.equal(
 assert.ok(routesSource.includes("isTerminalStatus(job.status)"), "SSE must short-circuit on already-terminal jobs");
 assert.ok(routesSource.includes('event.type === "video:completed"'), "SSE must close on terminal lifecycle events");
 
+<<<<<<< HEAD
 // V6.2.15 — server auto-configures LOW_RAM_MODE and prewarms video model on constrained hosts.
 const serverUrl = new URL(
   existsSync(new URL("../src/server-runtime.ts", import.meta.url)) ? "../src/server-runtime.ts" : "../src/server.ts",
@@ -198,13 +199,21 @@ const serverUrl = new URL(
 const serverSource = await readFile(serverUrl, "utf8");
 assert.ok(serverSource.includes("shouldAutoEnableLowRamMode()"), "server must auto-enable low-RAM mode");
 assert.ok(serverSource.includes("LOW_RAM_VIDEO_MODEL"), "server must reference the video prewarm model");
+=======
+// V6.2.15 — the Render runtime server auto-configures LOW_RAM_MODE and prewarms
+// the video model on constrained hosts. The Vercel entrypoint (server.ts) is
+// intentionally a dependency-light gateway and must not own runtime worker logic.
+const serverSource = await readFile(new URL("../src/server-runtime.ts", import.meta.url), "utf8");
+assert.ok(serverSource.includes("shouldAutoEnableLowRamMode()"), "runtime server must auto-enable low-RAM mode");
+assert.ok(serverSource.includes("LOW_RAM_VIDEO_MODEL"), "runtime server must reference the video prewarm model");
+>>>>>>> origin/main
 assert.ok(
   serverSource.includes('import { fetchBackend } from "./services/backend-fetch-errors.js";'),
-  "server startup prewarm must use fetchBackend() for stable Ollama failure classification",
+  "runtime server startup prewarm must use fetchBackend() for stable Ollama failure classification",
 );
 assert.ok(
   serverSource.includes('fetchBackend(`${ollamaUrl}/api/generate`'),
-  "server startup prewarm /api/generate call must use fetchBackend() rather than bare fetch()",
+  "runtime server startup prewarm /api/generate call must use fetchBackend() rather than bare fetch()",
 );
 // Post-M13 fix — the shouldAutoEnableLowRamMode() check + process.env mutation
 // MUST run BEFORE the first loadEnv() call. loadEnv() caches its parsed result
@@ -611,8 +620,9 @@ assert.ok(
   cleanupSource.includes("SWARMX_VIDEO_EXPORT_TTL_DAYS"),
   "cleanup service TTL must be configurable via SWARMX_VIDEO_EXPORT_TTL_DAYS",
 );
-// Server must import and call the cleanup service.
-const serverSource2 = await readFile(serverUrl, "utf8");
+// The Render runtime server owns background cleanup; the Vercel gateway must
+// remain dependency-light and must not import worker/runtime services.
+const serverSource2 = await readFile(new URL("../src/server-runtime.ts", import.meta.url), "utf8");
 assert.ok(
   serverSource2.includes("startVideoCleanup()"),
   "server must call startVideoCleanup() after pollers are started",
