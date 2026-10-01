@@ -193,6 +193,7 @@ const schema = z.object({
   SWARMX_LIBRETRANSLATE_URL: z.string().url().optional(),
   SWARMX_VIDEO_TRANSLATION_LANGUAGES: z.string().default(""),
   SWARMX_VIDEO_ALT_TEXT_ENABLED: boolFlag.default("1"),
+  VIRALITY_CHEATBOOK_PATH: z.preprocess((val) => val === "" ? undefined : val, z.string().optional()),
 
   SWARMX_COMFYUI_URL: z.preprocess((val) => val ?? process.env["COMFY_HOST"], z.string().url().default("http://127.0.0.1:8188")),
   SWARMX_COMFYUI_OUTPUT_DIR: z.string().optional(),

@@ -15,6 +15,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { log } from "../lib/logger.js";
+import { loadEnv } from "../lib/env.js";
 
 export interface ViralityCheatbookEntry {
   jobId: string;
@@ -36,10 +37,11 @@ export interface ViralityCheatbookEntry {
 }
 
 export function getCheatbookFilePath(): string {
-  if (process.env["VIRALITY_CHEATBOOK_PATH"]) {
-    return process.env["VIRALITY_CHEATBOOK_PATH"];
+  const env = loadEnv();
+  if (env.VIRALITY_CHEATBOOK_PATH) {
+    return env.VIRALITY_CHEATBOOK_PATH;
   }
-  if (process.env["NODE_ENV"] === "test" || process.env["VITEST"]) {
+  if (env.NODE_ENV === "test") {
     const base = process.cwd().endsWith("swarmx-api")
       ? resolve(process.cwd(), "..", "..", ".swarmx", "test-data")
       : resolve(process.cwd(), ".swarmx", "test-data");
@@ -58,7 +60,8 @@ export async function readViralityCheatbook(): Promise<ViralityCheatbookEntry[]>
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
-    if (process.env["NODE_ENV"] === "test" || process.env["VITEST"]) {
+    const env = loadEnv();
+    if (env.NODE_ENV === "test") {
       try {
         const seedPath = process.cwd().endsWith("swarmx-api")
           ? resolve(process.cwd(), "..", "..", "data", "virality_cheatbook.json")
