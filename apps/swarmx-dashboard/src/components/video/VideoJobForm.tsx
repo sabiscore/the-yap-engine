@@ -162,7 +162,6 @@ export function VideoJobForm({
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
   const [manualModelRoute, setManualModelRoute] = useState<NonNullable<VideoJobRequest["modelTier"]>>("fast");
-  const [autoRoute, setAutoRoute] = useState(true);
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
