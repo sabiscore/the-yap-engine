@@ -126,7 +126,7 @@ export function SystemStatus() {
                 ? "runtime nominal"
                 : pipelineHealth === "degraded"
                   ? `pressure ${pressureLevel}`
-                  : "API unavailable"
+                  : "Awaiting API connection"
             }
             valueClassName={
               pipelineHealth === "healthy"
