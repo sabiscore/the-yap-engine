@@ -101,7 +101,7 @@ function Select<T extends string>({
           onChange={(event) => onChange(event.target.value as T)}
           disabled={disabled}
           className={cn(
-            "h-9 min-w-0 flex-1 rounded border border-border bg-bg-input px-2.5 text-sm text-text-primary",
+            "h-11 min-w-0 flex-1 rounded border border-border bg-bg-input px-3 text-sm text-text-primary",
             "transition-colors duration-(--duration-micro)",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
             "disabled:cursor-not-allowed disabled:opacity-50",
@@ -120,7 +120,7 @@ function Select<T extends string>({
               if (selectedPreviewSrc) playPreview(selectedPreviewSrc);
             }}
             disabled={disabled || !selectedPreviewSrc}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-border bg-bg-surface text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-border bg-bg-surface text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             title={selectedPreviewSrc ? `Play ${selectedLabel} preview` : "Kokoro preview asset is not generated yet"}
             aria-label={selectedPreviewSrc ? `Play ${selectedLabel} voice preview` : `${selectedLabel} voice preview unavailable`}
           >
@@ -180,29 +180,20 @@ export function VideoJobForm({
 
   const trimmedPrompt = prompt.trim();
   const canSubmit = trimmedPrompt.length > 0 && !isSubmitting && !submissionBlocked;
-  const modelTier = autoRoute
-    ? undefined
-    : modelRoute === "auto"
-      ? manualModelRoute
-      : modelRoute;
+  const autoRoute = modelRoute === "auto";
+  const modelTier = modelRoute === "auto" ? undefined : modelRoute;
 
   const handleAutoRouteChange = (enabled: boolean) => {
-    setAutoRoute(enabled);
-    if (enabled) {
-      setModelRoute("auto");
-      return;
-    }
-    setModelRoute(manualModelRoute);
+    setModelRoute(enabled ? "auto" : modelRoute === "auto" ? manualModelRoute : modelRoute);
   };
 
-  const handleModelRouteChange = (value: ModelRoute) => {
-    setModelRoute(value);
-    if (value === "auto") {
-      setAutoRoute(true);
-      return;
-    }
-    setManualModelRoute(value);
-    setAutoRoute(false);
+  const handleAutoRouteToggle = (enabled: boolean) => {
+    handleAutoRouteChange(enabled);
+  };
+
+  const handleModelRouteChange = (route: ModelRoute) => {
+    setManualModelRoute(route === "auto" ? "fast" : route);
+    setModelRoute(route === "auto" ? "auto" : route);
   };
   const submitDescriptionId = submissionBlocked ? `${formId}-submit-blocked` : undefined;
 
@@ -238,7 +229,6 @@ export function VideoJobForm({
     setNiche(draft.niche);
     setTemplateFamily(draft.templateFamily ?? "none");
     setTargetDuration(draft.targetDuration);
-    setAutoRoute(true);
     setModelRoute("auto");
     setTone(draft.tone);
     setStyle(draft.style);
@@ -342,7 +332,7 @@ export function VideoJobForm({
               onClick={() => applyQuickStart(preset)}
               disabled={isSubmitting}
               className={cn(
-                "min-h-11 rounded border border-border bg-bg-surface px-3 py-2 text-[10px] font-mono uppercase tracking-wide text-text-secondary",
+                "min-h-11 rounded-lg border border-border bg-bg-surface px-3 py-2 text-[10px] font-mono uppercase tracking-wide text-text-secondary",
                 "hover:border-border-active hover:bg-bg-elevated",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
                 "disabled:cursor-not-allowed disabled:opacity-50",
@@ -369,11 +359,41 @@ export function VideoJobForm({
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
         />
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] text-text-muted">
-            Auto route selects the safest available model; explicit overrides remain available for compatible hosts.
-          </span>
-          <span className="shrink-0 font-mono text-[10px] text-text-muted tabular-nums">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoRoute}
+            aria-label="Auto Route"
+            onClick={() => handleAutoRouteToggle(!autoRoute)}
+            disabled={isSubmitting}
+            className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-bg-surface px-3 text-left transition-colors hover:border-border-active hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors",
+                autoRoute
+                  ? "border-status-success/40 bg-status-success"
+                  : "border-border-active bg-bg-elevated",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 size-5 rounded-full bg-white transition-transform",
+                  autoRoute ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </span>
+            <span>
+              <span className="block text-xs font-semibold text-text-primary">Auto Route</span>
+              <span className="block text-[10px] leading-4 text-text-muted">
+                {autoRoute ? "Using the safest available model" : "Manual model routing enabled"}
+              </span>
+            </span>
+          </button>
+
+          <span className="shrink-0 rounded-md border border-border bg-bg-elevated px-2.5 py-2 font-mono text-[10px] text-text-muted tabular-nums">
             {prompt.length}/2000
           </span>
         </div>
