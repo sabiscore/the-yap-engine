@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
-const configuredApiUrl =
-  process.env.SWARMX_API_URL?.trim() ||
-  process.env.NEXT_PUBLIC_SWARMX_API_URL?.trim() ||
-  process.env.NEXT_PUBLIC_API_URL?.trim();
-const API_URL = (configuredApiUrl || "http://127.0.0.1:3001").replace(/\/+$/, "");
+const API_URL = (
+  process.env.SWARMX_API_URL?.trim() || "http://127.0.0.1:3001"
+).replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
   output: "standalone",
