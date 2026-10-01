@@ -16,6 +16,7 @@ export interface YapStudioProps {
   readonly listError?: string | null;
   readonly loadingState?: ReactNode;
   readonly emptyState?: ReactNode;
+  readonly showHeader?: boolean;
 }
 
 export function YapStudio({
@@ -29,6 +30,7 @@ export function YapStudio({
   listError = null,
   loadingState,
   emptyState,
+  showHeader = true,
 }: YapStudioProps) {
   const activeCount = jobs.filter((job) => isActiveVideoStatus(job.status)).length;
   const queuedCount = jobs.filter((job) => job.status === "queued").length;
@@ -38,36 +40,36 @@ export function YapStudio({
 
   return (
     <section className="flex min-h-0 flex-col gap-4" aria-label="Yap Studio workspace">
-      <header className="rounded-xl border border-border bg-bg-surface p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-accent bg-[var(--color-accent-dim)] text-accent">
-                <Clapperboard className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
-                  Creative workspace
-                </p>
-                <h1 className="font-heading text-lg font-semibold tracking-tight text-text-primary">
-                  Yap Studio
-                </h1>
-              </div>
-            </div>
-            <p className="mt-2 max-w-2xl text-xs leading-5 text-text-secondary">
-              Turn a high-signal brief into a production-ready short while the queue and runtime stay visible.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 sm:flex">
-            <StudioStat label="Active" value={String(activeCount)} />
-            <StudioStat label="Queued" value={String(queuedCount)} />
-            <StudioStat label="Processed" value={String(processedCount)} />
-          </div>
-        </div>
-      </header>
-
-      <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+      {showHeader && (\n              <header className="rounded-xl border border-border bg-bg-surface p-4 sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border-accent bg-[var(--color-accent-dim)] text-accent">
+                        <Clapperboard className="size-4" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                          Creative workspace
+                        </p>
+                        <h1 className="font-heading text-lg font-semibold tracking-tight text-text-primary">
+                          Yap Studio
+                        </h1>
+                      </div>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-xs leading-5 text-text-secondary">
+                      Turn a high-signal brief into a production-ready short while the queue and runtime stay visible.
+                    </p>
+                  </div>
+        
+                  <div className="grid grid-cols-3 gap-2 sm:flex">
+                    <StudioStat label="Active" value={String(activeCount)} />
+                    <StudioStat label="Queued" value={String(queuedCount)} />
+                    <StudioStat label="Processed" value={String(processedCount)} />
+                  </div>
+                </div>
+              </header>
+        
+              )}\n\n      <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
         <section className="min-w-0 rounded-xl border border-border bg-bg-surface p-3 sm:p-4" aria-label="New video job">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="size-4 text-accent" aria-hidden="true" />
