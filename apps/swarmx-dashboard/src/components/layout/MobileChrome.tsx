@@ -14,7 +14,7 @@ import {
   ListChecks,
   FileText,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const PRIMARY_NAV = [
@@ -43,9 +43,12 @@ export function MobileChrome() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setMenuOpen(false);
-  }, [pathname]);
+  }
 
   if (pathname === "/login") {
     return null;

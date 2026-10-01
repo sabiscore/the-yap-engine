@@ -180,10 +180,10 @@ export function VideoJobForm({
 
   const trimmedPrompt = prompt.trim();
   const canSubmit = trimmedPrompt.length > 0 && !isSubmitting && !submissionBlocked;
-  const modelTier = autoRoute
+  const modelTier: VideoJobRequest["modelTier"] = autoRoute
     ? undefined
     : modelRoute === "auto"
-      ? manualModelRoute
+      ? (manualModelRoute === "auto" ? undefined : manualModelRoute)
       : modelRoute;
 
   const handleAutoRouteChange = (enabled: boolean) => {
