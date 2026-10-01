@@ -1,6 +1,10 @@
 name: Production Video Benchmark
 
 on:
+  push:
+    branches:
+      - main
+      - feat/creative-hub-v3
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -40,7 +44,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
