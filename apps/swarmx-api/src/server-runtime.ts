@@ -105,16 +105,17 @@ if (shouldAutoEnableLowRamMode()) {
 
 // Fail-fast on invalid env before any other module reads process.env.
 // Errors are formatted with the invalid key path so operators can fix quickly.
+let env: ReturnType<typeof loadEnv>;
 try {
-  loadEnv();
+  env = loadEnv();
 } catch (err) {
   process.stderr.write(`[startup] ${(err as Error).message}\n`);
   process.exit(1);
 }
 
-const PORT = Number.parseInt(process.env["SWARMX_API_PORT"] ?? "3001", 10);
-const HOST = process.env["SWARMX_API_HOST"] ?? "127.0.0.1";
-const IS_PRODUCTION = (process.env["NODE_ENV"] ?? "production") === "production";
+const PORT = env.SWARMX_API_PORT;
+const HOST = env.SWARMX_API_HOST;
+const IS_PRODUCTION = env.NODE_ENV === "production";
 
 // ── [API-FIX-03] Build CORS origin list from environment only ───────────────
 //

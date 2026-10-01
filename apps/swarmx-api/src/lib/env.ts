@@ -6,10 +6,35 @@ const positiveInt = z.coerce.number().int().min(1);
 const nonNegativeInt = z.coerce.number().int().min(0);
 const boolFlag = z.enum(["0", "1"]).default("0");
 
+function preprocessPort(val: unknown): unknown {
+  if (typeof val === "string") {
+    let trimmed = val.trim();
+    if (
+      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    ) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
+    if (!trimmed) return 3001;
+    const match = trimmed.match(/^\$?(?:\{PORT(?::?[-=]?(\d+))?\}|PORT(?::?[-=]?(\d+))?)$/i);
+    if (match) {
+      if (process.env["PORT"] && !Number.isNaN(Number(process.env["PORT"]))) {
+        return Number(process.env["PORT"]);
+      }
+      const fallback = match[1] ?? match[2];
+      return fallback ? Number(fallback) : 3001;
+    }
+    const parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) return 3001;
+    return parsed;
+  }
+  return val;
+}
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  SWARMX_API_PORT: port.default(3001),
+  SWARMX_API_PORT: z.preprocess(preprocessPort, port).default(3001),
   SWARMX_API_HOST: z.string().min(1).default("127.0.0.1"),
   SWARMX_API_INTERNAL: z.string().url().default("http://localhost:7380"),
   SWARMX_DASHBOARD_ORIGIN: z.string().optional(),

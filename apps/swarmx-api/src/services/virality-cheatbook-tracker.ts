@@ -36,6 +36,15 @@ export interface ViralityCheatbookEntry {
 }
 
 export function getCheatbookFilePath(): string {
+  if (process.env["VIRALITY_CHEATBOOK_PATH"]) {
+    return process.env["VIRALITY_CHEATBOOK_PATH"];
+  }
+  if (process.env["NODE_ENV"] === "test" || process.env["VITEST"]) {
+    const base = process.cwd().endsWith("swarmx-api")
+      ? resolve(process.cwd(), "..", "..", ".swarmx", "test-data")
+      : resolve(process.cwd(), ".swarmx", "test-data");
+    return resolve(base, "virality_cheatbook.json");
+  }
   if (process.cwd().endsWith("swarmx-api")) {
     return resolve(process.cwd(), "..", "..", "data", "virality_cheatbook.json");
   }
@@ -49,6 +58,18 @@ export async function readViralityCheatbook(): Promise<ViralityCheatbookEntry[]>
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
+    if (process.env["NODE_ENV"] === "test" || process.env["VITEST"]) {
+      try {
+        const seedPath = process.cwd().endsWith("swarmx-api")
+          ? resolve(process.cwd(), "..", "..", "data", "virality_cheatbook.json")
+          : resolve(process.cwd(), "data", "virality_cheatbook.json");
+        const raw = await readFile(seedPath, "utf8");
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
     return [];
   }
 }

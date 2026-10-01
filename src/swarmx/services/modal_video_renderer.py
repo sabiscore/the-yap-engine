@@ -140,7 +140,10 @@ def _probe(path: Path) -> dict[str, Any]:
     duration = float((payload.get("format") or {}).get("duration") or 0)
     if not video or duration <= 0:
         raise RuntimeError("rendered artifact failed media validation")
-    fps_raw = str(video.get("r_frame_rate") or "0/1")\n    numerator, denominator = (fps_raw.split("/", 1) + ["1"])[:2]\n    fps = float(numerator) / max(1.0, float(denominator))\n    return {"durationSeconds": duration, "width": video.get("width"), "height": video.get("height"), "fps": fps}
+    fps_raw = str(video.get("r_frame_rate") or "0/1")
+    numerator, denominator = (fps_raw.split("/", 1) + ["1"])[:2]
+    fps = float(numerator) / max(1.0, float(denominator))
+    return {"durationSeconds": duration, "width": video.get("width"), "height": video.get("height"), "fps": fps}
 
 
 def _load_pipeline(model: str):
@@ -149,7 +152,7 @@ def _load_pipeline(model: str):
     if cached is not None:
         return cached
 
-    if MODEL_CACHE_LOCKED and MODEL_CACHE_LOCKED != model:
+    if MODEL_CACHE_LOCKED and model != MODEL_CACHE_LOCKED:
         old = MODEL_CACHE.pop(MODEL_CACHE_LOCKED, None)
         if old is not None:
             del old

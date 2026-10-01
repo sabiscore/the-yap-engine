@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -190,7 +191,11 @@ assert.ok(routesSource.includes("isTerminalStatus(job.status)"), "SSE must short
 assert.ok(routesSource.includes('event.type === "video:completed"'), "SSE must close on terminal lifecycle events");
 
 // V6.2.15 — server auto-configures LOW_RAM_MODE and prewarms video model on constrained hosts.
-const serverSource = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
+const serverUrl = new URL(
+  existsSync(new URL("../src/server-runtime.ts", import.meta.url)) ? "../src/server-runtime.ts" : "../src/server.ts",
+  import.meta.url,
+);
+const serverSource = await readFile(serverUrl, "utf8");
 assert.ok(serverSource.includes("shouldAutoEnableLowRamMode()"), "server must auto-enable low-RAM mode");
 assert.ok(serverSource.includes("LOW_RAM_VIDEO_MODEL"), "server must reference the video prewarm model");
 assert.ok(
@@ -208,7 +213,7 @@ assert.ok(
 // disabling the entire low-RAM auto-enable feature on constrained hosts.
 {
   const autoEnableIdx = serverSource.indexOf("if (shouldAutoEnableLowRamMode())");
-  const firstLoadEnvCallIdx = serverSource.indexOf("  loadEnv();");
+  const firstLoadEnvCallIdx = serverSource.indexOf("loadEnv();");
   assert.ok(autoEnableIdx > 0 && firstLoadEnvCallIdx > 0, "server must call both shouldAutoEnableLowRamMode() and loadEnv()");
   assert.ok(
     autoEnableIdx < firstLoadEnvCallIdx,
@@ -607,7 +612,7 @@ assert.ok(
   "cleanup service TTL must be configurable via SWARMX_VIDEO_EXPORT_TTL_DAYS",
 );
 // Server must import and call the cleanup service.
-const serverSource2 = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
+const serverSource2 = await readFile(serverUrl, "utf8");
 assert.ok(
   serverSource2.includes("startVideoCleanup()"),
   "server must call startVideoCleanup() after pollers are started",

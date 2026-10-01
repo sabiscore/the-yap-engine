@@ -32,8 +32,25 @@ from typing import Any
 
 MAX_ENTRIES        = int(os.environ.get("SWARM_MEMORY_MAX_ENTRIES", "500"))
 MEMORY_TTL_SECONDS = float(os.environ.get("SWARM_MEMORY_TTL_SECONDS", "0"))  # 0 = no TTL
-MEMORY_DIR         = Path(os.environ.get("SWARM_HOME", str(Path.home() / ".swarmx"))) / "memory"
-MEMORY_FILE        = MEMORY_DIR / "brain_memory.jsonl"
+def _get_memory_dir() -> Path:
+    swarm_home = os.environ.get("SWARM_HOME")
+    if swarm_home:
+        return Path(swarm_home) / "memory"
+    home_swarmx = Path.home() / ".swarmx"
+    try:
+        if home_swarmx.exists() and os.access(home_swarmx, os.W_OK):
+            return home_swarmx / "memory"
+        if not home_swarmx.exists() and os.access(Path.home(), os.W_OK):
+            return home_swarmx / "memory"
+    except Exception:
+        pass
+    repo_root = Path(__file__).resolve().parents[1]
+    return repo_root / ".swarmx" / "memory"
+
+
+def _get_memory_file() -> Path:
+    return _get_memory_dir() / "brain_memory.jsonl"
+
 
 # [FIX-03] Dual-mode locking:
 #   async context → asyncio.Lock (created lazily inside a running loop)
@@ -58,7 +75,7 @@ def _get_async_lock() -> asyncio.Lock:
 
 
 def _ensure_dir() -> None:
-    MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+    _get_memory_dir().mkdir(parents=True, exist_ok=True)
 
 
 def store(
@@ -84,7 +101,7 @@ def store(
 
     with _SYNC_LOCK:
         try:
-            with open(MEMORY_FILE, "a", encoding="utf-8") as f:
+            with open(_get_memory_file(), "a", encoding="utf-8") as f:
                 f.write(json.dumps(record) + "\n")
             _maybe_compact()
         except Exception:
@@ -110,13 +127,14 @@ def _maybe_compact() -> None:
     Eliminates partial-write data loss on process kill mid-compact.
     """
     try:
-        lines = MEMORY_FILE.read_text(encoding="utf-8").splitlines()
+        mem_file = _get_memory_file()
+        lines = mem_file.read_text(encoding="utf-8").splitlines()
         if len(lines) <= MAX_ENTRIES:
             return
         keep = lines[-MAX_ENTRIES:]
-        tmp = MEMORY_FILE.with_suffix(".tmp")
+        tmp = mem_file.with_suffix(".tmp")
         tmp.write_text("\n".join(keep) + "\n", encoding="utf-8")
-        tmp.replace(MEMORY_FILE)  # atomic on POSIX
+        tmp.replace(mem_file)  # atomic on POSIX
     except Exception:
         pass
 
@@ -133,7 +151,7 @@ def load_all(
     """
     _ensure_dir()
     try:
-        lines = MEMORY_FILE.read_text(encoding="utf-8").splitlines()
+        lines = _get_memory_file().read_text(encoding="utf-8").splitlines()
         records: list[dict[str, Any]] = []
         for line in reversed(lines):
             line = line.strip()
@@ -187,7 +205,8 @@ def stats() -> dict[str, Any]:
     """
     _ensure_dir()
     try:
-        text  = MEMORY_FILE.read_text(encoding="utf-8")
+        mem_file = _get_memory_file()
+        text  = mem_file.read_text(encoding="utf-8")
         lines = [line for line in text.splitlines() if line.strip()]
         tss: list[float] = []
         for line in lines:
@@ -200,7 +219,7 @@ def stats() -> dict[str, Any]:
                 pass
         return {
             "entry_count": len(lines),
-            "disk_bytes":  MEMORY_FILE.stat().st_size if MEMORY_FILE.exists() else 0,
+            "disk_bytes":  mem_file.stat().st_size if mem_file.exists() else 0,
             "oldest_ts":   min(tss) if tss else None,
             "newest_ts":   max(tss) if tss else None,
         }
@@ -211,7 +230,16 @@ def stats() -> dict[str, Any]:
 def clear() -> None:
     """Remove all stored memory (for testing / maintenance)."""
     try:
-        if MEMORY_FILE.exists():
-            MEMORY_FILE.unlink()
+        mem_file = _get_memory_file()
+        if mem_file.exists():
+            mem_file.unlink()
     except Exception:
         pass
+
+
+def __getattr__(name: str) -> Any:
+    if name == "MEMORY_DIR":
+        return _get_memory_dir()
+    if name == "MEMORY_FILE":
+        return _get_memory_file()
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

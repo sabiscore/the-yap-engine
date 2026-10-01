@@ -22,19 +22,32 @@ readonly ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd -P)"
 
 # [V6.2-FIX-03] Load repo-local persistent environment overrides before
 # resolving startup defaults so values survive across shell sessions.
+# Preserves explicitly exported environment variables passed by the caller.
+_load_env_defaults() {
+  local env_file="$1"
+  [[ -f "$env_file" ]] || return 0
+  while IFS="=" read -r key val || [[ -n "$key" ]]; do
+    key="$(echo "$key" | sed "s/^[[:space:]]*//;s/[[:space:]]*$//")"
+    [[ "$key" =~ ^# ]] && continue
+    [[ -z "$key" ]] && continue
+    if [[ -z "${!key+x}" ]]; then
+      val="$(echo "$val" | sed -e "s/^[[:space:]]*//" -e "s/[[:space:]]*$//" -e "s/^\"//" -e "s/\"$//" -e "s/^\x27//" -e "s/\x27$//")"
+      export "$key=$val"
+    fi
+  done < "$env_file"
+}
+
 if [[ -f "$ROOT_DIR/.env.local" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/.env.local"
-  set +a
+  _load_env_defaults "$ROOT_DIR/.env.local"
 elif [[ -f "$ROOT_DIR/env.local" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/env.local"
-  set +a
+  _load_env_defaults "$ROOT_DIR/env.local"
 fi
 
-readonly STARTUP_LOG="${STARTUP_LOG:-${SWARM_HOME:-.swarmx}/logs/startup-enhanced.log}"
+STARTUP_LOG_DEFAULT="${ROOT_DIR}/.swarmx/logs/startup-enhanced.log"
+if [[ -n "${SWARM_HOME:-}" ]] && mkdir -p "${SWARM_HOME}/logs" 2>/dev/null; then
+  STARTUP_LOG_DEFAULT="${SWARM_HOME}/logs/startup-enhanced.log"
+fi
+readonly STARTUP_LOG="${STARTUP_LOG:-$STARTUP_LOG_DEFAULT}"
 readonly DEFAULT_TIMEOUT=300  # seconds
 OLLAMA_URL="${OLLAMA_HOST:-http://localhost:11434}"
 readonly CURL_MAX_TIME="${SWARMX_STARTUP_CURL_MAX_TIME:-8}"
@@ -64,7 +77,7 @@ log() {
   local msg="$@"
   local timestamp
   timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "[${timestamp}] [${level}] ${msg}" >> "$STARTUP_LOG"
+  echo "[${timestamp}] [${level}] ${msg}" >> "$STARTUP_LOG" 2>/dev/null || true
   if [[ "$VERBOSE" == true ]]; then
     echo -e "${BLUE}[${level}]${NC} ${msg}" >&2
   fi
@@ -636,8 +649,11 @@ setup_environment() {
   log_info "Setting up environment variables..."
   
   # Ensure SWARM_HOME exists
-  local swarm_home="${SWARM_HOME:-.swarmx}"
-  mkdir -p "$swarm_home/logs"
+  local swarm_home="${SWARM_HOME:-$ROOT_DIR/.swarmx}"
+  if ! mkdir -p "$swarm_home/logs" 2>/dev/null; then
+    swarm_home="$ROOT_DIR/.swarmx"
+    mkdir -p "$swarm_home/logs" 2>/dev/null || true
+  fi
   
   # Auto-seed SWARMX_DASHBOARD_ORIGIN for local development if not set
   if [[ -z "${SWARMX_DASHBOARD_ORIGIN:-}" ]]; then
@@ -757,7 +773,7 @@ verify_startup() {
 # ─── Main Execution ──────────────────────────────────────────────────────────
 main() {
   # Ensure log directory exists
-  mkdir -p "$(dirname "$STARTUP_LOG")"
+  mkdir -p "$(dirname "$STARTUP_LOG")" 2>/dev/null || true
   
   # Print startup banner
   print_startup_banner

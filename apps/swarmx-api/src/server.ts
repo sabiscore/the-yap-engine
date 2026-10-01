@@ -2,8 +2,9 @@
  * SwarmX Vercel gateway / serverless entrypoint.
  *
  * Vercel detects src/server.ts as the Fastify application entrypoint. Keep
- * this file deliberately dependency-light: no BullMQ, Redis, Ollama, FFmpeg,
- * node-pty, database clients, worker orchestration, or filesystem state.
+ * this file deliberately dependency-light: no queue managers, cache store clients,
+ * local model inference engines, media encoder processes, terminal pty sessions,
+ * database clients, worker orchestration, or filesystem state.
  *
  * The full Render runtime is isolated in server-runtime.ts and is launched by
  * the container/package start command, never imported by this gateway.
