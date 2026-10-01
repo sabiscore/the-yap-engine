@@ -62,17 +62,19 @@ export function YapStudio({
               </p>
             </div>
 
-      <div className="mx-auto w-full max-w-[1600px] space-y-5 p-3 pb-24 sm:p-5 sm:pb-8">
-        <section aria-label="New video job">
-          <VideoJobForm
-            onSubmitted={(jobId) => selectJob(jobId)}
-            submissionBlocked={runtimeGuidance?.blocksSubmission ?? false}
-            submissionBlockReason={formatSubmissionBlockReason(runtimeGuidance)}
-          />
-        </section>
+            <div className="grid grid-cols-3 gap-2 sm:flex">
+              <StudioStat label="Active" value={String(activeCount)} />
+              <StudioStat label="Queued" value={String(queuedCount)} />
+              <StudioStat label="Processed" value={String(processedCount)} />
+            </div>
+          </div>
+        </header>
+      )}
 
-        <section id="queue" aria-labelledby="studio-queue-title" className="scroll-mt-20">
-          <div className="flex items-end justify-between gap-3">
+      <div className="space-y-5">
+        <section className="min-w-0 rounded-xl border border-border bg-bg-surface p-3 sm:p-4" aria-label="New video job">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="size-4 text-accent" aria-hidden="true" />
             <div>
               <h2 className="font-heading text-sm font-semibold text-text-primary">New Video Job</h2>
               <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted">
@@ -149,8 +151,8 @@ export function YapStudio({
                   className="relative min-w-0 snap-start overflow-hidden rounded-xl border border-border bg-bg-elevated/70"
                   role="listitem"
                 >
-                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-accent-cyan">
-                    <Play className="ml-0.5 h-4 w-4 fill-current" aria-hidden="true" />
+                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-accent-cyan" aria-hidden="true">
+                    <Play className="ml-0.5 h-4 w-4 fill-current" />
                   </div>
                   {renderJob(job)}
                 </article>
