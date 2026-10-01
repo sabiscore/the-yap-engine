@@ -44,6 +44,7 @@ import { useVideoStore } from "../../../stores/video";
 import { VideoJobForm } from "../../../components/video/VideoJobForm";
 import { VideoJobCard } from "../../../components/video/VideoJobCard";
 import { VideoPipelinePulse } from "@/components/video/VideoPipelinePulse";
+import { YapStudio } from "@/components/YapStudio";
 import {
   formatActiveJobHeadline,
   isActiveVideoStatus,
@@ -695,226 +696,188 @@ export default function VideoPage() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(380px,520px)_1fr] items-start">
         {/* Left Column: Brief Creation & Queue Management */}
-        <section className="flex min-h-0 flex-col gap-4 p-4 sm:p-5 lg:border-r border-border">
-          <VideoJobForm
-            onSubmitted={handleSubmitted}
-            submissionBlocked={videoRuntimeGuidance?.blocksSubmission ?? false}
-            submissionBlockReason={formatSubmissionBlockReason(videoRuntimeGuidance)}
-            presetFocusSignal={presetFocusSignal}
-          />
-
-          <VideoRuntimeBanner guidance={videoRuntimeGuidance} />
-
-          <div className="flex flex-col gap-2" aria-busy={isLoading}>
-            <Tabs
-              value={selectedTab}
-              onValueChange={(val) => {
-                setSelectedTab(val as QueueTab);
-                if (val !== "failed") {
-                  setShowFailedOnly(false);
-                  setShowDeadLetterOnly(false);
-                }
-              }}
-              className="w-full"
-            >
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
-                    <GripVertical className="h-3.5 w-3.5 text-text-muted" aria-hidden="true" />
-                    Queue
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {deadLetterCount > 0 && selectedTab === "failed" && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={showDeadLetterOnly ? "default" : "outline"}
-                        onClick={() => setShowDeadLetterOnly((s) => !s)}
-                        aria-pressed={showDeadLetterOnly}
-                        aria-label={showDeadLetterOnly ? "Show all failed jobs" : "Show retry-exhausted jobs only"}
-                        className="h-7 text-xs"
-                      >
-                        <AlertTriangle className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                        {showDeadLetterOnly ? "All Failed" : `Dead Letter (${deadLetterCount})`}
-                      </Button>
-                    )}
-                    {queuedCount > 1 && selectedTab === "queued" && (
-                      <span className="font-mono text-[10px] uppercase tracking-wide text-text-muted">
-                        Drag or use card controls to reorder
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-b border-border pb-1">
-                  <TabsList className="flex w-full overflow-x-auto scrollbar-none border-b-0">
-                    <TabsTrigger value="all" className="gap-1.5 shrink-0">
-                      All
-                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
-                        {jobs.length}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="active" className="gap-1.5 shrink-0">
-                      {activeCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-status-active animate-pulse" aria-hidden="true" />}
-                      Active
-                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
-                        {activeCount}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="queued" className="gap-1.5 shrink-0">
-                      Queued
-                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
-                        {queuedCount}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="failed" className="gap-1.5 shrink-0">
-                      Failed
-                      <span
-                        className={cn(
-                          "ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums",
-                          failedCount > 0 ? "bg-status-error/15 text-status-error font-medium" : "bg-bg-surface text-text-muted",
-                        )}
-                      >
-                        {failedCount}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="history" className="gap-1.5 shrink-0">
-                      History
-                      <span className="ml-1 rounded px-1.5 py-0.5 text-[10px] tabular-nums bg-bg-surface text-text-muted">
-                        {historyCount}
-                      </span>
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-              </div>
-            </Tabs>
-
-            {isLoading && (
+        <section className="min-w-0 p-3 sm:p-4 lg:border-r lg:border-border">
+          <YapStudio
+            showHeader={false}
+            form={
+              <VideoJobForm
+                onSubmitted={handleSubmitted}
+                submissionBlocked={videoRuntimeGuidance?.blocksSubmission ?? false}
+                submissionBlockReason={formatSubmissionBlockReason(videoRuntimeGuidance)}
+                presetFocusSignal={presetFocusSignal}
+              />
+            }
+            runtimeStatus={<VideoRuntimeBanner guidance={videoRuntimeGuidance} />}
+            jobs={jobs}
+            visibleJobs={visibleJobs}
+            isLoading={isLoading}
+            listError={listError}
+            loadingState={
               <>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                  Loading video jobs…
-                </p>
                 <JobSkeleton />
                 <JobSkeleton />
                 <JobSkeleton />
               </>
-            )}
-
-            {listError && (
-              <div className="rounded border border-status-error/35 bg-status-error/10 px-3 py-2" role="alert">
-                <p className="text-xs text-status-error">{listError}</p>
-              </div>
-            )}
-
-            {!isLoading && !hasJobs && <EmptyJobList onShowPresets={() => setPresetFocusSignal((value) => value + 1)} />}
-
-            {!isLoading && hasJobs && showFailedOnly && failedCount === 0 && !showDeadLetterOnly && (
-              <div className="rounded border border-dashed border-border bg-bg-surface/60 px-4 py-8 text-center text-xs text-text-muted">
-                No failed jobs right now.
-              </div>
-            )}
-
-            {!isLoading && hasJobs && showDeadLetterOnly && deadLetterCount === 0 && (
-              <div className="rounded border border-dashed border-border bg-bg-surface/60 px-4 py-8 text-center text-xs text-text-muted">
-                No retry-exhausted jobs right now.
-              </div>
-            )}
-
-            {/* Dead Letter Notification & 1-Click Clear Action */}
-            {!isLoading && deadLetterCount > 0 && (
-              <div
-                className="flex items-center justify-between gap-3 rounded border border-status-warning/35 bg-status-warning/10 px-3 py-2.5"
-                role="status"
-                aria-live="polite"
-              >
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning" aria-hidden="true" />
-                  <p className="text-xs text-status-warning">
-                    {deadLetterCount} retry-exhausted job{deadLetterCount === 1 ? "" : "s"} in dead-letter triage.
-                  </p>
+            }
+            emptyState={
+              !hasJobs ? (
+                <EmptyJobList onShowPresets={() => setPresetFocusSignal((value) => value + 1)} />
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-bg-surface/60 px-4 py-8 text-center text-xs text-text-muted">
+                  No jobs match the current queue filter.
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setSelectedTab("failed");
-                      setShowDeadLetterOnly(true);
-                    }}
-                    className="h-7 text-xs text-status-warning hover:bg-status-warning/15 hover:text-status-warning"
-                  >
-                    Filter
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void clearDeadLetter()}
-                    className="h-7 border-status-warning/40 bg-status-warning/15 text-xs font-medium text-status-warning hover:bg-status-warning/25"
-                    title="Dismiss all dead-letter jobs from queue"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {!isLoading && failedCount > 0 && !showFailedOnly && !showDeadLetterOnly && deadLetterCount === 0 && (
-              <div className="rounded border border-status-error/35 bg-status-error/10 px-3 py-2.5" role="status" aria-live="polite">
-                <p className="text-xs text-status-error">
-                  {failedCount} failed job{failedCount === 1 ? "" : "s"} detected. Use the Failed filter for focused triage.
-                </p>
-              </div>
-            )}
-
-            {hasJobs && visibleJobs.length > 0 && (
-              <div className="flex flex-col gap-2" role="list" aria-label="Video job queue">
-                {visibleJobs.map((job) => {
-                  const queuedIndex = queuedJobIds.indexOf(job.id);
-
-                  return (
-                    <div
-                      key={job.id}
-                      role="listitem"
-                      draggable={job.status === "queued"}
-                      onDragStart={() => setDraggedJobId(job.id)}
-                      onDragOver={(event) => {
-                        if (job.status === "queued") {
-                          event.preventDefault();
-                        }
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        if (job.status === "queued") {
-                          void handleDropOn(job.id);
-                        }
-                      }}
-                      aria-label={
-                        job.status === "queued"
-                          ? `Queued video job: ${job.request.prompt.slice(0, 40)}`
-                          : undefined
-                      }
-                      className={job.status === "queued" ? "cursor-grab" : ""}
-                    >
-                      <VideoJobCard
-                        job={job}
-                        onSelect={(jobId) => selectJob(jobId)}
-                        isSelected={studioJob?.id === job.id}
-                        onRetry={(jobId) => void handleRetry(jobId)}
-                        onCancel={(jobId) => void cancelJob(jobId)}
-                        onDismiss={(jobId) => void dismissJob(jobId)}
-                        onMoveUp={(jobId) => void handleMoveQueuedJob(jobId, "up")}
-                        onMoveDown={(jobId) => void handleMoveQueuedJob(jobId, "down")}
-                        canMoveUp={queuedIndex > 0}
-                        canMoveDown={queuedIndex >= 0 && queuedIndex < queuedJobIds.length - 1}
-                      />
+              )
+            }
+            queueControls={
+              <div className="flex flex-col gap-3">
+                <Tabs
+                  value={selectedTab}
+                  onValueChange={(val) => {
+                    setSelectedTab(val as QueueTab);
+                    if (val !== "failed") {
+                      setShowFailedOnly(false);
+                      setShowDeadLetterOnly(false);
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+                        <GripVertical className="size-3.5 text-text-muted" aria-hidden="true" />
+                        Queue view
+                      </div>
+                      {deadLetterCount > 0 && selectedTab === "failed" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={showDeadLetterOnly ? "default" : "outline"}
+                          onClick={() => setShowDeadLetterOnly((state) => !state)}
+                          aria-pressed={showDeadLetterOnly}
+                          className="min-h-11 text-xs"
+                        >
+                          <AlertTriangle className="mr-1.5 size-3.5" aria-hidden="true" />
+                          {showDeadLetterOnly ? "All Failed" : `Dead Letter (${deadLetterCount})`}
+                        </Button>
+                      )}
                     </div>
-                  );
-                })}
+
+                    <TabsList className="flex w-full overflow-x-auto border-b-0">
+                      <TabsTrigger value="all" className="min-h-11 shrink-0 gap-1.5">
+                        All <span className="tabular-nums">{jobs.length}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="active" className="min-h-11 shrink-0 gap-1.5">
+                        {activeCount > 0 && <span className="size-1.5 rounded-full bg-status-active animate-pulse" aria-hidden="true" />}
+                        Active <span className="tabular-nums">{activeCount}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="queued" className="min-h-11 shrink-0 gap-1.5">
+                        Queued <span className="tabular-nums">{queuedCount}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="failed" className="min-h-11 shrink-0 gap-1.5">
+                        Failed <span className={cn("tabular-nums", failedCount > 0 ? "text-status-error" : "text-text-muted")}>{failedCount}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="history" className="min-h-11 shrink-0 gap-1.5">
+                        History <span className="tabular-nums">{historyCount}</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                </Tabs>
+
+                {isLoading && (
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted" role="status">
+                    Loading video jobs…
+                  </p>
+                )}
+
+                {!isLoading && hasJobs && showFailedOnly && failedCount === 0 && !showDeadLetterOnly && (
+                  <div className="rounded-lg border border-dashed border-border bg-bg-surface/60 px-4 py-6 text-center text-xs text-text-muted">
+                    No failed jobs right now.
+                  </div>
+                )}
+
+                {!isLoading && hasJobs && showDeadLetterOnly && deadLetterCount === 0 && (
+                  <div className="rounded-lg border border-dashed border-border bg-bg-surface/60 px-4 py-6 text-center text-xs text-text-muted">
+                    No retry-exhausted jobs right now.
+                  </div>
+                )}
+
+                {!isLoading && deadLetterCount > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-warning/30 bg-status-warning/5 px-3 py-2.5" role="status" aria-live="polite">
+                    <span className="text-xs text-status-warning">
+                      {deadLetterCount} retry-exhausted job{deadLetterCount === 1 ? "" : "s"} need triage.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedTab("failed");
+                          setShowDeadLetterOnly(true);
+                        }}
+                        className="min-h-11 text-xs text-status-warning"
+                      >
+                        Filter
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void clearDeadLetter()}
+                        className="min-h-11 border-status-warning/30 text-xs text-status-warning"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!isLoading && failedCount > 0 && !showFailedOnly && !showDeadLetterOnly && deadLetterCount === 0 && (
+                  <div className="rounded-lg border border-status-error/25 bg-status-error/5 px-3 py-2.5" role="status" aria-live="polite">
+                    <p className="text-xs text-status-error">
+                      {failedCount} failed job{failedCount === 1 ? "" : "s"} detected. Use Failed for triage.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            }
+            renderJob={(job) => {
+              const queuedIndex = queuedJobIds.indexOf(job.id);
+              return (
+                <div
+                  draggable={job.status === "queued"}
+                  onDragStart={() => setDraggedJobId(job.id)}
+                  onDragOver={(event) => {
+                    if (job.status === "queued") event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (job.status === "queued") void handleDropOn(job.id);
+                  }}
+                  aria-label={
+                    job.status === "queued"
+                      ? `Queued video job: ${job.request.prompt.slice(0, 40)}`
+                      : undefined
+                  }
+                  className={cn(
+                    "min-w-0",
+                    job.status === "queued" && "cursor-grab active:cursor-grabbing",
+                  )}
+                >
+                  <VideoJobCard
+                    job={job}
+                    onSelect={(jobId) => selectJob(jobId)}
+                    isSelected={studioJob?.id === job.id}
+                    onRetry={(jobId) => void handleRetry(jobId)}
+                    onCancel={(jobId) => void cancelJob(jobId)}
+                    onDismiss={(jobId) => void dismissJob(jobId)}
+                    onMoveUp={(jobId) => void handleMoveQueuedJob(jobId, "up")}
+                    onMoveDown={(jobId) => void handleMoveQueuedJob(jobId, "down")}
+                    canMoveUp={queuedIndex > 0}
+                    canMoveDown={queuedIndex >= 0 && queuedIndex < queuedJobIds.length - 1}
+                  />
+                </div>
+              );
+            }}
+          />
         </section>
 
         {/* Right Column: Studio Monitor & Active Render Visualizer */}
