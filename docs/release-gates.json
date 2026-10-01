@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "generatedAt": "2026-10-01T03:25:34Z",
+  "generatedAt": "2026-10-01T04:30:00Z",
   "release": {
     "name": "Creative Hub v3",
     "repository": "sabiscore/the-yap-engine",
@@ -12,170 +12,242 @@
   "gates": [
     {
       "gate": "A1",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A2",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A3",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A4",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A5",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A6",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A7",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A8",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
@@ -188,44 +260,62 @@
     },
     {
       "gate": "A10",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
       "gate": "A11",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Quality Gates",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516613",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+        "jobs": [
+          {
+            "name": "Quality Gates",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+          },
+          {
+            "name": "Windows 8GB Compatibility",
+            "status": "PASS",
+            "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+          }
+        ],
+        "note": "Fresh exact-head CI for release candidate 3ef5b5f7; both jobs completed successfully."
       }
     },
     {
@@ -286,23 +376,20 @@
     },
     {
       "gate": "A19",
-      "status": "NOT EXECUTED",
-      "evidenceUrl": "",
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555",
       "sha": "1538e39f1a8ea075dfd1108e29a8c20743db9bf4",
       "utc": "2026-10-01T03:25:34Z",
       "executor": "automated",
       "ciEvidence": {
-        "priorExactHeadSha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
-        "appliesToCurrentRelease": false,
+        "exactHeadSha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+        "appliesToCurrentRelease": true,
         "workflow": "CI",
-        "runNumber": 357,
-        "runId": 36810245202,
+        "runNumber": 359,
+        "runId": 36815129243,
         "status": "PASS",
-        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202",
-        "completedAt": "2026-10-01T03:25:34Z",
-        "job": "Windows 8GB Compatibility",
-        "jobEvidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36810245202/job/110203516811",
-        "note": "Historical evidence for d91ae279; fresh exact-head CI required."
+        "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555",
+        "note": "Fresh Windows 8GB compatibility validation for release candidate 3ef5b5f7."
       }
     },
     {
@@ -315,6 +402,28 @@
     }
   ],
   "ciEvidence": [
+    {
+      "scope": "exact-head current release candidate",
+      "sha": "3ef5b5f7fc1f2a9958b97d76fb27a3654340578d",
+      "workflow": "CI",
+      "runNumber": 359,
+      "runId": 36815129243,
+      "status": "PASS",
+      "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243",
+      "jobs": [
+        {
+          "name": "Quality Gates",
+          "status": "PASS",
+          "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425810"
+        },
+        {
+          "name": "Windows 8GB Compatibility",
+          "status": "PASS",
+          "evidenceUrl": "https://github.com/sabiscore/the-yap-engine/actions/runs/36815129243/job/110218425555"
+        }
+      ],
+      "appliesToCurrentRelease": true
+    },
     {
       "scope": "exact-head historical evidence",
       "sha": "d91ae27939e75f614d1c505b59b214070e7f3ed3",
