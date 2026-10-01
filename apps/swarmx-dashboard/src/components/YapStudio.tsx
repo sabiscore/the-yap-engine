@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, ExternalLink, Play, RotateCcw, Trash2, X } from "lucide-react";
+import { Clapperboard, ExternalLink, Play, RotateCcw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { VideoJobForm } from "@/components/video/VideoJobForm";
 import { VideoJobCard } from "@/components/video/VideoJobCard";
