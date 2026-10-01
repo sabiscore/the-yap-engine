@@ -1,4 +1,4 @@
-/**
+/** 
  * SwarmX Vercel gateway / serverless entrypoint.
  *
  * Vercel detects src/server.ts as the Fastify application entrypoint. Keep
@@ -120,6 +120,27 @@ server.all("/*", async (request: FastifyRequest, reply) => {
       requestId: request.id,
     });
   }
+});
+
+/**
+ * Vercel's zero-config Node/Fastify deployment executes src/server.ts as the
+ * server process. Explicitly listen when running there so the detected
+ * Fastify server has a live HTTP listener; local imports remain side-effect
+ * free for tests and tooling.
+ */
+async function startVercelServer(): Promise<void> {
+  if (!process.env["VERCEL"]) return;
+
+  const port = Number(process.env["PORT"] ?? 3000);
+  await server.listen({
+    host: "0.0.0.0",
+    port: Number.isFinite(port) && port > 0 ? port : 3000,
+  });
+}
+
+void startVercelServer().catch((error) => {
+  server.log.error({ err: error }, "Vercel gateway failed to start");
+  process.exitCode = 1;
 });
 
 export default server;
