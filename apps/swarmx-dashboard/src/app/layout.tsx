@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import "./globals.css";
 import { PRODUCT_BRAND } from "@/lib/brand";
-import { SystemStatus } from "@/components/SystemStatus";
 
 const dashboardVersion =
   process.env.NEXT_PUBLIC_SWARMX_VERSION ??
@@ -59,7 +58,7 @@ export default function RootLayout({
     <html lang="en" className="h-full" data-theme="nocturne-v2" suppressHydrationWarning>
       <body className="min-h-dvh overflow-x-hidden bg-bg-base text-text-primary antialiased">
         <div className="min-h-dvh">
-          <header className="sticky top-0 z-50 border-b border-border bg-bg-base/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
+          <header className="sticky top-0 z-50 border-b border-border bg-bg-base pt-[env(safe-area-inset-top)]">
             <div className="mx-auto flex min-h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
               <Link
                 href="/"
@@ -91,19 +90,13 @@ export default function RootLayout({
                 ))}
               </nav>
 
-              <div className="ml-auto flex items-center gap-2">
-                <div className="hidden sm:block">
-                  <SystemStatus compact />
-                </div>
-                <details className="relative md:hidden">
+              <div className="ml-auto md:hidden">
+                <details className="relative">
                   <summary className="flex min-h-11 min-w-11 list-none cursor-pointer items-center justify-center rounded-md border border-border bg-bg-surface text-text-secondary transition-colors hover:border-border-active hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [&::-webkit-details-marker]:hidden">
                     <Menu className="h-5 w-5" aria-hidden="true" />
                     <span className="sr-only">Open navigation menu</span>
                   </summary>
                   <div className="absolute right-0 top-[calc(100%+0.5rem)] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-bg-surface p-2 shadow-xl">
-                    <div className="mb-2 rounded-lg border border-border/60 bg-bg-base px-3 py-2 sm:hidden">
-                      <SystemStatus compact />
-                    </div>
                     <nav aria-label="Mobile navigation" className="grid gap-1">
                       {HEADER_NAV.map(({ href, label, icon: Icon }) => (
                         <Link
@@ -127,7 +120,7 @@ export default function RootLayout({
           </div>
 
           <nav
-            className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg-base/98 pb-[env(safe-area-inset-bottom)] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg-base pb-[env(safe-area-inset-bottom)] md:hidden"
             aria-label="Mobile primary navigation"
           >
             <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
