@@ -101,7 +101,7 @@ function Select<T extends string>({
           onChange={(event) => onChange(event.target.value as T)}
           disabled={disabled}
           className={cn(
-            "h-9 min-w-0 flex-1 rounded border border-border bg-bg-input px-2.5 text-sm text-text-primary",
+            "min-h-11 min-w-0 flex-1 rounded-md border border-border bg-bg-input px-3 py-2 text-sm text-text-primary",
             "transition-colors duration-(--duration-micro)",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
             "disabled:cursor-not-allowed disabled:opacity-50",
@@ -120,7 +120,7 @@ function Select<T extends string>({
               if (selectedPreviewSrc) playPreview(selectedPreviewSrc);
             }}
             disabled={disabled || !selectedPreviewSrc}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-border bg-bg-surface text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-border bg-bg-surface text-text-muted hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             title={selectedPreviewSrc ? `Play ${selectedLabel} preview` : "Kokoro preview asset is not generated yet"}
             aria-label={selectedPreviewSrc ? `Play ${selectedLabel} voice preview` : `${selectedLabel} voice preview unavailable`}
           >
@@ -161,6 +161,8 @@ export function VideoJobForm({
   const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
+  const [manualModelRoute, setManualModelRoute] = useState<ModelRoute>("fast");
+  const [autoRoute, setAutoRoute] = useState(true);
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
@@ -178,7 +180,31 @@ export function VideoJobForm({
 
   const trimmedPrompt = prompt.trim();
   const canSubmit = trimmedPrompt.length > 0 && !isSubmitting && !submissionBlocked;
-  const modelTier = modelRoute === "auto" ? undefined : modelRoute;
+  const modelTier = autoRoute
+    ? undefined
+    : modelRoute === "auto"
+      ? manualModelRoute
+      : modelRoute;
+
+  const handleAutoRouteChange = (enabled: boolean) => {
+    setAutoRoute(enabled);
+    if (enabled) {
+      setModelRoute("auto");
+      return;
+    }
+    setModelRoute(manualModelRoute);
+  };
+
+  const handleModelRouteChange = (value: ModelRoute) => {
+    setModelRoute(value);
+    if (value === "auto") {
+      setAutoRoute(true);
+      return;
+    }
+    setManualModelRoute(value);
+    setAutoRoute(false);
+  };
+
   const submitDescriptionId = submissionBlocked ? `${formId}-submit-blocked` : undefined;
 
   useEffect(() => {
@@ -276,7 +302,7 @@ export function VideoJobForm({
           </p>
         </div>
         <span className="shrink-0 rounded border border-border-accent bg-[var(--color-accent-dim)] px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-accent">
-          {modelRoute === "auto" ? "Auto route" : "Override"}
+          {autoRoute ? "Auto route" : "Override"}
         </span>
       </div>
 
@@ -315,7 +341,7 @@ export function VideoJobForm({
               onClick={() => applyQuickStart(preset)}
               disabled={isSubmitting}
               className={cn(
-                "rounded border border-border bg-bg-surface px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-text-secondary",
+                "min-h-11 rounded-md border border-border bg-bg-surface px-3 py-2 text-[10px] font-mono uppercase tracking-wide text-text-secondary",
                 "hover:border-border-active hover:bg-bg-elevated",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
                 "disabled:cursor-not-allowed disabled:opacity-50",
@@ -335,7 +361,7 @@ export function VideoJobForm({
           maxLength={2000}
           disabled={isSubmitting}
           className={cn(
-            "min-h-28 w-full resize-none rounded border border-border bg-bg-input px-3 py-2.5",
+            "min-h-36 w-full resize-none rounded-md border border-border bg-bg-input px-3 py-3",
             "text-sm leading-6 text-text-primary placeholder:text-text-muted",
             "transition-colors duration-(--duration-micro)",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
@@ -453,12 +479,44 @@ export function VideoJobForm({
 
         <div className="border-t border-border/60 p-3 flex flex-col gap-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-border bg-bg-input px-3 py-2 sm:col-span-2">
+              <div className="min-w-0">
+                <p className="font-heading text-xs font-semibold text-text-primary">Auto Route</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-text-muted">
+                  Route each job to the safest available model for current memory pressure.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoRoute}
+                aria-label="Toggle Auto Route"
+                disabled={isSubmitting}
+                onClick={() => handleAutoRouteChange(!autoRoute)}
+                className={cn(
+                  "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan",
+                  autoRoute
+                    ? "border-status-success/50 bg-status-success"
+                    : "border-border-active bg-bg-elevated",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-5 w-5 rounded-full bg-white transition-transform",
+                    autoRoute ? "translate-x-6" : "translate-x-1",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
             <Select
               id={`${formId}-model`}
               label="Model Tier"
-              value={modelRoute}
-              onChange={setModelRoute}
-              disabled={isSubmitting}
+              value={modelRoute === "auto" ? manualModelRoute : modelRoute}
+              onChange={handleModelRouteChange}
+              disabled={isSubmitting || autoRoute}
               options={[
                 { value: "auto", label: "Auto (recommended)", help: "Safe auto-route: Pilot-lite on low-RAM hosts, 7B on unconstrained hosts." },
                 { value: "fast", label: "Fast (3.8B)", help: "Uses Pilot-lite for every text stage. Fastest generation." },
@@ -469,7 +527,7 @@ export function VideoJobForm({
             />
           </div>
 
-          {modelRoute !== "auto" && (
+          {!autoRoute && (
             <div className="flex items-start gap-2 rounded border border-status-warning/30 bg-status-warning/8 px-3 py-2 text-xs text-status-warning" role="alert">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <p>
