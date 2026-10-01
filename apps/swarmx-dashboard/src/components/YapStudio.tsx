@@ -71,11 +71,8 @@ export function YapStudio({
         </header>
       )}
 
-      <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-        <section
-          className="min-w-0 rounded-xl border border-border bg-bg-surface p-3 sm:p-4"
-          aria-label="New video job"
-        >
+      <div className="space-y-5">
+        <section className="min-w-0 rounded-xl border border-border bg-bg-surface p-3 sm:p-4" aria-label="New video job">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="size-4 text-accent" aria-hidden="true" />
             <div>
@@ -154,12 +151,8 @@ export function YapStudio({
                   className="relative min-w-0 snap-start overflow-hidden rounded-xl border border-border bg-bg-elevated/70"
                   role="listitem"
                 >
-                  <div
-                    className="pointer-events-none absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-white"
-                    aria-hidden="true"
-                  >
-                    <Play className="size-3 fill-current" />
-                    <span>Preview</span>
+                  <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-bg-base/90 text-[color:var(--color-accent-cyan)]" aria-hidden="true">
+                    <Play className="ml-0.5 h-4 w-4 fill-current" />
                   </div>
                   {renderJob(job)}
                 </article>

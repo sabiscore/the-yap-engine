@@ -161,7 +161,7 @@ export function VideoJobForm({
   const [templateFamily, setTemplateFamily] = useState<TemplateFamilyRoute>("none");
   const [targetDuration, setTargetDuration] = useState("30");
   const [modelRoute, setModelRoute] = useState<ModelRoute>("auto");
-  const [manualModelRoute, setManualModelRoute] = useState<ModelRoute>("fast");
+  const [manualModelRoute, setManualModelRoute] = useState<NonNullable<VideoJobRequest["modelTier"]>>("fast");
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState<NonNullable<VideoJobRequest["tone"]>>("educational");
   const [style, setStyle] = useState<NonNullable<VideoJobRequest["style"]>>("faceless_broll");
