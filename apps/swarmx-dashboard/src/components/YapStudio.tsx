@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CheckCircle2, Clapperboard, Loader2, Play, Sparkles } from "lucide-react";
+import { CheckCircle2, Clapperboard, Play, Sparkles } from "lucide-react";
 import type { VideoJob } from "@/lib/video-dashboard";
 import { isActiveVideoStatus } from "@/lib/video-dashboard";
 
