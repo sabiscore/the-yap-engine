@@ -6,6 +6,7 @@ import { useSwarmXEvents } from "@/hooks/useSwarmXEvents";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { ShortcutsOverlay } from "@/components/layout/ShortcutsOverlay";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
+import { SystemStatus } from "@/components/SystemStatus";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +29,8 @@ function DashboardRuntime({ children }: { readonly children: React.ReactNode }) 
         tabIndex={-1}
         className="mx-auto min-h-[calc(100dvh-3.5rem)] w-full max-w-7xl bg-bg-base px-4 py-4 sm:px-6 sm:py-6"
       >
-        {children}
+        <SystemStatus />
+        <div className="mt-5">{children}</div>
       </main>
       <CommandPalette />
       <ShortcutsOverlay />
