@@ -67,7 +67,7 @@
   --nocturne-border-active: #3A424E;
   --nocturne-control-border: #6B7583;
   --nocturne-cyan: #00E5FF;
-  --nocturne-green: #00FF66;
+  --nocturne-green: #10B981;
   --nocturne-text: #F1F5F9;
   --nocturne-secondary: color-mix(in srgb, var(--nocturne-text) 74%, var(--nocturne-muted));
   --nocturne-muted: #8E99A6;
@@ -113,7 +113,8 @@ body {
   background: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   isolation: isolate;
 }
 
