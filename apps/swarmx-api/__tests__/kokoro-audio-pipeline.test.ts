@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  parseSsmlProsody,
-  normalizeScriptForSpeechWithSsml,
-  KokoroVoiceProvider,
-} from "../src/services/voice-providers.js";
+import { KokoroVoiceProvider, normalizeScriptForSpeech } from "../src/services/voice-providers.js";
 
 // Mock child_process so ffprobe and ffmpeg don't execute real commands in tests
 vi.mock("node:child_process", () => ({
@@ -54,6 +50,29 @@ vi.mock("node:fs/promises", async (importOriginal) => {
     ),
     rename: vi.fn().mockResolvedValue(undefined),
   };
+});
+
+describe("Kokoro TTS Pipeline - punctuation-only prosody", () => {
+  it("strips legacy bracket prosody tags instead of preserving them", () => {
+    const input = "**Stop scrolling.** [pause:0.5s] Here is the [emphasis]truth[/emphasis]!";
+    const normalized = normalizeScriptForSpeech(input);
+    expect(normalized).toContain("Stop scrolling.");
+    expect(normalized).toContain("Here is the truth!");
+    expect(normalized).not.toMatch(/\[(?:pause|speed|emphasis|\/emphasis)/i);
+    expect(normalized).not.toContain("**");
+  });
+
+  it("preserves punctuation and paragraph structure used by the TTS prosody policy", () => {
+    const input = "First sentence...\n\nSecond sentence - with a deliberate pause.";
+    const normalized = normalizeScriptForSpeech(input);
+    expect(normalized).toContain("...");
+    expect(normalized).toContain("\n\n");
+    expect(normalized).toContain(" - ");
+  });
+
+  it("rejects empty narration after normalization", () => {
+    expect(() => normalizeScriptForSpeech("[HOOK] [VISUAL: only markup]")).toThrow("Narration text is empty");
+  });
 });
 
 describe("KokoroVoiceProvider Word Boundaries & Audio Normalization", () => {
