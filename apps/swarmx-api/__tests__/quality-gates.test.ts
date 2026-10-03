@@ -146,6 +146,24 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
     expect(report.gates["G-A"]!.issues).toContain("Alignment maximum drift metric is missing");
   });
 
+  it("fails G-R when no rendered media artifact is provided", () => {
+    const validScript = "This is a valid sentence for the short form video script. ".repeat(7).trim() + " Follow for more!";
+    const report = evaluateQualityGates({
+      jobId: "test-qc-7",
+      script: validScript,
+      targetDurationSeconds: 30,
+      voiceArtifact: validVoice,
+      alignment: validAlignment,
+      beatPlan: validBeatPlan,
+      loudness: validLoudness,
+      resolution: { width: 1080, height: 1920 },
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.gates["G-R"]!.passed).toBe(false);
+    expect(report.gates["G-R"]!.issues).toContain("No rendered media artifact provided");
+  });
+
   it("fails G-M if loudness or true peak is out of specification", () => {
     const validScript = "This is a valid sentence for the short form video script. ".repeat(7).trim() + " Follow for more!";
     const report = evaluateQualityGates({
