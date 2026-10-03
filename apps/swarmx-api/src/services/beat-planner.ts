@@ -108,7 +108,7 @@ export function planBeats(options: BeatPlannerOptions): BeatPlannerOutput {
   const splitBeats: Array<{ sceneId: string; startMs: number; endMs: number; motion: string; textCard: string }> = [];
   for (const beat of initialBeats) {
     const dur = beat.endMs - beat.startMs;
-    if (dur > 3200) {
+    if (dur > 3000) {
       // Split into 2000-2500ms segments
       const targetSegmentDur = 2200;
       const numSegments = Math.max(2, Math.round(dur / targetSegmentDur));
@@ -149,7 +149,7 @@ export function planBeats(options: BeatPlannerOptions): BeatPlannerOutput {
 
     if (dur < 800 && mergedBeats.length > 0) {
       const prev = mergedBeats[mergedBeats.length - 1]!;
-      if (prev.endMs - prev.startMs + dur <= 3600 || i === splitBeats.length - 1) {
+      if (prev.endMs - prev.startMs + dur <= 3000 || i === splitBeats.length - 1) {
         prev.endMs = curr.endMs;
       } else if (i < splitBeats.length - 1) {
         // Merge into next beat to avoid exceeding 3600ms ceiling on previous
