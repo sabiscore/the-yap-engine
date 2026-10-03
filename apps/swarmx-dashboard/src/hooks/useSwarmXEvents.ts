@@ -36,6 +36,7 @@ export function useSwarmXEvents(): void {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // [V5.9-ENH-07] Exponential backoff attempt counter
   const reconnectAttemptRef = useRef<number>(0);
+  const historyLoadedRef = useRef<boolean>(false);
 
   useEffect(() => {
     let destroyed = false;
@@ -44,7 +45,9 @@ export function useSwarmXEvents(): void {
       try {
         const response = await fetch(HISTORY_URL, { cache: "no-store" });
         if (!response.ok) return;
-        const payload = (await response.json()) as HistoricalEventsResponse;
+        const payload = (await response.json()) as HistoricalEventsResponse & { offline?: boolean };
+        if (payload.offline) return;
+        historyLoadedRef.current = true;
         for (const event of payload.events) {
           if (destroyed) return;
           handleEvent(event);
@@ -67,6 +70,9 @@ export function useSwarmXEvents(): void {
           setReconnectTelemetry(0, null);
           // [V5.9-ENH-07] Reset backoff on successful connection
           reconnectAttemptRef.current = 0;
+          if (!historyLoadedRef.current) {
+            void bootstrapHistory();
+          }
         }
       };
 

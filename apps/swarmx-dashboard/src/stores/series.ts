@@ -106,7 +106,13 @@ export const useSeriesStore = create<SeriesStore>()(
           }
           set({ series: map, isLoading: false });
         } catch (err) {
-          set({ isLoading: false, listError: err instanceof Error ? err.message : "Failed to load series." });
+          const message =
+            err instanceof SeriesApiError && (err.status === 502 || err.code === "upstream_unreachable")
+              ? "Yap Engine API is currently unreachable. Confirm the service is running on port 3001."
+              : err instanceof Error
+                ? err.message
+                : "Failed to load series.";
+          set({ isLoading: false, listError: message });
         }
       },
 

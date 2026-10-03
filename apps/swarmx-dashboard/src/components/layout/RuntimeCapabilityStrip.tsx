@@ -50,32 +50,35 @@ function CapabilityCard({ label, value, status, hint }: CapabilityCardProps) {
 export function RuntimeCapabilityStrip() {
   const caps = useRuntimeCapabilities();
 
-  if (!caps) {
+  if (!caps || (caps as unknown as { apiOnline?: boolean }).apiOnline === false || (caps.status as string) === "offline") {
     return (
       <div
         className="grid grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3 border-b border-border bg-bg-base"
         aria-live="polite"
         aria-atomic="true"
       >
-        <CapabilityCard label="Runtime" value="probing…" status="unknown" />
+        <CapabilityCard label="API Backend" value="offline (port 3001)" status="err" />
+        <CapabilityCard label="Ollama" value="unreachable" status="err" />
+        <CapabilityCard label="Models" value="offline" status="err" />
+        <CapabilityCard label="Memory" value="unavailable" status="unknown" />
       </div>
     );
   }
 
-  const ollamaStatus: CapabilityCardProps["status"] = caps.ollama.reachable ? "ok" : "err";
-  const ollamaValue = !caps.ollama.reachable
+  const ollamaStatus: CapabilityCardProps["status"] = caps.ollama?.reachable ? "ok" : "err";
+  const ollamaValue = !caps.ollama?.reachable
     ? "unreachable"
     : caps.ollama.latencyMs != null
       ? `reachable · ${caps.ollama.latencyMs}ms`
       : "reachable";
 
   // Canonical model readiness — /api/system/health.models is a readiness triad, not loaded residency.
-  const readyModels = caps.models.filter((model) => model.status === "ready");
-  const missingModels = caps.models.filter((model) => model.status !== "ready");
+  const readyModels = (caps.models ?? []).filter((model) => model.status === "ready");
+  const missingModels = (caps.models ?? []).filter((model) => model.status !== "ready");
   const modelStatus: CapabilityCardProps["status"] =
-    caps.models.length === 0 ? "unknown" : missingModels.length > 0 ? "err" : "ok";
+    (caps.models ?? []).length === 0 ? "unknown" : missingModels.length > 0 ? "err" : "ok";
   const modelValue =
-    caps.models.length === 0
+    (caps.models ?? []).length === 0
       ? "unknown"
       : `${readyModels.length}/${caps.models.length} ready`;
   const modelHint =
@@ -87,12 +90,12 @@ export function RuntimeCapabilityStrip() {
       : "canonical router/reason/code profiles ready";
 
   // Memory status — mirrors backend threshold FULL_PIPELINE_MIN_AVAILABLE_MB=6170
-  const availMb = caps.memory.availableGb * 1024;
+  const availMb = (caps.memory?.availableGb ?? 0) * 1024;
   const memStatus: CapabilityCardProps["status"] =
     availMb < 4000 ? "err" : availMb < 6170 ? "warn" : "ok";
 
   // Voice benchmark status
-  const bench = caps.voice.benchmark;
+  const bench = caps.voice?.benchmark;
   const voiceStatus: CapabilityCardProps["status"] = !bench
     ? "warn"
     : bench.stale

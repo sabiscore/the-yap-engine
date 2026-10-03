@@ -8,12 +8,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { ShortcutsOverlay } from "@/components/layout/ShortcutsOverlay";
 import { SystemStatus } from "@/components/SystemStatus";
+import { ConnectionBanner } from "@/components/layout/ConnectionBanner";
+import { useApiHealth } from "@/hooks/useApiHealth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 10_000,
-      retry: 1,
+      retry: false,
       refetchOnWindowFocus: false,
     },
   },
@@ -22,10 +24,12 @@ const queryClient = new QueryClient({
 function DashboardShell({ children }: { readonly children: React.ReactNode }) {
   useSwarmXEvents();
   useKeyboard();
+  const apiHealth = useApiHealth();
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg-base">
       <SystemStatus />
+      <ConnectionBanner apiHealth={apiHealth} />
 
       <main
         className="min-h-0 flex-1 overflow-hidden bg-bg-base"

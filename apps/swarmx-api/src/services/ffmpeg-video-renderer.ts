@@ -15,12 +15,15 @@ import type {
 } from "@swarmx/types/video-types";
 import type { VideoJobRequest } from "../types/video.js";
 import { outputDir, resolveOutputPath } from "./video-assets.js";
-import { loadEnv } from "../lib/env.js";
+import { loadEnv, resolveVideoResolution } from "../lib/env.js";
 import { clampCertificationTier } from "./renderer-certification.js";
 import { KokoroVoiceProvider, normalizeScriptForSpeech, selectVoiceProvider, type SectionVoiceSynthesisSegment } from "./voice-providers.js";
 import { runTemplateQc } from "./template-aware-qc.js";
 import { alignNarrationAudio, type CaptionAlignmentArtifacts } from "./video-caption-alignment-client.js";
-import { createAmbientBed, masterAudioWithBed } from "./audio-mastering.js";
+import { createAmbientBed, masterAudio, masterAudioWithBed, measurePostEncodeLoudness, type PostEncodeLoudness } from "./audio-mastering.js";
+import { planBeats, type BeatPlannerOutput } from "./beat-planner.js";
+import { evaluateQualityGates } from "./quality-gates.js";
+import type { BeatPlan, QcReport } from "@swarmx/types";
 import { log } from "../lib/logger.js";
 import { MemoryMutex } from "./memory-mutex.js";
 
@@ -70,6 +73,10 @@ export interface FfmpegRenderPackage {
   mediaQualityReport: MediaQualityReport;
   voiceArtifact?: VoiceArtifact;
   alignment?: CaptionAlignmentArtifacts;
+  beatPlanPath?: string;
+  qcReportPath?: string;
+  loudnessReportPath?: string;
+  qcReport?: QcReport;
 }
 
 // ── Visual Palette ─────────────────────────────────────────────────────────────
@@ -134,9 +141,9 @@ interface CaptionStyleConfig {
 }
 
 const CAPTION_STYLE_CONFIGS: Record<string, CaptionStyleConfig> = {
-  bold_center: { yExpr: "(h-text_h)/2",   baseFontSize: 52, boxOpacity: "0.55", borderW: 32 },
-  lower_third: { yExpr: "h*0.72",          baseFontSize: 44, boxOpacity: "0.78", borderW: 24 },
-  minimal:     { yExpr: "(h-text_h)*0.45", baseFontSize: 38, boxOpacity: "0.20", borderW: 16 },
+  bold_center: { yExpr: "max(200\\,min(1500\\,(h-text_h)/2))",   baseFontSize: 52, boxOpacity: "0.55", borderW: 32 },
+  lower_third: { yExpr: "max(200\\,min(1440\\,h*0.72))",          baseFontSize: 44, boxOpacity: "0.78", borderW: 24 },
+  minimal:     { yExpr: "max(200\\,min(1500\\,(h-text_h)*0.45))", baseFontSize: 38, boxOpacity: "0.20", borderW: 16 },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -179,6 +186,12 @@ async function commandAvailable(command: string, versionFlag = "-version"): Prom
 
 function discoverFont(): string {
   const candidates = [
+    resolve(process.cwd(), "assets/fonts/SpaceGrotesk-Bold.ttf"),
+    resolve(process.cwd(), "../../assets/fonts/SpaceGrotesk-Bold.ttf"),
+    resolve(process.cwd(), "assets/fonts/JetBrainsMono-Bold.ttf"),
+    resolve(process.cwd(), "../../assets/fonts/JetBrainsMono-Bold.ttf"),
+    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
@@ -371,7 +384,7 @@ function narrationText(input: FfmpegRenderInput, cards: string[]): string {
   const script = input.scriptText?.trim();
   const raw = script || cards.join(". ");
   const normalized = normalizeScriptForSpeech(raw);
-  return normalized.slice(0, 600);
+  return normalized;
 }
 
 function dialogueEligible(request: VideoJobRequest): boolean {
@@ -915,6 +928,10 @@ async function writeProductionPackage(input: {
   narration: string;
   duration: number;
   voiceArtifact?: VoiceArtifact;
+  alignment?: CaptionAlignmentArtifacts;
+  beatPlan?: BeatPlan;
+  qcReport?: QcReport;
+  loudness?: PostEncodeLoudness;
   signal?: AbortSignal;
 }): Promise<FfmpegRenderPackage> {
   const packageDir = resolve(loadEnv().SWARMX_VIDEO_ARTIFACT_DIR, input.jobId);
@@ -932,6 +949,24 @@ async function writeProductionPackage(input: {
   const templateLineagePath = join(packageDir, "template-lineage.json");
   const packagedVoicePath = join(packageDir, "narration.wav");
   let voiceArtifact = input.voiceArtifact;
+
+  let beatPlanPath: string | undefined;
+  if (input.beatPlan) {
+    beatPlanPath = join(packageDir, "beat-plan.json");
+    await writeFile(beatPlanPath, `${JSON.stringify(input.beatPlan, null, 2)}\n`, "utf8");
+  }
+
+  let qcReportPath: string | undefined;
+  if (input.qcReport) {
+    qcReportPath = join(packageDir, "qc-report.json");
+    await writeFile(qcReportPath, `${JSON.stringify(input.qcReport, null, 2)}\n`, "utf8");
+  }
+
+  let loudnessReportPath: string | undefined;
+  if (input.loudness) {
+    loudnessReportPath = join(packageDir, "loudness-report.json");
+    await writeFile(loudnessReportPath, `${JSON.stringify(input.loudness, null, 2)}\n`, "utf8");
+  }
 
   const cardTimings = computeCardTimings(input.cards, input.duration, input.voiceArtifact?.wordBoundaries);
   const timedText = buildTimedText(input.cards, input.duration, cardTimings);
@@ -1121,6 +1156,11 @@ async function writeProductionPackage(input: {
     templateLineagePath,
     mediaQualityReport,
     ...(voiceArtifact ? { voiceArtifact } : {}),
+    ...(input.alignment ? { alignment: input.alignment } : {}),
+    ...(beatPlanPath ? { beatPlanPath } : {}),
+    ...(qcReportPath ? { qcReportPath } : {}),
+    ...(loudnessReportPath ? { loudnessReportPath } : {}),
+    ...(input.qcReport ? { qcReport: input.qcReport } : {}),
   };
 }
 
@@ -1269,6 +1309,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
           loadEnv().SWARMX_TTS_LOCALE.split("-")[0] ?? "en",
           input.signal,
           { accentHex: accentColor.replace(/^0x/, ""), boxOpacity: Number(styleConfig.boxOpacity) },
+          narration,
         );
       } catch (error) {
         throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
@@ -1276,6 +1317,14 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
         });
       }
     }
+
+    const beatPlannerOutput = planBeats({
+      jobId: input.jobId,
+      storyboardFrames: input.storyboardFrames,
+      totalDurationMs: duration * 1000,
+      alignment: alignment?.alignmentContract,
+      scriptText: input.scriptText ?? narration,
+    });
 
     const renderTimings = computeCardTimings(cards, duration, voiceArtifact?.wordBoundaries);
     // Whisper-aligned jobs still render the full cinematic filter chain
@@ -1305,9 +1354,30 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       );
     }
 
+    // Single-authority audio mastering: if voice stem was not mastered with bed, run 2-pass masterAudio
+    if (voiceArtifact && audioPath !== masteredPath) {
+      try {
+        masteredPath = join(workDir, "narration-mastered.m4a");
+        await masterAudio({
+          inputPath: audioPath,
+          outputPath: masteredPath,
+          platform: audioPlatformForRequest(input.request),
+        });
+        audioPath = masteredPath;
+      } catch (err) {
+        log.warn(
+          { jobId: input.jobId, err: err instanceof Error ? err.message : String(err) },
+          "Single-authority audio mastering fallback",
+        );
+      }
+    }
+
+    const resResolutionStr = resolveVideoResolution();
+    const [resWStr, resHStr] = resResolutionStr.split("x");
+    const videoResolution = { width: Number(resWStr ?? "1080"), height: Number(resHStr ?? "1920") };
     const visualInputArgs = remoteSegments.length > 0
       ? ["-f", "concat", "-safe", "0", "-i", segmentListPath]
-      : ["-f", "lavfi", "-i", `color=c=${bgColor}:s=720x1280:r=30:d=${duration}`];
+      : ["-f", "lavfi", "-i", `color=c=${bgColor}:s=${resResolutionStr}:r=30:d=${duration}`];
     const inputArgs = voiceArtifact
       ? ["-i", audioPath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"];
@@ -1323,9 +1393,7 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       "-map", "1:a",
       "-shortest",
       "-t", String(duration),
-      "-af", audioPath === masteredPath
-        ? `${audioFilterPrefix}aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ}`
-        : `${audioFilterPrefix}aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ},loudnorm=I=${loadEnv().SWARMX_AUDIO_TARGET_LUFS}:TP=${loadEnv().SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS}:LRA=11`,
+      "-af", `${audioFilterPrefix}aformat=channel_layouts=stereo,aresample=${loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ}`,
       "-ar", String(loadEnv().SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ),
       "-ac", String(loadEnv().SWARMX_AUDIO_MASTER_CHANNELS),
       "-c:v", "libx264",
@@ -1333,13 +1401,35 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       "-crf", "23",
       "-pix_fmt", "yuv420p",
       "-c:a", "aac",
-      "-b:a", "128k",
+      "-b:a", "192k",
       "-movflags", "+faststart",
       tempOutputPath,
     ], input.signal);
 
     await moveFileAcrossDevices(tempOutputPath, outputPath);
     renderCompleted = true;
+
+    let postEncodeLoudness: PostEncodeLoudness | undefined;
+    try {
+      postEncodeLoudness = await measurePostEncodeLoudness(outputPath);
+    } catch (err) {
+      log.warn(
+        { jobId: input.jobId, err: err instanceof Error ? err.message : String(err) },
+        "Post-encode loudness measurement skipped",
+      );
+    }
+
+    const qcReport = evaluateQualityGates({
+      jobId: input.jobId,
+      script: input.scriptText ?? narration,
+      targetDurationSeconds: duration,
+      voiceArtifact,
+      alignment: alignment?.alignmentContract,
+      beatPlan: beatPlannerOutput.beatPlan,
+      loudness: postEncodeLoudness,
+      mediaPath: outputPath,
+      resolution: videoResolution,
+    });
 
     const renderPackage = await writeProductionPackage({
       jobId: input.jobId,
@@ -1353,6 +1443,9 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       duration,
       ...(voiceArtifact ? { voiceArtifact } : {}),
       ...(alignment ? { alignment } : {}),
+      beatPlan: beatPlannerOutput.beatPlan,
+      qcReport,
+      ...(postEncodeLoudness ? { loudness: postEncodeLoudness } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
     });
 

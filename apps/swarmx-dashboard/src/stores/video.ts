@@ -167,7 +167,17 @@ export function sanitizeApiError(err: unknown, fallback = "Something went wrong.
         return "The video queue could not accept this job. Wait a moment and try again.";
       case "not_found":
         return "That video job is no longer available. Refresh the queue and try again.";
+      case "upstream_unreachable":
+        return "Yap Engine API is currently unreachable. Confirm the service is running on port 3001.";
+      case "upstream_timeout":
+        return "The request to the Yap Engine API timed out. Check system load or retry shortly.";
+      case "upstream_unavailable":
+        return "The video service is temporarily unavailable. Check System → Health.";
+      case "route_not_allowed":
+        return "The requested video route is not permitted by the API proxy.";
       default:
+        if (err.status === 502) return "Yap Engine API is currently unreachable. Confirm the service is running on port 3001.";
+        if (err.status === 504) return "The request to the Yap Engine API timed out. Check system load or retry shortly.";
         if (err.status === 503) return "The API or a required service is temporarily unavailable. Retry in a moment.";
         if (err.status === 429) return "Too Many Submissions — wait before retrying.";
         if (err.status === 409) return "This action cannot be performed on a job in its current state.";

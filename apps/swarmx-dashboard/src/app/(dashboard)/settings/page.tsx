@@ -97,7 +97,7 @@ function ResidentDot({ isResident, is7B }: { readonly isResident: boolean; reado
 function ModelTopologySection() {
   const governorState = useEventsStore((s) => s.governorState);
 
-  const { data: modelStatus, isLoading: isStatusLoading } = useQuery<ModelStatusResponse>({
+  const { data: modelStatus, isLoading: isStatusLoading, isError } = useQuery<ModelStatusResponse>({
     queryKey: ["model-status"],
     queryFn: async () => {
       const res = await fetch("/api/models/status");
@@ -106,6 +106,7 @@ function ModelTopologySection() {
     },
     refetchInterval: 8_000,
     staleTime: 4_000,
+    retry: false,
   });
 
   const residentTags = new Set(modelStatus?.residentModels.map((m) => m.tag) ?? []);
@@ -129,8 +130,11 @@ function ModelTopologySection() {
               {governorState?.availableMb ?? modelStatus.ramAvailableMb} MB free
             </span>
           )}
-          {isStatusLoading && (
+          {isStatusLoading && !isError && (
             <span className="text-[9px] font-mono text-text-muted animate-pulse">polling…</span>
+          )}
+          {isError && (
+            <span className="text-[9px] font-mono text-status-warning">offline</span>
           )}
         </div>
       </div>
@@ -284,6 +288,18 @@ function SettingsRow({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+const DEFAULT_CONFIG: SwarmXConfig = {
+  backend: {
+    port: 3001,
+    host: "127.0.0.1",
+    sse: { flushIntervalMs: 500, keepAliveIntervalMs: 15_000 },
+  },
+  telemetry: { pollIntervalMs: 12_000 },
+  agents: { maxConcurrent: 4, defaultTimeout: 60 },
+  terminal: { maxSessions: 5, sessionTimeoutMs: 300_000 },
+  llm: { defaultModel: "instruct-phi4-pro-q8-prod", maxTokens: 2048 },
+};
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const governorState = useEventsStore((s) => s.governorState);
@@ -293,7 +309,7 @@ export default function SettingsPage() {
   const availableMb = governorState?.availableMb ?? startupSummary?.availableMb ?? null;
   const ollamaOnline = apiHealth.ollamaOnline ?? startupSummary?.ollamaReachable ?? null;
 
-  const { data: config, isLoading } = useQuery<SwarmXConfig>({
+  const { data: config, isLoading, isError: isConfigError } = useQuery<SwarmXConfig>({
     queryKey: ["swarmx-config"],
     queryFn: async () => {
       const res = await fetch("/api/config");
@@ -301,9 +317,12 @@ export default function SettingsPage() {
       return res.json() as Promise<SwarmXConfig>;
     },
     staleTime: 60_000,
+    retry: false,
   });
 
   const [draft, setDraft] = useState<Partial<SwarmXConfig>>({});
+  const isOffline = isConfigError || (!config && !isLoading);
+  const effectiveConfig = config ?? DEFAULT_CONFIG;
 
   const saveMutation = useMutation({
     mutationFn: async (updates: Partial<SwarmXConfig>) => {
@@ -322,7 +341,7 @@ export default function SettingsPage() {
 
   const hasDraft = Object.keys(draft).length > 0;
 
-  if (isLoading || !config) {
+  if (isLoading && !config) {
     return (
       <div className="p-6 space-y-4">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -337,28 +356,36 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <h1 className="text-sm font-mono font-semibold text-text-primary">Settings</h1>
-        {hasDraft && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-text-muted">Unsaved changes</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setDraft({})}
-            >
-              Discard
-            </Button>
-            <Button
-              size="sm"
-              variant="accent"
-              onClick={() => saveMutation.mutate(draft)}
-              disabled={saveMutation.isPending}
-              className="gap-1.5"
-            >
-              <Save className="h-3 w-3" />
-              {saveMutation.isPending ? "Saving…" : "Save Changes"}
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isOffline && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-status-warning/40 bg-status-warning/10 text-[10px] font-mono text-status-warning">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              <span>API offline · Default config (read-only)</span>
+            </div>
+          )}
+          {hasDraft && (
+            <>
+              <span className="text-[10px] font-mono text-text-muted">Unsaved changes</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setDraft({})}
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                variant="accent"
+                onClick={() => saveMutation.mutate(draft)}
+                disabled={isOffline || saveMutation.isPending}
+                className="gap-1.5"
+              >
+                <Save className="h-3 w-3" />
+                {saveMutation.isPending ? "Saving…" : "Save Changes"}
+              </Button>
+            </>
+          )}
+        </div>
         {/* [V6.2-ENH-08] Show inline error when save fails. Sanitized via safeErrorMessage to avoid path/internals leak. */}
         {saveMutation.isError && (
           <div role="alert" className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-red-500/40 bg-red-500/10 text-[10px] font-mono text-red-200">
@@ -395,12 +422,13 @@ export default function SettingsPage() {
             >
               <Input
                 type="number"
-                className="w-24 text-xs text-right tabular-nums"
-                defaultValue={config.backend.port}
+                disabled={isOffline}
+                className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                defaultValue={effectiveConfig.backend.port}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    backend: { ...config.backend, ...d.backend, port: parseInt(e.target.value, 10) },
+                    backend: { ...effectiveConfig.backend, ...d.backend, port: parseInt(e.target.value, 10) },
                   }))
                 }
               />
@@ -413,15 +441,16 @@ export default function SettingsPage() {
               <div className="flex items-center gap-1.5">
                 <Input
                   type="number"
-                  className="w-24 text-xs text-right tabular-nums"
-                  defaultValue={config.backend.sse.flushIntervalMs}
+                  disabled={isOffline}
+                  className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                  defaultValue={effectiveConfig.backend.sse.flushIntervalMs}
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
                       backend: {
-                        ...config.backend,
+                        ...effectiveConfig.backend,
                         ...d.backend,
-                        sse: { ...config.backend.sse, flushIntervalMs: parseInt(e.target.value, 10) },
+                        sse: { ...effectiveConfig.backend.sse, flushIntervalMs: parseInt(e.target.value, 10) },
                       },
                     }))
                   }
@@ -440,8 +469,9 @@ export default function SettingsPage() {
               <div className="flex items-center gap-1.5">
                 <Input
                   type="number"
-                  className="w-24 text-xs text-right tabular-nums"
-                  defaultValue={config.telemetry.pollIntervalMs}
+                  disabled={isOffline}
+                  className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                  defaultValue={effectiveConfig.telemetry.pollIntervalMs}
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
@@ -462,12 +492,13 @@ export default function SettingsPage() {
             >
               <Input
                 type="number"
-                className="w-24 text-xs text-right tabular-nums"
-                defaultValue={config.agents.maxConcurrent}
+                disabled={isOffline}
+                className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                defaultValue={effectiveConfig.agents.maxConcurrent}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    agents: { ...config.agents, ...d.agents, maxConcurrent: parseInt(e.target.value, 10) },
+                    agents: { ...effectiveConfig.agents, ...d.agents, maxConcurrent: parseInt(e.target.value, 10) },
                   }))
                 }
               />
@@ -479,12 +510,13 @@ export default function SettingsPage() {
               <div className="flex items-center gap-1.5">
                 <Input
                   type="number"
-                  className="w-24 text-xs text-right tabular-nums"
-                  defaultValue={config.agents.defaultTimeout}
+                  disabled={isOffline}
+                  className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                  defaultValue={effectiveConfig.agents.defaultTimeout}
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
-                      agents: { ...config.agents, ...d.agents, defaultTimeout: parseInt(e.target.value, 10) },
+                      agents: { ...effectiveConfig.agents, ...d.agents, defaultTimeout: parseInt(e.target.value, 10) },
                     }))
                   }
                 />
@@ -501,12 +533,13 @@ export default function SettingsPage() {
             >
               <Input
                 type="number"
-                className="w-24 text-xs text-right tabular-nums"
-                defaultValue={config.terminal.maxSessions}
+                disabled={isOffline}
+                className="w-24 text-xs text-right tabular-nums disabled:opacity-60"
+                defaultValue={effectiveConfig.terminal.maxSessions}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    terminal: { ...config.terminal, ...d.terminal, maxSessions: parseInt(e.target.value, 10) },
+                    terminal: { ...effectiveConfig.terminal, ...d.terminal, maxSessions: parseInt(e.target.value, 10) },
                   }))
                 }
               />
@@ -520,12 +553,13 @@ export default function SettingsPage() {
               description="Default model used by the AI Composer and agents without explicit model config"
             >
               <Input
-                className="w-48 text-xs"
-                defaultValue={config.llm.defaultModel}
+                className="w-48 text-xs disabled:opacity-60"
+                disabled={isOffline}
+                defaultValue={effectiveConfig.llm.defaultModel}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    llm: { ...config.llm, ...d.llm, defaultModel: e.target.value },
+                    llm: { ...effectiveConfig.llm, ...d.llm, defaultModel: e.target.value },
                   }))
                 }
               />

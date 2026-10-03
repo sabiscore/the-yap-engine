@@ -79,6 +79,7 @@ const schema = z.object({
   NEON_AUTH_JWKS_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   NEON_DATA_API_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   NEON_AUTH_URL: z.preprocess((value) => value === "" ? undefined : (value ?? process.env["NEON_AUTH_BASE_URL"]), z.string().url().optional()),
+  VERCEL_ENV: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
   MAX_CONCURRENT_JOBS: z.preprocess((val) => val ?? process.env["SWARMX_VIDEO_MAX_CONCURRENT_JOBS"], positiveInt.default(1)),
 
   SWARMX_MODEL_FAST: z.preprocess((val) => val ?? process.env["SWARM_MODEL_FAST"], z.string().default("instruct-phi4-pro-q8-prod")),
@@ -161,8 +162,9 @@ const schema = z.object({
   SWARMX_TTS_PRONUNCIATION_DICTIONARY_VERSION: z.string().default("builtin-v1"),
   SWARMX_AUDIO_MASTER_SAMPLE_RATE_HZ: positiveInt.default(48_000),
   SWARMX_AUDIO_MASTER_CHANNELS: z.coerce.number().int().min(1).max(2).default(2),
-  SWARMX_AUDIO_TARGET_LUFS: z.coerce.number().default(-16),
+  SWARMX_AUDIO_TARGET_LUFS: z.coerce.number().default(-14),
   SWARMX_AUDIO_TRUE_PEAK_MAX_DBFS: z.coerce.number().default(-1.5),
+  SWARMX_VIDEO_RESOLUTION: z.enum(["720x1280", "1080x1920"]).optional(),
   SWARMX_AUDIO_AMBIENT_BED_ENABLED: boolFlag.default("0"),
   SWARMX_VOICE_BENCHMARK_FILE: z.preprocess((val) => val ?? "/tmp/swarmxq-voice-benchmark.json", z.string()),
   SWARMX_VOICE_BENCHMARK_MAX_AGE_HOURS: z.coerce.number().int().min(1).max(720).default(168),
@@ -229,6 +231,18 @@ const schema = z.object({
   // Local-only operator identity used to bind the TikTok OAuth state to a durable user row.
   SWARMX_TIKTOK_OPERATOR_USER_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
   SWARMX_YOUTUBE_API_APPROVED: boolFlag,
+}).superRefine((data, ctx) => {
+  const isPreview =
+    process.env["VERCEL_ENV"] === "preview" ||
+    process.env["ENVIRONMENT"] === "preview" ||
+    process.env["IS_PREVIEW"] === "1";
+  if (isPreview && data.NEON_BRANCH === "production") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Preview deployment cannot target production Neon branch. Configure a dedicated NEON_BRANCH for previews.",
+      path: ["NEON_BRANCH"],
+    });
+  }
 });
 
 type Env = z.infer<typeof schema>;
@@ -262,4 +276,16 @@ export function readSecretEnv(key: SecretEnvKey): string {
 
 export function readRawEnv(key: string): string | undefined {
   return process.env[key];
+}
+
+export function resolveVideoResolution(env = loadEnv()): "720x1280" | "1080x1920" {
+  if (env.SWARMX_VIDEO_RESOLUTION) return env.SWARMX_VIDEO_RESOLUTION;
+  if (
+    env.SWARMX_HOST_PROFILE === "constrained_cpu_8gb" ||
+    env.SWARMX_HOST_PROFILE === "8gb" ||
+    env.SWARMX_HOST_PROFILE === "constrained_cpu"
+  ) {
+    return "720x1280";
+  }
+  return "1080x1920";
 }

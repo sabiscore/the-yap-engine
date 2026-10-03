@@ -159,10 +159,15 @@ async function fetchApiHealth(): Promise<ApiHealthState> {
     const ollama = isRecord(data["ollama"]) ? data["ollama"] : null;
     const voice = isRecord(data["voice"]) ? data["voice"] : null;
     const voiceBenchmark = voice && isRecord(voice["benchmark"]) ? voice["benchmark"] : null;
+    const isExplicitlyOffline = data["status"] === "offline" || data["apiOnline"] === false;
     return {
-      apiOnline: true,
-      ollamaOnline: typeof ollama?.["reachable"] === "boolean" ? ollama["reachable"] : null,
-      apiStatus: optionalString(data["status"]) ?? null,
+      apiOnline: isExplicitlyOffline ? false : true,
+      ollamaOnline: isExplicitlyOffline
+        ? false
+        : typeof ollama?.["reachable"] === "boolean"
+          ? ollama["reachable"]
+          : null,
+      apiStatus: optionalString(data["status"]) ?? (isExplicitlyOffline ? "offline" : null),
       latencyMs,
       lastChecked: Date.now(),
       warmup: parseWarmup(data["warmup"]),

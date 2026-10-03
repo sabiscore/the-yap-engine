@@ -114,19 +114,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Lazy-loaded pipeline (avoids 400 MB memory cost on health-check-only hosts)
-_pipeline: KPipeline | None = None
+# Lazy-loaded pipelines keyed by lang_code ('a' = American, 'b' = British)
+_pipelines: dict[str, KPipeline] = {}
 
 
-def get_pipeline() -> KPipeline:
-    global _pipeline
-    if _pipeline is None:
+def get_pipeline(lang_code: str = "a") -> KPipeline:
+    global _pipelines
+    if lang_code not in _pipelines:
         if not KOKORO_AVAILABLE:
             raise RuntimeError("Kokoro not installed. Run: pip install kokoro soundfile")
-        log.info("kokoro_pipeline_init")
-        _pipeline = KPipeline(lang_code="a")  # 'a' = American English
-        log.info("kokoro_pipeline_ready")
-    return _pipeline
+        log.info("kokoro_pipeline_init", lang_code=lang_code)
+        _pipelines[lang_code] = KPipeline(lang_code=lang_code)
+        log.info("kokoro_pipeline_ready", lang_code=lang_code)
+    return _pipelines[lang_code]
 
 
 # ── Request/response models ───────────────────────────────────────────────────
@@ -139,7 +139,7 @@ class WordBoundary(BaseModel):
 class TTSRequest(BaseModel):
     text: str = Field(..., description="Narration text to synthesize")
     voice: str = Field("am_michael", description="Kokoro voice ID or tone name")
-    speed: float = Field(1.0, ge=0.5, le=2.0, description="Speed multiplier (0.5–2.0)")
+    speed: float | None = Field(None, ge=0.5, le=2.0, description="Speed multiplier (0.5–2.0)")
     split_pattern: str = Field(r"\n+", description="Pattern to split text into segments")
 
 
@@ -175,54 +175,27 @@ async def voices():
     return {"voices": AVAILABLE_VOICES, "tone_map": TONE_VOICE_MAP}
 
 
-def parse_ssml_chunks(raw_text: str, base_speed: float) -> list[dict]:
-    """Parse text containing [pause:0.5s], [speed:1.1], [emphasis] tags into typed chunks."""
+def strip_bracket_tags(raw_text: str) -> str:
+    """Tolerantly strip bracket tags like [pause:...], [speed:...], [emphasis]."""
     tag_re = re.compile(
         r"\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|/emphasis)\]",
         re.IGNORECASE,
     )
-    parts = tag_re.split(raw_text)
+    cleaned = tag_re.sub(" ", raw_text)
+    return re.sub(r"[ \t]+", " ", cleaned).strip()
 
-    chunks: list[dict] = []
-    current_speed = base_speed
-    in_emphasis = False
 
-    for part in parts:
-        if not part:
-            continue
-        lower_part = part.lower().strip()
-        if lower_part.startswith("pause:"):
-            val_str = lower_part.split(":", 1)[1].strip()
-            try:
-                if val_str.endswith("ms"):
-                    pause_s = float(val_str[:-2]) / 1000.0
-                elif val_str.endswith("s"):
-                    pause_s = float(val_str[:-1])
-                else:
-                    pause_s = float(val_str)
-                chunks.append({"type": "pause", "duration_s": max(0.05, min(pause_s, 5.0))})
-            except ValueError:
-                pass
-        elif lower_part.startswith("speed:"):
-            try:
-                current_speed = max(0.5, min(float(lower_part.split(":", 1)[1].strip()), 2.0))
-            except ValueError:
-                pass
-        elif lower_part == "emphasis":
-            in_emphasis = True
-        elif lower_part == "/emphasis":
-            in_emphasis = False
-        else:
-            text = part.strip()
-            if text:
-                effective_speed = current_speed * 0.88 if in_emphasis else current_speed
-                chunks.append({
-                    "type": "speech",
-                    "text": text,
-                    "speed": effective_speed,
-                })
-
-    return chunks
+def apply_audio_fade(audio: np.ndarray, sample_rate: int = 24000, fade_ms: float = 8.0) -> np.ndarray:
+    """Apply 8ms fade-in/out to audio chunk to prevent boundary clicks."""
+    fade_len = int(sample_rate * (fade_ms / 1000.0))
+    if len(audio) < fade_len * 2:
+        return audio
+    out = audio.copy()
+    fade_in = np.linspace(0.0, 1.0, fade_len, dtype=np.float32)
+    fade_out = np.linspace(1.0, 0.0, fade_len, dtype=np.float32)
+    out[:fade_len] *= fade_in
+    out[-fade_len:] *= fade_out
+    return out
 
 
 @app.post("/tts", response_model=TTSResponse)
@@ -237,9 +210,9 @@ async def synthesize(req: TTSRequest):
 
     # Resolve voice ID — accept either a voice ID directly or a tone name
     voice_id = TONE_VOICE_MAP.get(req.voice, req.voice)
-    # Apply tone-aware speed if caller didn't explicitly set a non-default speed
+    # Apply tone-aware speed if caller didn't explicitly set a speed (Fix F5: allow explicit 1.0)
     effective_speed = (
-        req.speed if req.speed != 1.0
+        req.speed if req.speed is not None
         else TONE_SPEED_MAP.get(req.voice, 1.0)
     )
 
@@ -247,51 +220,47 @@ async def synthesize(req: TTSRequest):
         raise HTTPException(status_code=400, detail="text field must not be empty")
 
     try:
-        pipeline = get_pipeline()
+        lang_code = "b" if voice_id.startswith(("bm_", "bf_")) else "a"
+        pipeline = get_pipeline(lang_code)
         sample_rate = 24000
         arrays: list[np.ndarray] = []
         word_boundaries: list[WordBoundary] = []
         current_time_ms = 0
 
-        chunks = parse_ssml_chunks(req.text, effective_speed)
-        if not chunks:
-            chunks = [{"type": "speech", "text": req.text, "speed": effective_speed}]
-
+        cleaned_text = strip_bracket_tags(req.text)
         log.info(
             "tts_start",
             voice=voice_id,
             speed=effective_speed,
-            chunks_count=len(chunks),
-            text_len=len(req.text),
+            text_len=len(cleaned_text),
+            lang_code=lang_code,
         )
 
-        for chunk in chunks:
-            if chunk["type"] == "pause":
-                pause_samples = int(sample_rate * chunk["duration_s"])
-                if pause_samples > 0:
-                    silence = np.zeros(pause_samples, dtype=np.float32)
-                    arrays.append(silence)
-                    current_time_ms += int(chunk["duration_s"] * 1000)
-            elif chunk["type"] == "speech":
-                speech_text = chunk["text"]
-                chunk_speed = chunk["speed"]
-                chunk_arrays: list[np.ndarray] = []
+        raw_paragraphs = re.split(r"\n\n+", cleaned_text)
+        for p_idx, paragraph in enumerate(raw_paragraphs):
+            p_text = paragraph.strip()
+            if not p_text:
+                continue
 
+            sub_segments = [s.strip() for s in re.split(r"(?<=\.\.\.)", p_text) if s.strip()]
+            for s_idx, segment_text in enumerate(sub_segments):
+                chunk_arrays: list[np.ndarray] = []
                 for _gs, _ps, audio in pipeline(
-                    speech_text,
+                    segment_text,
                     voice=voice_id,
-                    speed=chunk_speed,
+                    speed=effective_speed,
                     split_pattern=req.split_pattern,
                 ):
                     chunk_arrays.append(np.asarray(audio, dtype=np.float32))
 
                 if chunk_arrays:
                     combined_chunk = np.concatenate(chunk_arrays)
-                    arrays.append(combined_chunk)
-                    chunk_duration_ms = int(len(combined_chunk) / sample_rate * 1000)
+                    faded_chunk = apply_audio_fade(combined_chunk, sample_rate, 8.0)
+                    arrays.append(faded_chunk)
+                    chunk_duration_ms = int(len(faded_chunk) / sample_rate * 1000)
 
                     # Estimate word boundaries based on character lengths
-                    words = re.findall(r"\S+", speech_text)
+                    words = re.findall(r"\S+", segment_text)
                     if words:
                         total_weight = sum(max(len(w), 1) for w in words)
                         cursor_ms = current_time_ms
@@ -314,6 +283,23 @@ async def synthesize(req: TTSRequest):
                             cursor_ms = end_ms
 
                     current_time_ms += chunk_duration_ms
+
+                    # Silence insertion:
+                    # - At ... trailing pause: 1.0s (cap 1.2s)
+                    # - At \n\n paragraph end: 0.40s
+                    # - Within-beat join: 0.12s
+                    pause_s = 0.0
+                    if segment_text.endswith("..."):
+                        pause_s = 1.0
+                    elif s_idx == len(sub_segments) - 1 and p_idx < len(raw_paragraphs) - 1:
+                        pause_s = 0.40
+                    elif s_idx < len(sub_segments) - 1:
+                        pause_s = 0.12
+
+                    if pause_s > 0:
+                        pause_samples = int(sample_rate * pause_s)
+                        arrays.append(np.zeros(pause_samples, dtype=np.float32))
+                        current_time_ms += int(pause_s * 1000)
 
         if not arrays:
             raise ValueError("Kokoro produced no audio segments")

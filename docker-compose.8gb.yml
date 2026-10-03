@@ -1,9 +1,9 @@
 services:
   redis:
-    mem_limit: 128m
+    mem_limit: 96m
     cpus: "0.25"
   ollama:
-    mem_limit: 6g
+    mem_limit: 3800m
     cpus: "2.0"
     environment:
       OLLAMA_KEEP_ALIVE: "0"
@@ -11,15 +11,18 @@ services:
       OLLAMA_NUM_PARALLEL: "1"
       OLLAMA_NUM_THREADS: "2"
   swarmx-python:
-    mem_limit: 700m
+    mem_limit: 600m
     cpus: "1.5"
   swarmx-api:
-    mem_limit: 500m
+    mem_limit: 512m
     cpus: "1.0"
     environment:
       SWARMX_VIDEO_MAX_CONCURRENT_JOBS: "1"
+      SWARMX_VIDEO_API_TOKEN: "${SWARMX_VIDEO_API_TOKEN:?SWARMX_VIDEO_API_TOKEN is required}"
   swarmx-dashboard:
     mem_limit: 384m
     cpus: "0.75"
     environment:
       SWARMX_VIDEO_MAX_CONCURRENT_JOBS: "1"
+      SWARMX_VIDEO_API_TOKEN: "${SWARMX_VIDEO_API_TOKEN:?SWARMX_VIDEO_API_TOKEN is required}"
+      SWARMX_DASHBOARD_ACCESS_TOKEN: "${SWARMX_DASHBOARD_ACCESS_TOKEN:?SWARMX_DASHBOARD_ACCESS_TOKEN is required}"

@@ -90,7 +90,7 @@ export function EpisodeViralityPanel({ score }: EpisodeViralityPanelProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="font-mono text-xs uppercase tracking-wider text-text-secondary">
-            Virality Score
+            Signal estimate — not measured
           </h3>
           <p className="mt-0.5 font-mono text-[10px] text-text-muted">
             Gate: ≥ 65 to produce · ≥ 70 preferred

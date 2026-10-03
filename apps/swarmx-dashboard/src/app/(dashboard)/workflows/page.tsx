@@ -120,7 +120,7 @@ function WorkflowListPanel({
   readonly onSelect: (id: string) => void;
 }) {
   const workflowRuns = useEventsStore((s) => s.workflowRuns);
-  const { data: workflows, isLoading } = useQuery<WorkflowListItem[]>({
+  const { data: workflows, isLoading, isError } = useQuery<WorkflowListItem[]>({
     queryKey: ["workflows"],
     queryFn: async () => {
       const res = await fetch("/api/workflows");
@@ -128,6 +128,7 @@ function WorkflowListPanel({
       return res.json() as Promise<WorkflowListItem[]>;
     },
     staleTime: 30_000,
+    retry: false,
   });
 
   if (isLoading) {
@@ -136,6 +137,17 @@ function WorkflowListPanel({
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-12 skeleton rounded-lg" />
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-40 gap-2 px-4 text-center">
+        <span className="text-xs font-mono text-status-warning">Workflows unavailable</span>
+        <span className="text-[10px] font-mono text-text-muted">
+          Yap Engine API is currently offline. Start the service on port 3001 to load workflows.
+        </span>
       </div>
     );
   }

@@ -132,3 +132,55 @@ export async function masterAudioWithBed(req: AudioMasteringRequest, speechPath:
   mixSpeechWithAmbientBed(speechPath, ambientPath, mixedPath);
   return masterAudio({ ...req, inputPath: mixedPath });
 }
+
+export interface PostEncodeLoudness {
+  integratedLUFS: number;
+  truePeakDBTP: number;
+  loudnessRangeLRA: number;
+  compliant: boolean;
+}
+
+export async function measurePostEncodeLoudness(filePath: string): Promise<PostEncodeLoudness> {
+  const args = [
+    "-nostats",
+    "-i", filePath,
+    "-filter_complex", "ebur128=peak=true",
+    "-f", "null",
+    "/dev/null",
+  ];
+  const proc = spawnSync("ffmpeg", args, { encoding: "utf8" });
+  if (proc.error) {
+    throw new AudioMasteringError(`FFmpeg ebur128 failed to start: ${proc.error.message}`, "AUDIO_MEASURE_FAILED");
+  }
+  const stderr = proc.stderr ?? "";
+  const iMatch = /I:\s*(-?[\d.]+)\s*LUFS/.exec(stderr);
+  const lraMatch = /LRA:\s*(-?[\d.]+)\s*LU/.exec(stderr);
+  const tpMatch = /Peak:\s*(-?[\d.]+)\s*dB(?:FS|TP)/.exec(stderr);
+
+  if (!iMatch || !tpMatch) {
+    throw new AudioMasteringError("Could not parse ebur128 summary from FFmpeg stderr", "AUDIO_MEASURE_PARSE_FAILED");
+  }
+
+  const integratedLUFS = parseFloat(iMatch[1]!);
+  const loudnessRangeLRA = lraMatch ? parseFloat(lraMatch[1]!) : 0;
+  const truePeakDBTP = parseFloat(tpMatch[1]!);
+
+  // Gate G-M compliance: Target -14 LUFS (+/- 1.5 dB) and True Peak <= -1.0 dBTP
+  const compliant = Math.abs(integratedLUFS - (-14)) <= 1.5 && truePeakDBTP <= -1.0;
+
+  log.info({
+    service: "audio-mastering",
+    filePath,
+    integratedLUFS,
+    truePeakDBTP,
+    loudnessRangeLRA,
+    compliant,
+  }, "Post-encode loudness measured");
+
+  return {
+    integratedLUFS,
+    truePeakDBTP,
+    loudnessRangeLRA,
+    compliant,
+  };
+}

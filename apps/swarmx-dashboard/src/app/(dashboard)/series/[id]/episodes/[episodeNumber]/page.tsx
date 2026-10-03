@@ -255,7 +255,7 @@ export default function EpisodePreProductionPage() {
               {preProduction.viralityScore && (
                 <section aria-labelledby="virality-heading">
                   <h2 id="virality-heading" className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                    Virality Score
+                    Signal estimate — not measured
                   </h2>
                   <EpisodeViralityPanel score={preProduction.viralityScore} />
                 </section>

@@ -19,6 +19,7 @@ import type {
 import { loadEnv } from "../lib/env.js";
 import { rankAvailableProviders, readVoiceBenchmarkReport } from "./voice-benchmark-report.js";
 import { masterAudio } from "./audio-mastering.js";
+import { normalizeScriptText } from "./speech-normalizer.js";
 
 const VOICE_COMMAND_TIMEOUT_MS = 120_000;
 const COMMAND_MAX_BUFFER_BYTES = 1024 * 1024;
@@ -191,25 +192,31 @@ async function sha256File(path: string): Promise<string> {
 }
 
 export function normalizeScriptForSpeech(text: string): string {
-  const stripped = text
-    .replace(/<think>[\s\S]*?<\/think>/gi, " ")
-    .replace(/\[(?:HOOK|BODY|RESOLUTION|CTA)\]/gi, " ")
-    .replace(/\[VISUAL:[^\]]*\]/gi, " ")
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/[`*_#>{}[\]]/g, " ")
-    .replace(/[\r\n\t]+/g, " ")
-    .replace(/[“”]/g, "\"")
-    .replace(/[‘’]/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Use V5 Speech Normalizer to strip think tags, markup, expand pronunciations, and preserve prosody (\n\n, ...)
+  let normalized: string;
+  try {
+    normalized = normalizeScriptText(text, { targetSeconds: 120 });
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "SCRIPT_NORMALIZATION_EMPTY") {
+      throw Object.assign(new Error("Narration text is empty after normalization"), {
+        code: "SCRIPT_NORMALIZATION_EMPTY",
+      });
+    }
+    // If linting or budget check threw (e.g. unexpanded all-caps), do a safe fallback cleanup preserving text
+    normalized = text
+      .replace(/<think>[\s\S]*?<\/think>/gi, " ")
+      .replace(/\[(?:HOOK|BODY|RESOLUTION|CTA)\]/gi, " ")
+      .replace(/\[VISUAL:[^\]]*\]/gi, " ")
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/[`*_#>{}[\]]/g, " ")
+      .trim();
+  }
 
-  const balancedQuotes = stripped.replace(/(^|\s)"([^"]{1,140})(?=\s|$)/g, "$1$2");
+  const balancedQuotes = normalized.replace(/(^|\s)"([^"]{1,140})(?=\s|$)/g, "$1$2");
   const withoutQuoteDebris = balancedQuotes
     .replace(/"\s*([.,!?;:])/g, "$1")
     .replace(/([.,!?;:])\s*"/g, "$1")
     .replace(/(^|\s)'([^']{1,80})(?=\s|$)/g, "$1$2")
-    .replace(/([.!?]){2,}/g, "$1")
-    .replace(/\s+/g, " ")
     .trim();
 
   if (!withoutQuoteDebris) {
@@ -222,7 +229,7 @@ export function normalizeScriptForSpeech(text: string): string {
       code: "SCRIPT_NORMALIZATION_MARKUP",
     });
   }
-  return withoutQuoteDebris.slice(0, 1_200);
+  return withoutQuoteDebris;
 }
 
 export interface ParsedSsmlSegment {

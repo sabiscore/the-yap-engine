@@ -32,6 +32,8 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
   const lastEventAt = useEventsStore((state) => state.lastEventAt);
   const governorState = useEventsStore((state) => state.governorState);
   const startupSummary = useEventsStore((state) => state.startupSummary);
+  const sseReconnectAttempt = useEventsStore((state) => state.sseReconnectAttempt);
+  const sseNextRetryMs = useEventsStore((state) => state.sseNextRetryMs);
   const pressureLevel = governorState?.pressureLevel ?? startupSummary?.pressureLevel;
   const availableMb = governorState?.availableMb ?? startupSummary?.availableMb;
   const runtimeGuidance = getRuntimeGuidance({
@@ -41,17 +43,21 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
     availableMb,
   });
 
-  const hasSseIssue = isStale || connectionStatus === "disconnected" || connectionStatus === "connecting";
+  const hasSseIssue =
+    isStale ||
+    connectionStatus === "disconnected" ||
+    (connectionStatus === "connecting" && sseReconnectAttempt > 0);
   const visible = hasSseIssue || runtimeGuidance !== null;
   const sseMessage = useMemo(() => {
     if (connectionStatus === "disconnected") {
-      return "Live telemetry stream disconnected. Operator metrics may be stale.";
+      const retrySuffix = sseNextRetryMs != null ? ` Retrying in ${Math.round(sseNextRetryMs / 1000)}s.` : "";
+      return `Live telemetry stream disconnected.${retrySuffix} Operator metrics may be stale.`;
     }
     if (connectionStatus === "connecting") {
-      return "Connecting to the Yap Engine event stream.";
+      return `Reconnecting to the Yap Engine event stream (attempt ${sseReconnectAttempt}).`;
     }
     return "Telemetry has gone stale. Validate the API before acting on these metrics.";
-  }, [connectionStatus]);
+  }, [connectionStatus, sseNextRetryMs, sseReconnectAttempt]);
 
   if (!visible) {
     return null;
@@ -60,12 +66,17 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
   const isConnecting = connectionStatus === "connecting";
   const isAlert =
     connectionStatus === "disconnected" ||
+    apiHealth.apiOnline === false ||
     runtimeGuidance?.tone === "critical";
   const showRetry = !isConnecting && (hasSseIssue || apiHealth.apiOnline === false);
 
   return (
     <div
-      className="border-b border-status-warning/30 bg-status-warning/10 px-4 py-2 panel-enter"
+      className={
+        isAlert
+          ? "border-b border-status-error/30 bg-status-error/10 px-4 py-2 panel-enter"
+          : "border-b border-status-warning/30 bg-status-warning/10 px-4 py-2 panel-enter"
+      }
       role={isAlert ? "alert" : "status"}
       aria-live={isAlert ? "assertive" : "polite"}
     >
@@ -74,10 +85,23 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
           {isConnecting && runtimeGuidance === null ? (
             <RefreshCw className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning animate-spin" aria-hidden="true" />
           ) : (
-            <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning" aria-hidden="true" />
+            <WifiOff
+              className={
+                isAlert
+                  ? "mt-0.5 h-3.5 w-3.5 shrink-0 text-status-error"
+                  : "mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warning"
+              }
+              aria-hidden="true"
+            />
           )}
           <div className="min-w-0">
-            <p className="text-[11px] font-mono text-status-warning">
+            <p
+              className={
+                isAlert
+                  ? "text-[11px] font-mono font-medium text-status-error"
+                  : "text-[11px] font-mono font-medium text-status-warning"
+              }
+            >
               {runtimeGuidance?.title ?? sseMessage}
             </p>
             <p className="text-[10px] font-mono text-text-muted">
@@ -100,7 +124,11 @@ export function ConnectionBanner({ apiHealth }: ConnectionBannerProps) {
             type="button"
             size="sm"
             variant="ghost"
-            className="gap-1.5 border border-status-warning/30 text-status-warning hover:bg-status-warning/10"
+            className={
+              isAlert
+                ? "gap-1.5 border border-status-error/30 text-status-error hover:bg-status-error/10"
+                : "gap-1.5 border border-status-warning/30 text-status-warning hover:bg-status-warning/10"
+            }
             onClick={() => globalThis.location.reload()}
           >
             <RefreshCw className="h-3 w-3" />

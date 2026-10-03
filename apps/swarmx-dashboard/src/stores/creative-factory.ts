@@ -23,6 +23,16 @@ import type {
 
 const API_BASE = "";
 
+export class CreativeFactoryApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  constructor(status: number, message: string, code: string | null = null) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -32,14 +42,16 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
+    let code: string | null = null;
     let message = res.statusText;
     try {
-      const body = await res.json() as { message?: string };
-      message = typeof body.message === "string" ? body.message : message;
+      const body = await res.json() as { error?: string; message?: string };
+      code = typeof body?.error === "string" ? body.error : null;
+      message = typeof body?.message === "string" ? body.message : message;
     } catch {
       // keep statusText
     }
-    throw new Error(message);
+    throw new CreativeFactoryApiError(res.status, message, code);
   }
   return res.json() as Promise<T>;
 }
@@ -108,9 +120,15 @@ export const useCreativeFactoryStore = create<CreativeFactoryStore>()(
           isLoading: false,
         }, false, "factory/fetch/done");
       } catch (err) {
+        const message =
+          err instanceof CreativeFactoryApiError && (err.status === 502 || err.code === "upstream_unreachable")
+            ? "Yap Engine API is currently unreachable. Confirm the service is running on port 3001."
+            : err instanceof Error
+              ? err.message
+              : "Failed to load Creative Factory state.";
         set({
           isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to load Creative Factory state.",
+          error: message,
         }, false, "factory/fetch/error");
       }
     },

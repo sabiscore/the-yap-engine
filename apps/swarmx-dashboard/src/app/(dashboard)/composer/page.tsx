@@ -498,8 +498,10 @@ export default function ComposerPage() {
 
       let res = await fetch("/api/composer/chat", requestInit);
       if (!res.ok && res.status >= 500) {
-        const fallbackUrl = `${resolveDirectApiBaseUrl()}/api/composer/chat`;
-        res = await fetch(fallbackUrl, requestInit);
+        const fallbackBase = resolveDirectApiBaseUrl();
+        if (fallbackBase) {
+          res = await fetch(`${fallbackBase}/api/composer/chat`, requestInit);
+        }
       }
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
