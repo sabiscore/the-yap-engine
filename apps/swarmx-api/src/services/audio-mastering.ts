@@ -165,8 +165,8 @@ export async function measurePostEncodeLoudness(filePath: string): Promise<PostE
   const loudnessRangeLRA = lraMatch ? parseFloat(lraMatch[1]!) : 0;
   const truePeakDBTP = parseFloat(tpMatch[1]!);
 
-  // Gate G-M compliance: Target -14 LUFS (+/- 1.5 dB) and True Peak <= -1.0 dBTP
-  const compliant = Math.abs(integratedLUFS - (-14)) <= 1.5 && truePeakDBTP <= -1.0;
+  // Gate G-M compliance: Target -14 LUFS (+/- 1.0 dB) and True Peak <= -1.0 dBTP
+  const compliant = Math.abs(integratedLUFS - (-14)) <= 1.0 && truePeakDBTP <= -1.0;
 
   log.info({
     service: "audio-mastering",

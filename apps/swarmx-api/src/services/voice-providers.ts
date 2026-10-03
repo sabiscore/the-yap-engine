@@ -232,74 +232,6 @@ export function normalizeScriptForSpeech(text: string): string {
   return withoutQuoteDebris;
 }
 
-export interface ParsedSsmlSegment {
-  type: "speech" | "pause";
-  text?: string;
-  durationSeconds?: number;
-  speed?: number;
-}
-
-export function parseSsmlProsody(text: string, baseSpeed = 1.0): ParsedSsmlSegment[] {
-  const tagRe = /\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|\/emphasis)\]/gi;
-  const parts = text.split(tagRe);
-  const segments: ParsedSsmlSegment[] = [];
-  let currentSpeed = baseSpeed;
-  let inEmphasis = false;
-
-  for (const part of parts) {
-    if (!part) continue;
-    const lower = part.toLowerCase().trim();
-    if (lower.startsWith("pause:")) {
-      const valStr = lower.slice(6).trim();
-      let pauseSec = 0.5;
-      if (valStr.endsWith("ms")) {
-        pauseSec = parseFloat(valStr.slice(0, -2)) / 1000;
-      } else if (valStr.endsWith("s")) {
-        pauseSec = parseFloat(valStr.slice(0, -1));
-      } else {
-        pauseSec = parseFloat(valStr);
-      }
-      if (!Number.isNaN(pauseSec) && pauseSec > 0) {
-        segments.push({ type: "pause", durationSeconds: Math.min(5, Math.max(0.05, pauseSec)) });
-      }
-    } else if (lower.startsWith("speed:")) {
-      const spd = parseFloat(lower.slice(6).trim());
-      if (!Number.isNaN(spd) && spd >= 0.5 && spd <= 2.0) {
-        currentSpeed = spd;
-      }
-    } else if (lower === "emphasis") {
-      inEmphasis = true;
-    } else if (lower === "/emphasis") {
-      inEmphasis = false;
-    } else {
-      const clean = part.replace(/\s+/g, " ").trim();
-      if (clean) {
-        segments.push({
-          type: "speech",
-          text: clean,
-          speed: inEmphasis ? currentSpeed * 0.88 : currentSpeed,
-        });
-      }
-    }
-  }
-
-  return segments.length > 0 ? segments : [{ type: "speech", text, speed: baseSpeed }];
-}
-
-export function normalizeScriptForSpeechWithSsml(text: string): string {
-  const ssmlTags: string[] = [];
-  const tagRe = /\[(pause:[0-9.]+(?:s|ms)?|speed:[0-9.]+|emphasis|\/emphasis)\]/gi;
-  const withPlaceholders = text.replace(tagRe, (match) => {
-    ssmlTags.push(match);
-    return ` SSMLTAGTOKEN${ssmlTags.length - 1}ENDTOKEN `;
-  });
-
-  const normalized = normalizeScriptForSpeech(withPlaceholders);
-
-  return normalized.replace(/SSMLTAGTOKEN(\d+)ENDTOKEN/g, (_, idx) => ssmlTags[Number(idx)] ?? "");
-}
-
-
 async function probeAudio(path: string): Promise<{ sampleRateHz: number; channels: number; durationSeconds: number }> {
   const { stdout } = await execFileChecked("ffprobe", [
     "-v", "error",
@@ -593,7 +525,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
 
   async synthesize(request: VoiceSynthesisRequest, outputPath: string, signal?: AbortSignal): Promise<VoiceArtifact> {
     await mkdir(outputPath.split("/").slice(0, -1).join("/") || ".", { recursive: true });
-    const normalizedText = normalizeScriptForSpeechWithSsml(request.text);
+    const normalizedText = normalizeScriptForSpeech(request.text);
     const requestedVoiceStyle = resolveVoiceStyle(request);
     const voiceId = KOKORO_VOICE_MAP[requestedVoiceStyle] ?? requestedVoiceStyle;
     const voices = await this.listVoices(request.locale);
@@ -651,7 +583,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
       .map((segment, index) => ({
         ...segment,
         index,
-        text: normalizeScriptForSpeechWithSsml(segment.text),
+        text: normalizeScriptForSpeech(segment.text),
         voiceId: segment.section === "DIALOGUE" ? KOKORO_DIALOGUE_VOICE_ID : baseVoiceId,
       }))
       .filter((segment) => segment.text.length > 0);

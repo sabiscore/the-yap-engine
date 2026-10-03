@@ -1,3 +1,5 @@
+> **SUPERSEDED BY V5.1:** This document is retained as historical audit context only. Its PASS labels and implementation claims are not current certification evidence. The authoritative execution directive is `docs/AUTONOMOUS-VIDEO-SWARM-V5.1-EXECUTION-DIRECTIVE.md`. Current evidence is under `docs/evidence/video-swarm-v5/`. Do not use this file alone to certify the pipeline.
+
 # THE YAP ENGINE — AUTONOMOUS 9:16 VIDEO SWARM · MASTER SPECIFICATION & AUDIT (V5)
 
 **Hardware Baseline**: HP EliteBook 850 G3 · 16 GB RAM · Intel Core i7-6600U (2 cores / 4 threads) · WSL2 (Ubuntu 24.04 LTS) · CPU-only inference  

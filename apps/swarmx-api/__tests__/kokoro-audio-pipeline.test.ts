@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  parseSsmlProsody,
-  normalizeScriptForSpeechWithSsml,
-  KokoroVoiceProvider,
-} from "../src/services/voice-providers.js";
+import { KokoroVoiceProvider, normalizeScriptForSpeech } from "../src/services/voice-providers.js";
 
 // Mock child_process so ffprobe and ffmpeg don't execute real commands in tests
 vi.mock("node:child_process", () => ({
@@ -56,53 +52,26 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   };
 });
 
-describe("Kokoro TTS Pipeline - SSML & Prosody Parsing", () => {
-  it("should parse text without tags as single speech segment", () => {
-    const segments = parseSsmlProsody("Stop scrolling and listen carefully.");
-    expect(segments).toHaveLength(1);
-    expect(segments[0]).toEqual({
-      type: "speech",
-      text: "Stop scrolling and listen carefully.",
-      speed: 1.0,
-    });
-  });
-
-  it("should parse [pause:0.5s] and [pause:300ms] into pause segments", () => {
-    const segments = parseSsmlProsody("Attention.[pause:0.5s] This changes everything.[pause:300ms] Look closely.");
-    expect(segments).toHaveLength(5);
-    expect(segments[0]).toEqual({ type: "speech", text: "Attention.", speed: 1.0 });
-    expect(segments[1]).toEqual({ type: "pause", durationSeconds: 0.5 });
-    expect(segments[2]).toEqual({ type: "speech", text: "This changes everything.", speed: 1.0 });
-    expect(segments[3]).toEqual({ type: "pause", durationSeconds: 0.3 });
-    expect(segments[4]).toEqual({ type: "speech", text: "Look closely.", speed: 1.0 });
-  });
-
-  it("should adjust speed multiplier when [speed:1.1] is present", () => {
-    const segments = parseSsmlProsody("[speed:1.2] Quick breakdown right now.");
-    expect(segments).toHaveLength(1);
-    expect(segments[0]?.type).toBe("speech");
-    expect(segments[0]?.speed).toBe(1.2);
-  });
-
-  it("should parse [emphasis] blocks and slightly modulate pace", () => {
-    const segments = parseSsmlProsody("Do not make this [emphasis] fatal mistake [/emphasis] today.");
-    expect(segments).toHaveLength(3);
-    expect(segments[0]?.text).toBe("Do not make this");
-    expect(segments[0]?.speed).toBe(1.0);
-    expect(segments[1]?.text).toBe("fatal mistake");
-    expect(segments[1]?.speed).toBeCloseTo(0.88, 2);
-    expect(segments[2]?.text).toBe("today.");
-    expect(segments[2]?.speed).toBe(1.0);
-  });
-
-  it("should preserve SSML tags during speech script normalization", () => {
-    const input = "**Stop scrolling.** [pause:0.5s] Here is the #1 truth you need [emphasis] right now [/emphasis]!";
-    const normalized = normalizeScriptForSpeechWithSsml(input);
-    expect(normalized).toContain("[pause:0.5s]");
-    expect(normalized).toContain("[emphasis]");
-    expect(normalized).toContain("[/emphasis]");
+describe("Kokoro TTS Pipeline - punctuation-only prosody", () => {
+  it("strips legacy bracket prosody tags instead of preserving them", () => {
+    const input = "**Stop scrolling.** [pause:0.5s] Here is the [emphasis]truth[/emphasis]!";
+    const normalized = normalizeScriptForSpeech(input);
+    expect(normalized).toContain("Stop scrolling.");
+    expect(normalized).toContain("Here is the truth!");
+    expect(normalized).not.toMatch(/\[(?:pause|speed|emphasis|\/emphasis)/i);
     expect(normalized).not.toContain("**");
-    expect(normalized).not.toContain("#");
+  });
+
+  it("preserves punctuation and paragraph structure used by the TTS prosody policy", () => {
+    const input = "First sentence...\n\nSecond sentence - with a deliberate pause.";
+    const normalized = normalizeScriptForSpeech(input);
+    expect(normalized).toContain("...");
+    expect(normalized).toContain("\n\n");
+    expect(normalized).toContain(" - ");
+  });
+
+  it("rejects empty narration after normalization", () => {
+    expect(() => normalizeScriptForSpeech("[HOOK] [VISUAL: only markup]")).toThrow("Narration text is empty");
   });
 });
 
@@ -133,15 +102,15 @@ describe("KokoroVoiceProvider Word Boundaries & Audio Normalization", () => {
 
     // Mock artifactBase to verify wordBoundaries and masterAudio without depending on physical file read streams
     vi.spyOn(provider as any, "artifactBase").mockImplementation(async (
-      req: any,
+      req: unknown,
       outPath: string,
-      provVer: any,
-      desc: any,
+      provVer: unknown,
+      desc: { voiceId: string; displayName: string; locale: string; qualityTier: "neural_local"; license: { state: "approved"; sourceName: string; allowedUses: string[]; attribution: string }; consentRequired: boolean },
       normText: string,
       latency: number,
       fallback?: string,
-      prosody?: any,
-      wordBoundaries?: any[],
+      prosody?: unknown,
+      wordBoundaries?: Array<{ word: string; startMs: number; endMs: number }>,
     ) => ({
       providerId: "kokoro",
       voiceId: desc.voiceId,

@@ -1,4 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({
+  spawnSync: vi.fn(() => ({
+    status: 0,
+    stdout: JSON.stringify({
+      streams: [
+        { codec_type: "video", width: 1080, height: 1920, codec_name: "h264" },
+        { codec_type: "audio", codec_name: "aac" },
+      ],
+      format: { duration: "30" },
+    }),
+  })),
+}));
+
+vi.mock("node:fs", () => ({ existsSync: vi.fn(() => true) }));
 import { evaluateQualityGates } from "../src/services/quality-gates.js";
 import type { AlignmentContract, BeatPlan, VoiceArtifact } from "@swarmx/types";
 import type { PostEncodeLoudness } from "../src/services/audio-mastering.js";
@@ -23,7 +38,7 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
       { text: "Hello", startMs: 0, endMs: 500, flags: [] },
       { text: "world.", startMs: 500, endMs: 1000, flags: [] },
     ],
-    stats: { coverage: 0.95, nativeDriftMedianMs: 50 },
+    stats: { coverage: 0.95, nativeDriftMedianMs: 50, maxDriftMs: 120 },
   };
 
   const validBeatPlan: BeatPlan = {
@@ -55,6 +70,7 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
       beatPlan: validBeatPlan,
       loudness: validLoudness,
       resolution: { width: 1080, height: 1920 },
+      mediaPath: "/tmp/valid-output.mp4",
     });
 
     expect(report.schemaVersion).toBe("1.0");
@@ -124,6 +140,44 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
 
     expect(report.passed).toBe(false);
     expect(report.gates["G-A"]!.passed).toBe(false);
+  });
+
+  it("fails G-A when maximum drift evidence is missing", () => {
+    const validScript = "This is a valid sentence for the short form video script. ".repeat(7).trim() + " Follow for more!";
+    const report = evaluateQualityGates({
+      jobId: "test-qc-6",
+      script: validScript,
+      targetDurationSeconds: 30,
+      voiceArtifact: validVoice,
+      alignment: {
+        ...validAlignment,
+        stats: { coverage: 0.95, nativeDriftMedianMs: 50 },
+      },
+      beatPlan: validBeatPlan,
+      loudness: validLoudness,
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.gates["G-A"]!.passed).toBe(false);
+    expect(report.gates["G-A"]!.issues).toContain("Alignment maximum drift metric is missing");
+  });
+
+  it("fails G-R when no rendered media artifact is provided", () => {
+    const validScript = "This is a valid sentence for the short form video script. ".repeat(7).trim() + " Follow for more!";
+    const report = evaluateQualityGates({
+      jobId: "test-qc-7",
+      script: validScript,
+      targetDurationSeconds: 30,
+      voiceArtifact: validVoice,
+      alignment: validAlignment,
+      beatPlan: validBeatPlan,
+      loudness: validLoudness,
+      resolution: { width: 1080, height: 1920 },
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.gates["G-R"]!.passed).toBe(false);
+    expect(report.gates["G-R"]!.issues).toContain("No rendered media artifact provided");
   });
 
   it("fails G-M if loudness or true peak is out of specification", () => {

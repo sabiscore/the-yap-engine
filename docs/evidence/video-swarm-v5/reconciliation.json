@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "phase": "V5.1-reconciliation-and-hardening",
+  "status": "IN PROGRESS",
+  "repo": "sabiscore/the-yap-engine",
+  "branch": "feat/video-swarm-v5",
+  "baseSha": "9a12fafcece666b5159396e558b572a7782e0885",
+  "commitSha": "ccf541de3afb9412816522f23a15d13dc88a2de6",
+  "utc": "2026-10-03T10:38:13.083Z",
+  "commands": [
+    {
+      "command": "GitHub repository audit against main and feat/video-swarm-v5",
+      "status": "PASS",
+      "exitCode": 0,
+      "notes": [
+        "Branch initially matched main exactly at 9a12fafcece666b5159396e558b572a7782e0885."
+      ]
+    },
+    {
+      "command": "Local pnpm typecheck/test/build",
+      "status": "NOT EXECUTED (by design)",
+      "exitCode": null,
+      "notes": [
+        "No local shell checkout is available through the repository connector; CI is required for authoritative execution evidence."
+      ]
+    }
+  ],
+  "changes": [
+    "Removed legacy bracket-prosody parsing/normalization execution path.",
+    "Removed obsolete SSML/prosody unit tests.",
+    "Tightened G-A alignment thresholds to coverage >= 0.95 and median drift <= 150 ms.",
+    "Tightened G-M post-encode acceptance to -14 +/- 1 LUFS and true peak <= -1.0 dBTP.",
+    "Made audio mastering and post-encode loudness verification fail-closed.",
+    "Made G-R reject incorrect dimensions even when the output remains 9:16.",
+    "Added the reconciled V5.1 execution directive."
+  ],
+  "artifacts": [
+    "docs/AUTONOMOUS-VIDEO-SWARM-V5.1-EXECUTION-DIRECTIVE.md"
+  ],
+  "notes": [
+    "Certification remains HOLD.",
+    "No main merge performed.",
+    "Physical 8 GB certification remains unclaimed.",
+    "Concurrent branch activity was observed while execution was in progress; the current PR diff contains additional V5-related changes not authored in this execution turn. These remain unreviewed and are not claimed as executed by this directive."
+  ]
+}
