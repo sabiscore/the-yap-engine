@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/creative-hub-v3
+      - feat/video-swarm-v5
   pull_request:
     branches: [main]
   workflow_dispatch:
