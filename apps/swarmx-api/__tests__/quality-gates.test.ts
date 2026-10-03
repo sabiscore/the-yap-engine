@@ -23,7 +23,7 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
       { text: "Hello", startMs: 0, endMs: 500, flags: [] },
       { text: "world.", startMs: 500, endMs: 1000, flags: [] },
     ],
-    stats: { coverage: 0.95, nativeDriftMedianMs: 50 },
+    stats: { coverage: 0.95, nativeDriftMedianMs: 50, maxDriftMs: 120 },
   };
 
   const validBeatPlan: BeatPlan = {
@@ -124,6 +124,26 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
 
     expect(report.passed).toBe(false);
     expect(report.gates["G-A"]!.passed).toBe(false);
+  });
+
+  it("fails G-A when maximum drift evidence is missing", () => {
+    const validScript = "This is a valid sentence for the short form video script. ".repeat(7).trim() + " Follow for more!";
+    const report = evaluateQualityGates({
+      jobId: "test-qc-6",
+      script: validScript,
+      targetDurationSeconds: 30,
+      voiceArtifact: validVoice,
+      alignment: {
+        ...validAlignment,
+        stats: { coverage: 0.95, nativeDriftMedianMs: 50 },
+      },
+      beatPlan: validBeatPlan,
+      loudness: validLoudness,
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.gates["G-A"]!.passed).toBe(false);
+    expect(report.gates["G-A"]!.issues).toContain("Alignment maximum drift metric is missing");
   });
 
   it("fails G-M if loudness or true peak is out of specification", () => {
