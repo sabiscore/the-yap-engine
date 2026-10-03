@@ -146,6 +146,9 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
     if (align.stats.nativeDriftMedianMs > 150) {
       alignIssues.push(`Alignment median drift excessive (${align.stats.nativeDriftMedianMs}ms > 150ms)`);
     }
+    if (align.stats.maxDriftMs > 400) {
+      alignIssues.push(`Alignment maximum drift excessive (${align.stats.maxDriftMs}ms > 400ms)`);
+    }
   }
 
   const gateA: VideoQualityGateResult = {
@@ -171,7 +174,7 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
     for (const b of bp.beats) {
       const d = b.endMs - b.startMs;
       if (d < 700) pacingIssues.push(`Beat ${b.id} is too short (${d}ms < 700ms)`);
-      if (d > 3600) pacingIssues.push(`Beat ${b.id} exceeds maximum visual hold (${d}ms > 3600ms)`);
+      if (d > 3000) pacingIssues.push(`Beat ${b.id} exceeds maximum visual hold (${d}ms > 3000ms)`);
     }
   }
 
