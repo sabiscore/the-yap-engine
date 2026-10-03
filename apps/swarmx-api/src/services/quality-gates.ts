@@ -140,11 +140,11 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
   if (!align) {
     alignIssues.push("No alignment contract provided");
   } else {
-    if (align.stats.coverage < 0.75) {
-      alignIssues.push(`Alignment coverage below 75% threshold (${(align.stats.coverage * 100).toFixed(1)}%)`);
+    if (align.stats.coverage < 0.95) {
+      alignIssues.push(`Alignment coverage below 95% threshold (${(align.stats.coverage * 100).toFixed(1)}%)`);
     }
-    if (align.stats.nativeDriftMedianMs > 500) {
-      alignIssues.push(`Alignment median drift excessive (${align.stats.nativeDriftMedianMs}ms > 500ms)`);
+    if (align.stats.nativeDriftMedianMs > 150) {
+      alignIssues.push(`Alignment median drift excessive (${align.stats.nativeDriftMedianMs}ms > 150ms)`);
     }
   }
 
@@ -215,10 +215,10 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
   if (!loudness) {
     masterIssues.push("No post-encode loudness measurement available");
   } else {
-    if (Math.abs(loudness.integratedLUFS - (-14)) > 2.0) {
-      masterIssues.push(`Integrated loudness outside target (-14 LUFS ± 2.0): measured ${loudness.integratedLUFS} LUFS`);
+    if (Math.abs(loudness.integratedLUFS - (-14)) > 1.0) {
+      masterIssues.push(`Integrated loudness outside target (-14 LUFS ± 1.0): measured ${loudness.integratedLUFS} LUFS`);
     }
-    if (loudness.truePeakDBTP > -0.8) {
+    if (loudness.truePeakDBTP > -1.0) {
       masterIssues.push(`True peak ceiling exceeded (-1.0 dBTP ceiling): measured ${loudness.truePeakDBTP} dBTP`);
     }
   }
