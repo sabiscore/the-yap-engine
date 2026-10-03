@@ -5,7 +5,7 @@
   "repo": "sabiscore/the-yap-engine",
   "branch": "feat/video-swarm-v5",
   "baseSha": "9a12fafcece666b5159396e558b572a7782e0885",
-  "commitSha": "20259094e2304e6da7e5e5af0018260eb8f2f1a5",
+  "commitSha": "ccf541de3afb9412816522f23a15d13dc88a2de6",
   "utc": "2026-10-03T10:38:13.083Z",
   "commands": [
     {
@@ -40,6 +40,7 @@
   "notes": [
     "Certification remains HOLD.",
     "No main merge performed.",
-    "Physical 8 GB certification remains unclaimed."
+    "Physical 8 GB certification remains unclaimed.",
+    "Concurrent branch activity was observed while execution was in progress; the current PR diff contains additional V5-related changes not authored in this execution turn. These remain unreviewed and are not claimed as executed by this directive."
   ]
 }
