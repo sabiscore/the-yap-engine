@@ -146,7 +146,9 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
     if (align.stats.nativeDriftMedianMs > 150) {
       alignIssues.push(`Alignment median drift excessive (${align.stats.nativeDriftMedianMs}ms > 150ms)`);
     }
-    if (align.stats.maxDriftMs > 400) {
+    if (align.stats.maxDriftMs === undefined) {
+      alignIssues.push("Alignment maximum drift metric is missing");
+    } else if (align.stats.maxDriftMs > 400) {
       alignIssues.push(`Alignment maximum drift excessive (${align.stats.maxDriftMs}ms > 400ms)`);
     }
   }
