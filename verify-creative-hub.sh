@@ -31,7 +31,7 @@ echo "[A1] Validating Repository Integrity..."
   git checkout $TARGET_BRANCH
   CURRENT_SHA=$(git rev-parse HEAD)
   echo "HEAD = $CURRENT_SHA"
-  if [ "$CURRENT_SHA" != "$TARGET_SHA" ]; then
+  if [[ "$CURRENT_SHA" != "$TARGET_SHA" ]]; then
     echo "FATAL: SHA MISMATCH. Expected $TARGET_SHA, got $CURRENT_SHA"
     exit 1
   fi

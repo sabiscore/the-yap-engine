@@ -1,8 +1,6 @@
 "use client";
 
-
 import { getRuntimeGuidance } from "@/lib/runtime-guidance";
-import { StateBadge } from "@/components/ui/state-badge";
 
 interface RouteDegradedBannerProps {
   readonly pressureLevel: string | undefined;
@@ -11,42 +9,49 @@ interface RouteDegradedBannerProps {
   readonly ollamaOnline: boolean | null;
 }
 
-/**
- * Route-level degraded-state banner. Returns null when the runtime is healthy.
- * Each route page reads pressureLevel/ollamaOnline from useEventsStore + useApiHealth
- * and passes them here — no additional store reads inside.
- */
 export function RouteDegradedBanner({
   pressureLevel,
   availableMb,
   apiOnline,
   ollamaOnline,
 }: RouteDegradedBannerProps) {
-  const guidance = getRuntimeGuidance({ apiOnline, ollamaOnline, pressureLevel, availableMb });
+  const guidance = getRuntimeGuidance({
+    apiOnline,
+    ollamaOnline,
+    pressureLevel,
+    availableMb,
+  });
 
   if (!guidance) {
     return null;
   }
 
+  const critical = guidance.tone === "critical";
 
   return (
     <div
-      className={
-        guidance.tone === "critical"
-          ? "flex items-start gap-3 rounded border border-status-error/35 bg-status-error/10 px-3 py-3"
-          : "flex items-start gap-3 rounded border border-status-warning/35 bg-status-warning/10 px-3 py-3"
-      }
-      role={guidance.tone === "critical" ? "alert" : "status"}
-      aria-live={guidance.tone === "critical" ? "assertive" : "polite"}
+      className={[
+        "flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2",
+        critical
+          ? "border-status-error/25 bg-status-error/[0.04]"
+          : "border-status-warning/25 bg-status-warning/[0.04]",
+      ].join(" ")}
+      role={critical ? "alert" : "status"}
+      aria-live={critical ? "assertive" : "polite"}
     >
-      <div className="mt-0.5 flex shrink-0 items-center">
-        <StateBadge state={guidance.tone === "critical" ? "offline" : "degraded"} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-status-warning">{guidance.title}</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{guidance.detail}</p>
-        <p className="mt-1 text-xs leading-5 text-text-muted">{guidance.recoveryHint}</p>
-      </div>
+      <span
+        className={[
+          "size-2 shrink-0 rounded-full",
+          critical ? "bg-status-error" : "bg-status-warning",
+        ].join(" ")}
+        aria-hidden="true"
+      />
+      <p className="min-w-0 truncate text-xs font-medium text-text-primary">
+        {guidance.title}
+      </p>
+      <span className="hidden min-w-0 truncate text-[10px] text-text-muted sm:inline">
+        {guidance.recoveryHint}
+      </span>
     </div>
   );
 }

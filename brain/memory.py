@@ -127,14 +127,20 @@ def _maybe_compact() -> None:
     Eliminates partial-write data loss on process kill mid-compact.
     """
     try:
-        mem_file = _get_memory_file()
+        mem_dir = _get_memory_dir().resolve()
+        mem_file = (mem_dir / "brain_memory.jsonl").resolve()
+        if not mem_file.is_relative_to(mem_dir) or not mem_file.exists():
+            return
         lines = mem_file.read_text(encoding="utf-8").splitlines()
         if len(lines) <= MAX_ENTRIES:
             return
         keep = lines[-MAX_ENTRIES:]
-        tmp = mem_file.with_suffix(".tmp")
-        tmp.write_text("\n".join(keep) + "\n", encoding="utf-8")
-        tmp.replace(mem_file)  # atomic on POSIX
+        tmp = (mem_dir / "brain_memory.jsonl.tmp").resolve()
+        if not tmp.is_relative_to(mem_dir):
+            return
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("\n".join(keep) + "\n")
+        os.replace(tmp, mem_file)  # atomic on POSIX
     except Exception:
         pass
 

@@ -39,16 +39,59 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-export function MobileChrome() {
-  const pathname = usePathname();
+function WorkspaceMenu({ pathname }: { readonly pathname: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [prevPathname, setPrevPathname] = useState(pathname);
+  return (
+    <details
+      className="relative"
+      open={menuOpen}
+      onToggle={(event) => setMenuOpen(event.currentTarget.open)}
+    >
+      <summary
+        className="flex min-h-11 min-w-11 list-none cursor-pointer items-center justify-center rounded border border-border bg-bg-surface text-text-secondary transition-colors hover:border-border-active hover:text-text-primary [&::-webkit-details-marker]:hidden"
+        aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+      >
+        {menuOpen ? (
+          <X className="h-5 w-5" aria-hidden="true" />
+        ) : (
+          <Menu className="h-5 w-5" aria-hidden="true" />
+        )}
+      </summary>
+      <div className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-64 rounded border border-border bg-bg-surface p-2">
+        <p className="px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+          Workspace
+        </p>
+        <div className="space-y-1">
+          {MENU_NAV.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(pathname, item.href);
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                  "flex min-h-11 items-center gap-3 rounded px-3 text-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  active
+                    ? "bg-[var(--color-accent-dim)] text-accent"
+                    : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary",
+                )}
+                {...(active ? { "aria-current": "page" } : {})}
+              >
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </details>
+  );
+}
 
-  if (pathname !== prevPathname) {
-    setPrevPathname(pathname);
-    setMenuOpen(false);
-  }
+export function MobileChrome() {
+  const pathname = usePathname();
 
   if (pathname === "/login") {
     return null;
@@ -102,50 +145,7 @@ export function MobileChrome() {
             <span className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted sm:inline">
               Research / Local
             </span>
-            <details
-              className="relative"
-              open={menuOpen}
-              onToggle={(event) => setMenuOpen(event.currentTarget.open)}
-            >
-              <summary
-                className="flex min-h-11 min-w-11 list-none cursor-pointer items-center justify-center rounded border border-border bg-bg-surface text-text-secondary transition-colors hover:border-border-active hover:text-text-primary [&::-webkit-details-marker]:hidden"
-                aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-              >
-                {menuOpen ? (
-                  <X className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <Menu className="h-5 w-5" aria-hidden="true" />
-                )}
-              </summary>
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-60 w-64 rounded border border-border bg-bg-surface p-2 shadow-xl">
-                <p className="px-2 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                  Workspace
-                </p>
-                <div className="space-y-1">
-                  {MENU_NAV.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(pathname, item.href);
-                    return (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className={cn(
-                          "flex min-h-11 items-center gap-3 rounded px-3 text-sm",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                          active
-                            ? "bg-[var(--color-accent-dim)] text-accent"
-                            : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary",
-                        )}
-                        {...(active ? { "aria-current": "page" } : {})}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </details>
+            <WorkspaceMenu key={pathname} pathname={pathname} />
           </div>
         </div>
       </header>
