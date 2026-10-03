@@ -20,7 +20,21 @@ import { CreativeCommandCenter } from "@/components/overview/CreativeCommandCent
 import { HybridExecutionStrip } from "@/components/overview/HybridExecutionStrip";
 import type { AgentState, LogEntry } from "@swarmx/types";
 
-import { Zap, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle2, Brain } from "lucide-react";
+import {
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  CheckCircle2,
+  Brain,
+  Bot,
+  Cpu,
+  Clapperboard,
+  Workflow,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 
@@ -252,9 +266,9 @@ function Panel({
               aria-label="Error state"
             />
           )}
-          <span className="text-[11px] font-mono font-semibold text-text-muted uppercase tracking-widest">
+          <h3 className="font-heading text-xs font-semibold text-text-primary tracking-tight">
             {title}
-          </span>
+          </h3>
           {badge}
         </div>
         {loading && (
@@ -911,7 +925,7 @@ export default function OverviewPage() {
   const ollamaOnline = apiHealth.ollamaOnline ?? startupSummary?.ollamaReachable ?? null;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
       <RouteDegradedBanner
         pressureLevel={pressureLevel}
         availableMb={availableMb}
@@ -919,24 +933,50 @@ export default function OverviewPage() {
         ollamaOnline={ollamaOnline}
       />
 
-      {/* AI Insight strip */}
-      <InsightStrip />
+      {/* Creative Hub Action Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-bg-surface border border-border rounded-xl p-4 sm:p-5 card-interactive panel-enter">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-md border border-border-accent bg-[var(--color-accent-dim)] font-mono text-[9px] font-bold text-accent">
+              YE
+            </span>
+            <h1 className="font-heading text-lg font-semibold text-text-primary tracking-tight">
+              Yap Engine Studio Hub
+            </h1>
+            <span className="rounded-full border border-border bg-bg-elevated px-2 py-0.5 font-mono text-[10px] text-accent">
+              v5 Production
+            </span>
+          </div>
+          <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">
+            Autonomous 9:16 short-form video generation · Studio-grade Kokoro narration · Word-synced captions · Local-first multi-agent swarm
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Link
+            href="/video/studio"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-bg-base transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Clapperboard className="size-4" aria-hidden="true" />
+            <span>Create Video</span>
+          </Link>
+          <Link
+            href="/video"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3.5 py-2 text-xs font-medium text-text-primary transition-colors hover:bg-bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Workflow className="size-3.5 text-accent" aria-hidden="true" />
+            <span>View Queue</span>
+          </Link>
+        </div>
+      </div>
 
-      {/* Real-time High-Contrast Telemetry Observability */}
-      <TelemetryWidget />
-
-      {/* Operator-facing local AI stack: model, quantization and memory envelope. */}
-      <LocalAgentStack />
-
-      {/* Creative production control plane: concept, visual, audio and review actions. */}
+      {/* Creative production control plane: concept, visual, audio and review actions */}
       <CreativeCommandCenter />
       <HybridExecutionStrip />
 
       {/* Bento top strip: Health Radar + 4 quick stats */}
-
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="md:col-span-1 bg-bg-surface border border-border rounded-lg px-4 py-3 card-interactive panel-enter">
-          <div className="text-[10px] font-mono text-text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <div className="text-[11px] font-heading font-medium text-text-secondary mb-2 flex items-center gap-1.5">
             <span className="status-dot h-1.5 w-1.5" data-status="active" />
             System Health
           </div>
@@ -947,7 +987,16 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Main grid */}
+      {/* AI Insight strip */}
+      <InsightStrip />
+
+      {/* Operator-facing local AI stack */}
+      <LocalAgentStack />
+
+      {/* Real-time High-Contrast Telemetry Observability */}
+      <TelemetryWidget />
+
+      {/* Main operational grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left column */}
         <div className="lg:col-span-2 space-y-4">
@@ -965,7 +1014,7 @@ export default function OverviewPage() {
           <Panel title="Job Queues — BullMQ" live className="stagger-3">
             <QueueDepthPanel />
             <div className="mt-4 pt-3 border-t border-border">
-              <div className="text-[9px] font-mono text-text-muted uppercase tracking-wide mb-1">
+              <div className="text-[10px] font-heading font-medium text-text-muted mb-1">
                 Queue Pressure (30 s window)
               </div>
               <QueuePressureChart />
@@ -1012,31 +1061,31 @@ function QuickStatCard() {
     {
       label: "Active Agents",
       value: active.toString(),
-      sub: `${total} total`,
+      sub: `${total} registered`,
       alert: errors > 0,
       alertText: `${errors} errors`,
-      icon: "🤖",
+      icon: Bot,
     },
     {
       label: "CPU Load",
       value: cpuLoad == null ? "–" : formatPct((cpuLoad / (metrics?.cpu.coreCount ?? 1)) * 100),
       sub: metrics ? `${metrics.cpu.coreCount ?? 1} cores` : undefined,
       alert: cpuLoad != null && (cpuLoad / (metrics?.cpu.coreCount ?? 1)) > 0.8,
-      icon: "⚡",
+      icon: Zap,
     },
     {
-      label: "Memory",
+      label: "Memory Usage",
       value: memPct == null ? "–" : formatPct(memPct),
       sub: metrics ? `${Math.round(metrics.memory.usedMb / 1024)} / ${Math.round(metrics.memory.totalMb / 1024)} GB` : undefined,
       alert: memPct != null && memPct > 85,
-      icon: "🧠",
+      icon: Cpu,
     },
     {
       label: "Queued Jobs",
       value: totalWaiting.toString(),
       sub: `${queues.size} queues`,
       alert: false,
-      icon: "📋",
+      icon: Workflow,
     },
   ] as const;
 
@@ -1044,39 +1093,43 @@ function QuickStatCard() {
 
   return (
     <>
-      {cards.map((card, idx) => (
-        <div
-          key={card.label}
-          className={cn(
-            "bg-bg-surface border border-border rounded-lg px-4 py-3 panel-enter card-interactive",
-            staggerClass[idx],
-            card.alert && "panel-variant-warn"
-          )}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[10px] font-mono text-text-muted uppercase tracking-wide">
-              {card.label}
+      {cards.map((card, idx) => {
+        const IconComponent = card.icon;
+        return (
+          <div
+            key={card.label}
+            className={cn(
+              "bg-bg-surface border border-border rounded-lg px-4 py-3 panel-enter card-interactive",
+              staggerClass[idx],
+              card.alert && "panel-variant-warn"
+            )}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-text-secondary">
+                {card.label}
+              </span>
+              <IconComponent className="size-3.5 text-accent" aria-hidden="true" />
             </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span
-              className={cn(
-                "text-xl font-mono font-semibold tabular-nums num-enter",
-                card.alert ? "text-status-warning" : "text-text-primary"
+            <div className="flex items-baseline gap-2">
+              <span
+                className={cn(
+                  "text-xl font-mono font-semibold tabular-nums num-enter",
+                  card.alert ? "text-status-warning" : "text-text-primary"
+                )}
+                data-metric
+              >
+                {card.value}
+              </span>
+              {"sub" in card && card.sub && (
+                <span className="text-[11px] font-mono text-text-muted">{card.sub}</span>
               )}
-              data-metric
-            >
-              {card.value}
-            </span>
-            {"sub" in card && card.sub && (
-              <span className="text-[10px] font-mono text-text-muted">{card.sub}</span>
+            </div>
+            {"alertText" in card && card.alert && card.alertText && (
+              <div className="text-[10px] font-mono text-status-error mt-0.5 alert-wiggle">{card.alertText}</div>
             )}
           </div>
-          {"alertText" in card && card.alert && card.alertText && (
-            <div className="text-[9px] font-mono text-status-error mt-0.5 alert-wiggle">{card.alertText}</div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import "./globals.css";
 import { PRODUCT_BRAND } from "@/lib/brand";
+import { NavLink } from "@/components/layout/NavLink";
 
 const dashboardVersion =
   process.env.NEXT_PUBLIC_SWARMX_VERSION ??
@@ -21,23 +22,23 @@ const dashboardVersion =
   "0.1.0";
 
 const MOBILE_NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/video/studio", label: "Studio", icon: Clapperboard },
-  { href: "/video", label: "Queue", icon: Workflow },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/settings#profile", label: "User", icon: UserCircle2 },
+  { href: "/", label: "Home", iconName: "home" },
+  { href: "/video/studio", label: "Studio", iconName: "studio" },
+  { href: "/video", label: "Queue", iconName: "queue" },
+  { href: "/settings", label: "Settings", iconName: "settings" },
+  { href: "/settings#profile", label: "User", iconName: "user" },
 ] as const;
 
 const DESKTOP_NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/video/studio", label: "Studio", icon: Clapperboard },
-  { href: "/video", label: "Queue", icon: Workflow },
-  { href: "/series", label: "Series", icon: Film },
-  { href: "/agents", label: "Agents", icon: Bot },
-  { href: "/workflows", label: "Workflows", icon: Workflow },
-  { href: "/logs", label: "Logs", icon: FileText },
-  { href: "/system", label: "System", icon: SlidersHorizontal },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "Home", iconName: "home" },
+  { href: "/video/studio", label: "Studio", iconName: "studio" },
+  { href: "/video", label: "Queue", iconName: "queue" },
+  { href: "/series", label: "Series", iconName: "series" },
+  { href: "/agents", label: "Agents", iconName: "agents" },
+  { href: "/workflows", label: "Workflows", iconName: "workflows" },
+  { href: "/logs", label: "Logs", iconName: "logs" },
+  { href: "/system", label: "System", iconName: "system" },
+  { href: "/settings", label: "Settings", iconName: "settings" },
 ] as const;
 
 export const viewport: Viewport = {
@@ -94,27 +95,25 @@ export default function RootLayout({
           </Link>
 
           <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary navigation">
-            {DESKTOP_NAV.map(({ href, label, icon: Icon }) => (
-              <Link
+            {DESKTOP_NAV.map(({ href, label, iconName }) => (
+              <NavLink
                 key={href}
                 href={href}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <Icon className="size-3.5" aria-hidden="true" />
-                {label}
-              </Link>
+                label={label}
+                iconName={iconName}
+                variant="desktop"
+              />
             ))}
           </nav>
           <nav className="hidden items-center gap-1 md:flex xl:hidden" aria-label="Primary navigation">
-            {DESKTOP_NAV.slice(0, 5).map(({ href, label, icon: Icon }) => (
-              <Link
+            {DESKTOP_NAV.slice(0, 5).map(({ href, label, iconName }) => (
+              <NavLink
                 key={href}
                 href={href}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <Icon className="size-3.5" aria-hidden="true" />
-                {label}
-              </Link>
+                label={label}
+                iconName={iconName}
+                variant="desktop"
+              />
             ))}
             <details className="relative">
               <summary
@@ -124,15 +123,14 @@ export default function RootLayout({
                 More ▾
               </summary>
               <div className="absolute right-0 top-[calc(100%+0.25rem)] w-48 rounded-xl border border-border bg-bg-surface p-1.5 shadow-lg z-50">
-                {DESKTOP_NAV.slice(5).map(({ href, label, icon: Icon }) => (
-                  <Link
+                {DESKTOP_NAV.slice(5).map(({ href, label, iconName }) => (
+                  <NavLink
                     key={href}
                     href={href}
-                    className="flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-xs text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-                  >
-                    <Icon className="size-3.5 text-accent" aria-hidden="true" />
-                    {label}
-                  </Link>
+                    label={label}
+                    iconName={iconName}
+                    variant="menu"
+                  />
                 ))}
               </div>
             </details>
@@ -157,23 +155,21 @@ export default function RootLayout({
                   </p>
                 </div>
                 <div className="grid gap-1">
-                  {DESKTOP_NAV.map(({ href, label, icon: Icon }) => (
-                    <Link
+                  {DESKTOP_NAV.map(({ href, label, iconName }) => (
+                    <NavLink
                       key={href}
                       href={href}
-                      className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm text-text-secondary hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      <Icon className="size-4 text-accent" aria-hidden="true" />
-                      {label}
-                    </Link>
+                      label={label}
+                      iconName={iconName}
+                      variant="menu"
+                    />
                   ))}
-                  <Link
+                  <NavLink
                     href="/settings#profile"
-                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm text-text-secondary hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  >
-                    <UserCircle2 className="size-4 text-accent" aria-hidden="true" />
-                    User
-                  </Link>
+                    label="User"
+                    iconName="user"
+                    variant="menu"
+                  />
                 </div>
               </div>
             </details>
@@ -187,15 +183,14 @@ export default function RootLayout({
           aria-label="Mobile navigation"
         >
           <div className="mx-auto grid h-16 max-w-xl grid-cols-5">
-            {MOBILE_NAV.map(({ href, label, icon: Icon }) => (
-              <Link
+            {MOBILE_NAV.map(({ href, label, iconName }) => (
+              <NavLink
                 key={href}
                 href={href}
-                className="group flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 px-1 text-text-muted transition-colors active:bg-bg-surface hover:bg-bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
-              >
-                <Icon className="size-4 transition-colors group-hover:text-accent" aria-hidden="true" />
-                <span className="font-mono text-[9px] uppercase tracking-wide">{label}</span>
-              </Link>
+                label={label}
+                iconName={iconName}
+                variant="tab"
+              />
             ))}
           </div>
         </nav>

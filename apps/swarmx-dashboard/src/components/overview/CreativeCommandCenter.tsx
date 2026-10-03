@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AudioLines, Clapperboard, Layers3, WandSparkles } from "lucide-react";
 
 const ACTIONS = [
-  { href: "/video", label: "Create video", note: "Brief → concept → render", icon: Clapperboard },
+  { href: "/video/studio", label: "Create video", note: "Brief → concept → render", icon: Clapperboard },
   { href: "/video?view=backgrounds", label: "Background lab", note: "Recipes + visual depth", icon: Layers3 },
   { href: "/video?view=audio", label: "Audio timeline", note: "Timing + visual anchors", icon: AudioLines },
   { href: "/video?view=review", label: "Visual review", note: "QC + bounded revision", icon: WandSparkles },

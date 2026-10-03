@@ -2,14 +2,50 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import {
+  Home,
+  Clapperboard,
+  Workflow,
+  Film,
+  Bot,
+  FileText,
+  SlidersHorizontal,
+  Settings,
+  UserCircle2,
+  type LucideIcon,
+} from "lucide-react";
+
+export type NavIconName =
+  | "home"
+  | "studio"
+  | "queue"
+  | "series"
+  | "agents"
+  | "workflows"
+  | "logs"
+  | "system"
+  | "settings"
+  | "user";
+
+const ICONS: Record<NavIconName, LucideIcon> = {
+  home: Home,
+  studio: Clapperboard,
+  queue: Workflow,
+  series: Film,
+  agents: Bot,
+  workflows: Workflow,
+  logs: FileText,
+  system: SlidersHorizontal,
+  settings: Settings,
+  user: UserCircle2,
+};
 
 type NavVariant = "desktop" | "menu" | "tab";
 
 interface NavLinkProps {
   readonly href: string;
   readonly label: string;
-  readonly icon: LucideIcon;
+  readonly iconName: NavIconName;
   readonly variant: NavVariant;
 }
 
@@ -40,10 +76,12 @@ const CLASSES: Record<NavVariant, { base: string; active: string; idle: string }
   },
 };
 
-export function NavLink({ href, label, icon: Icon, variant }: NavLinkProps) {
+export function NavLink({ href, label, iconName, variant }: NavLinkProps) {
   const pathname = usePathname() ?? "/";
   const active = isActive(pathname, href);
   const c = CLASSES[variant];
+  const Icon = ICONS[iconName] ?? Home;
+
   return (
     <Link
       href={href}
