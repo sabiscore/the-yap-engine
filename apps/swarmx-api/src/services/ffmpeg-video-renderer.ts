@@ -1365,10 +1365,11 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
         });
         audioPath = masteredPath;
       } catch (err) {
-        log.warn(
+        log.error(
           { jobId: input.jobId, err: err instanceof Error ? err.message : String(err) },
-          "Single-authority audio mastering fallback",
+          "Single-authority audio mastering failed; render blocked",
         );
+        throw err;
       }
     }
 
@@ -1413,10 +1414,11 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
     try {
       postEncodeLoudness = await measurePostEncodeLoudness(outputPath);
     } catch (err) {
-      log.warn(
+      log.error(
         { jobId: input.jobId, err: err instanceof Error ? err.message : String(err) },
-        "Post-encode loudness measurement skipped",
+        "Post-encode loudness measurement failed; render blocked",
       );
+      throw err;
     }
 
     const qcReport = evaluateQualityGates({
