@@ -260,7 +260,11 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
   const expectedWidth = input.resolution?.width ?? 1080;
   const expectedHeight = input.resolution?.height ?? 1920;
 
-  if (probe) {
+  if (!input.mediaPath) {
+    renderIssues.push("No rendered media artifact provided");
+  } else if (!probe) {
+    renderIssues.push("Rendered media artifact could not be probed");
+  } else {
     if (probe.width !== expectedWidth || probe.height !== expectedHeight) {
       renderIssues.push(`Unexpected resolution (${probe.width}x${probe.height}); expected ${expectedWidth}x${expectedHeight}`);
     }
@@ -268,10 +272,10 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
     if (Math.abs(aspect - (9 / 16)) > 0.01) {
       renderIssues.push(`Media aspect ratio is not 9:16 (${probe.width}x${probe.height})`);
     }
-    if (probe.videoCodec && !probe.videoCodec.includes("h264")) {
+    if (!probe.videoCodec.includes("h264")) {
       renderIssues.push(`Unexpected video codec: ${probe.videoCodec} (expected h264)`);
     }
-    if (probe.audioCodec && !probe.audioCodec.includes("aac")) {
+    if (!probe.audioCodec.includes("aac")) {
       renderIssues.push(`Unexpected audio codec: ${probe.audioCodec} (expected aac)`);
     }
   }
@@ -281,11 +285,11 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
     name: "Resolution & Media Encoding Gate",
     passed: renderIssues.length === 0,
     metrics: {
-      width: probe?.width ?? expectedWidth,
-      height: probe?.height ?? expectedHeight,
-      aspectRatio: "9:16",
-      videoCodec: probe?.videoCodec ?? "h264",
-      audioCodec: probe?.audioCodec ?? "aac",
+      width: probe?.width ?? 0,
+      height: probe?.height ?? 0,
+      aspectRatio: probe ? (probe.width / Math.max(probe.height, 1)).toFixed(4) : "unmeasured",
+      videoCodec: probe?.videoCodec ?? "unmeasured",
+      audioCodec: probe?.audioCodec ?? "unmeasured",
     },
     issues: renderIssues,
   };
