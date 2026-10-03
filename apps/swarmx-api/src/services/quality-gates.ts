@@ -257,11 +257,11 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
 
   if (probe) {
     if (probe.width !== expectedWidth || probe.height !== expectedHeight) {
-      // Check 9:16 aspect ratio
-      const aspect = probe.width / (probe.height || 1);
-      if (Math.abs(aspect - (9 / 16)) > 0.05) {
-        renderIssues.push(`Media aspect ratio is not 9:16 (${probe.width}x${probe.height})`);
-      }
+      renderIssues.push(`Unexpected resolution (${probe.width}x${probe.height}); expected ${expectedWidth}x${expectedHeight}`);
+    }
+    const aspect = probe.width / (probe.height || 1);
+    if (Math.abs(aspect - (9 / 16)) > 0.01) {
+      renderIssues.push(`Media aspect ratio is not 9:16 (${probe.width}x${probe.height})`);
     }
     if (probe.videoCodec && !probe.videoCodec.includes("h264")) {
       renderIssues.push(`Unexpected video codec: ${probe.videoCodec} (expected h264)`);
