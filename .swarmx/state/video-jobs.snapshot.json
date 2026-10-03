@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "collection": "video-jobs",
+  "savedAt": "2026-10-03T08:10:24.458Z",
+  "records": [
+    {
+      "id": "5c4aa723-4fb2-4fc9-85e8-acc45c972ebd",
+      "status": "failed",
+      "request": {
+        "prompt": "Create a 30-second faceless TikTok video about focus.",
+        "platform": "tiktok",
+        "niche": "tech",
+        "targetDurationSeconds": 30,
+        "clientRequestId": "queue-first"
+      },
+      "stages": {},
+      "overallProgress": 0,
+      "retryCount": 2,
+      "maxRetries": 2,
+      "createdAt": "2026-10-03T08:10:24.413Z",
+      "updatedAt": "2026-10-03T08:10:24.457Z",
+      "clientRequestId": "queue-first",
+      "errorLog": [
+        {
+          "code": "TRANSIENT",
+          "message": "retry",
+          "retryable": true,
+          "stage": "planning"
+        },
+        {
+          "code": "TRANSIENT",
+          "message": "retry second attempt",
+          "retryable": true,
+          "stage": "planning"
+        },
+        {
+          "code": "TRANSIENT",
+          "message": "retry exhausted",
+          "retryable": true,
+          "stage": "planning"
+        }
+      ],
+      "startedAt": "2026-10-03T08:10:24.455Z",
+      "error": {
+        "code": "TRANSIENT",
+        "message": "retry exhausted",
+        "retryable": true,
+        "stage": "planning",
+        "timestamp": "2026-10-03T08:10:24.457Z"
+      },
+      "completedAt": "2026-10-03T08:10:24.457Z"
+    },
+    {
+      "id": "5b2c83c2-4b28-4976-98b3-f6c35fc38e3e",
+      "status": "queued",
+      "request": {
+        "prompt": "Create a 30-second faceless TikTok video about focus.",
+        "platform": "tiktok",
+        "niche": "tech",
+        "targetDurationSeconds": 30,
+        "clientRequestId": "queue-second"
+      },
+      "stages": {},
+      "overallProgress": 0,
+      "retryCount": 0,
+      "maxRetries": 2,
+      "createdAt": "2026-10-03T08:10:24.441Z",
+      "updatedAt": "2026-10-03T08:10:24.441Z",
+      "clientRequestId": "queue-second"
+    }
+  ]
+}

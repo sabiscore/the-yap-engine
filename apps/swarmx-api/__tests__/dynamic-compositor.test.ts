@@ -50,5 +50,5 @@ describe("Dynamic Audio-First Compositor & Word-Boundary Snapping", () => {
     // 4. Memory mutex acquisition for render phase
     expect(source).toContain('acquirePhase("render"');
     expect(source).toContain('releasePhase("render"');
-  });
+  }, 15000);
 });

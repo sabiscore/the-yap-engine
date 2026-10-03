@@ -85,6 +85,20 @@ describe("sanitizeApiError", () => {
     expect(msg).toContain("temporarily unavailable");
   });
 
+  it("maps upstream_unreachable or 502 to a calm unreachable message", () => {
+    const err1 = new ApiError(502, "Bad Gateway", "upstream_unreachable");
+    expect(sanitizeApiError(err1)).toContain("3001");
+    const err2 = new ApiError(502, "Bad Gateway", null);
+    expect(sanitizeApiError(err2)).toContain("3001");
+  });
+
+  it("maps upstream_timeout or 504 to a calm timeout message", () => {
+    const err1 = new ApiError(504, "Gateway Timeout", "upstream_timeout");
+    expect(sanitizeApiError(err1)).toContain("timed out");
+    const err2 = new ApiError(504, "Gateway Timeout", null);
+    expect(sanitizeApiError(err2)).toContain("timed out");
+  });
+
   it("never surfaces internal path strings from the error message", () => {
     const err = new ApiError(500, "API /api/video/jobs → 500: /home/scar/Documents/SwarmXQ/src/foo.ts:42", null);
     const msg = sanitizeApiError(err);

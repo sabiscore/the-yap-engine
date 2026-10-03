@@ -48,7 +48,7 @@ import fastifyHelmet from "@fastify/helmet";
 import fastifyWebSocket from "@fastify/websocket";
 
 import { ssePlugin } from "./plugins/sse.js";
-import { websocketPlugin } from "./plugins/websocket.js";
+import { isTerminalPtyAllowed, websocketPlugin } from "./plugins/websocket.js";
 
 import { agentsRouter } from "./routes/agents.js";
 import { systemRouter } from "./routes/system.js";
@@ -221,9 +221,8 @@ await server.register(fastifyCors, {
 await server.register(ssePlugin);
 
 // Vercel does not provide a Node HTTP upgrade server for terminal PTY WebSockets.
-// Keep the terminal surface disabled in production/serverless execution rather
-// than registering @fastify/websocket and allowing a platform-level boot failure.
-if (!process.env["VERCEL"]) {
+// Keep the terminal surface disabled in production/serverless execution or non-loopback binds.
+if (!process.env["VERCEL"] && isTerminalPtyAllowed()) {
   await server.register(fastifyWebSocket);
   await server.register(websocketPlugin);
 }

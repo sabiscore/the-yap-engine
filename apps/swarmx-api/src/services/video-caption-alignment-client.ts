@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { AlignmentContract } from "@swarmx/types";
 import { loadEnv } from "../lib/env.js";
 
 export interface CaptionAlignmentArtifacts {
@@ -8,6 +9,7 @@ export interface CaptionAlignmentArtifacts {
   srtPath: string;
   vttPath: string;
   wordTimingPath: string;
+  alignmentContract?: AlignmentContract;
 }
 
 function run(command: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<void> {
@@ -45,36 +47,57 @@ export async function alignNarrationAudio(
   language = "en",
   signal?: AbortSignal,
   styleOptions: CaptionAlignmentStyleOptions = {},
+  scriptText?: string,
 ): Promise<CaptionAlignmentArtifacts> {
   const env = loadEnv();
   const packageDir = join(env.SWARMX_VIDEO_ARTIFACT_DIR, jobId, "alignment");
   await mkdir(packageDir, { recursive: true });
 
-  const artifacts = {
+  const artifacts: CaptionAlignmentArtifacts = {
     assPath: join(packageDir, "captions.ass"),
     srtPath: join(packageDir, "captions.aligned.srt"),
     vttPath: join(packageDir, "captions.aligned.vtt"),
     wordTimingPath: join(packageDir, "word-timings.json"),
   };
 
+  const args = [
+    "-m",
+    "swarmx.services.video_caption_aligner",
+    audioPath,
+    artifacts.assPath,
+    artifacts.srtPath,
+    artifacts.vttPath,
+    artifacts.wordTimingPath,
+    "--language",
+    language,
+    "--job-id",
+    jobId,
+    ...(styleOptions.accentHex ? ["--accent-hex", styleOptions.accentHex] : []),
+    ...(styleOptions.boxOpacity !== undefined ? ["--box-opacity", String(styleOptions.boxOpacity)] : []),
+  ];
+
+  if (scriptText) {
+    const scriptPath = join(packageDir, "script.txt");
+    await writeFile(scriptPath, scriptText, "utf-8");
+    args.push("--script", scriptPath);
+  }
+
   await run(
     env.SWARMX_PYTHON,
-    [
-      "-m",
-      "swarmx.services.video_caption_aligner",
-      audioPath,
-      artifacts.assPath,
-      artifacts.srtPath,
-      artifacts.vttPath,
-      artifacts.wordTimingPath,
-      "--language",
-      language,
-      ...(styleOptions.accentHex ? ["--accent-hex", styleOptions.accentHex] : []),
-      ...(styleOptions.boxOpacity !== undefined ? ["--box-opacity", String(styleOptions.boxOpacity)] : []),
-    ],
+    args,
     Math.max(60_000, env.SWARMX_VIDEO_FFMPEG_TIMEOUT_MS),
     signal,
   );
+
+  try {
+    const content = await readFile(artifacts.wordTimingPath, "utf-8");
+    const parsed = JSON.parse(content) as unknown;
+    if (parsed && typeof parsed === "object" && (parsed as { schemaVersion?: string }).schemaVersion === "1.0") {
+      artifacts.alignmentContract = parsed as AlignmentContract;
+    }
+  } catch {
+    // Non-fatal if parsing word-timings as contract fails
+  }
 
   return artifacts;
 }

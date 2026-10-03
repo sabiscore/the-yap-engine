@@ -110,10 +110,14 @@ export function SystemStatus() {
                   : "text-status-warning",
             )}
           >
-            {connected ? "Connected" : checking ? "Checking connection" : "Reconnecting"}
+            {connected ? "Connected" : checking ? "Checking connection" : "Offline · Reconnecting"}
           </span>
           <span className="hidden truncate text-[10px] text-text-muted sm:inline">
-            {apiHealth.latencyMs != null ? `API ${apiHealth.latencyMs} ms` : "Live control plane"}
+            {connected && apiHealth.latencyMs != null
+              ? `API ${apiHealth.latencyMs} ms`
+              : checking
+                ? "Checking control plane"
+                : "Fastify API offline (port 3001)"}
           </span>
         </div>
 
@@ -128,7 +132,9 @@ export function SystemStatus() {
               })}
             </span>
           )}
-          <span className="text-status-success">Live</span>
+          <span className={connected ? "text-status-success" : checking ? "text-text-muted" : "text-status-warning"}>
+            {connected ? "Live" : checking ? "Checking" : "Offline"}
+          </span>
         </div>
       </div>
 

@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { Clapperboard, Home, Menu, Settings, UserCircle2, Workflow } from "lucide-react";
+import {
+  Bot,
+  Clapperboard,
+  FileText,
+  Film,
+  Home,
+  Menu,
+  Settings,
+  SlidersHorizontal,
+  UserCircle2,
+  Workflow,
+} from "lucide-react";
 import "./globals.css";
 import { PRODUCT_BRAND } from "@/lib/brand";
 
@@ -15,6 +26,18 @@ const MOBILE_NAV = [
   { href: "/video", label: "Queue", icon: Workflow },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/settings#profile", label: "User", icon: UserCircle2 },
+] as const;
+
+const DESKTOP_NAV = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/video/studio", label: "Studio", icon: Clapperboard },
+  { href: "/video", label: "Queue", icon: Workflow },
+  { href: "/series", label: "Series", icon: Film },
+  { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/workflows", label: "Workflows", icon: Workflow },
+  { href: "/logs", label: "Logs", icon: FileText },
+  { href: "/system", label: "System", icon: SlidersHorizontal },
+  { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export const viewport: Viewport = {
@@ -70,17 +93,49 @@ export default function RootLayout({
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
-            {MOBILE_NAV.slice(0, 4).map(({ href, label, icon: Icon }) => (
+          <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary navigation">
+            {DESKTOP_NAV.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <Icon className="size-4" aria-hidden="true" />
+                <Icon className="size-3.5" aria-hidden="true" />
                 {label}
               </Link>
             ))}
+          </nav>
+          <nav className="hidden items-center gap-1 md:flex xl:hidden" aria-label="Primary navigation">
+            {DESKTOP_NAV.slice(0, 5).map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <Icon className="size-3.5" aria-hidden="true" />
+                {label}
+              </Link>
+            ))}
+            <details className="relative">
+              <summary
+                className="inline-flex min-h-9 list-none cursor-pointer items-center gap-1 rounded-lg px-2 text-xs font-medium text-text-secondary hover:bg-bg-elevated hover:text-text-primary [&::-webkit-details-marker]:hidden"
+                aria-label="More navigation links"
+              >
+                More ▾
+              </summary>
+              <div className="absolute right-0 top-[calc(100%+0.25rem)] w-48 rounded-xl border border-border bg-bg-surface p-1.5 shadow-lg z-50">
+                {DESKTOP_NAV.slice(5).map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-xs text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                  >
+                    <Icon className="size-3.5 text-accent" aria-hidden="true" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </details>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -95,14 +150,14 @@ export default function RootLayout({
               >
                 <Menu className="size-5" aria-hidden="true" />
               </summary>
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] w-56 rounded-xl border border-border bg-bg-surface p-2">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] max-h-[80vh] w-64 overflow-y-auto rounded-xl border border-border bg-bg-surface p-2 shadow-xl">
                 <div className="mb-2 border-b border-border px-3 pb-2">
                   <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
-                    Navigation
+                    Workspace
                   </p>
                 </div>
                 <div className="grid gap-1">
-                  {MOBILE_NAV.slice(0, 4).map(({ href, label, icon: Icon }) => (
+                  {DESKTOP_NAV.map(({ href, label, icon: Icon }) => (
                     <Link
                       key={href}
                       href={href}
@@ -136,7 +191,7 @@ export default function RootLayout({
               <Link
                 key={href}
                 href={href}
-                className="group flex min-h-11 flex-col items-center justify-center gap-1 px-1 text-text-muted transition-colors active:bg-bg-surface hover:bg-bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                className="group flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 px-1 text-text-muted transition-colors active:bg-bg-surface hover:bg-bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
               >
                 <Icon className="size-4 transition-colors group-hover:text-accent" aria-hidden="true" />
                 <span className="font-mono text-[9px] uppercase tracking-wide">{label}</span>

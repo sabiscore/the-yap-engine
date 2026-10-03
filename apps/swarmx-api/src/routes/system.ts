@@ -393,4 +393,98 @@ export async function systemRouter(server: FastifyInstance): Promise<void> {
       return reply.code(503).send({ error: "Failed to list systemd units" });
     }
   });
+
+  // ── GET /api/system/integrations ───────────────────────────────────────────
+  // Cached >= 60s, reporting Neon, Upstash, Vercel, Render, Ollama, Kokoro, FFmpeg, Slack/Discord, TikTok gate, AWS Phase-D
+  let cachedIntegrations: { timestamp: number; data: Record<string, unknown> } | null = null;
+  const INTEGRATIONS_CACHE_TTL_MS = 60_000;
+
+  server.get("/integrations", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const now = Date.now();
+    if (cachedIntegrations && now - cachedIntegrations.timestamp < INTEGRATIONS_CACHE_TTL_MS) {
+      return reply.code(200).send({
+        ...cachedIntegrations.data,
+        cached: true,
+      });
+    }
+
+    const e = loadEnv();
+
+    let ffmpegAvailable = false;
+    let ffprobeAvailable = false;
+    try {
+      await execFileAsync("ffmpeg", ["-version"]);
+      ffmpegAvailable = true;
+    } catch {}
+    try {
+      await execFileAsync("ffprobe", ["-version"]);
+      ffprobeAvailable = true;
+    } catch {}
+
+    const ollamaProbe = await fastHealthProbe(2000).catch(() => ({ reachable: false, latencyMs: null, endpoint: "" }));
+    const voiceBenchmark = await readVoiceBenchmarkReport().catch(() => null);
+
+    const data: Record<string, unknown> = {
+      timestamp: new Date().toISOString(),
+      integrations: {
+        neon: {
+          configured: Boolean(e.DATABASE_URL || e.NEON_DATA_API_URL || e.NEON_AUTH_URL),
+          branch: e.NEON_BRANCH,
+          status: Boolean(e.DATABASE_URL || e.NEON_DATA_API_URL) ? "connected" : "unconfigured",
+        },
+        upstash: {
+          configured: Boolean(e.REDIS_URL),
+          provider: e.SWARMX_REDIS_PROVIDER,
+          status: Boolean(e.REDIS_URL) ? "connected" : "unconfigured",
+        },
+        vercel: {
+          environment: e.VERCEL_ENV ?? null,
+          isPreview: e.VERCEL_ENV === "preview",
+          isProduction: e.VERCEL_ENV === "production",
+        },
+        render: {
+          backend: e.SWARMX_VIDEO_RENDER_BACKEND,
+          modalConfigured: Boolean(e.SWARMX_MODAL_RENDER_URL?.trim()),
+          awsConfigured: e.SWARMX_AWS_RENDER_ENABLED === "1",
+        },
+        ollama: {
+          reachable: ollamaProbe.reachable,
+          latencyMs: ollamaProbe.latencyMs,
+          endpoint: ollamaProbe.endpoint,
+        },
+        kokoro: {
+          configured: Boolean(e.SWARMX_TTS_URL?.trim()),
+          endpoint: e.SWARMX_TTS_URL,
+          provider: e.SWARMX_TTS_PROVIDER,
+          probeState: voiceBenchmark?.report.measurements.find((m) => m.providerId === "kokoro")?.probeState ?? "unknown",
+        },
+        ffmpeg: {
+          available: ffmpegAvailable,
+          ffprobeAvailable,
+        },
+        slackDiscord: {
+          slackConfigured: Boolean(e.SWARMX_SLACK_WEBHOOK_URL?.trim()),
+          discordConfigured: Boolean(e.SWARMX_DISCORD_WEBHOOK_URL?.trim()),
+          notificationsEnabled: Boolean(e.SWARMX_SLACK_WEBHOOK_URL || e.SWARMX_DISCORD_WEBHOOK_URL),
+        },
+        tiktokGate: {
+          enabled: Boolean(e.SWARMX_TIKTOK_CLIENT_KEY),
+          apiApproved: e.SWARMX_TIKTOK_API_APPROVED === "1",
+          publicPostsEnabled: e.SWARMX_TIKTOK_PUBLIC_POSTS_ENABLED === "1",
+        },
+        awsPhaseD: {
+          renderEnabled: e.SWARMX_AWS_RENDER_ENABLED === "1",
+          region: e.AWS_REGION,
+          bucketConfigured: Boolean(e.SWARMX_AWS_RENDER_BUCKET?.trim()),
+        },
+      },
+    };
+
+    cachedIntegrations = { timestamp: now, data };
+
+    return reply.code(200).send({
+      ...data,
+      cached: false,
+    });
+  });
 }

@@ -138,6 +138,45 @@ export function VideoPipelinePulse({ job }: { job: VideoJob }) {
           );
         })}
       </ol>
+
+      {/* R1–R8 Autonomous Production Gates */}
+      <div className="border-t border-border/70 bg-bg-surface/30 px-4 py-3">
+        <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted">
+          Pipeline Hardening Gates (R1–R8)
+        </p>
+        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+          {[
+            { id: "R1", name: "Speech", gate: "G-S", stageIdx: 2 },
+            { id: "R2", name: "Voice", gate: "G-V", stageIdx: 2 },
+            { id: "R3", name: "Align", gate: "G-A", stageIdx: 4 },
+            { id: "R4", name: "Beats", gate: "G-P", stageIdx: 4 },
+            { id: "R5", name: "Typo", gate: "G-T", stageIdx: 4 },
+            { id: "R6", name: "Master", gate: "G-M", stageIdx: 4 },
+            { id: "R7", name: "Render", gate: "G-R", stageIdx: 4 },
+            { id: "R8", name: "QC Cert", gate: "G-C", stageIdx: 5 },
+          ].map((r) => {
+            const isPassed = terminal ? job.status === "completed" : activeIndex > r.stageIdx;
+            const isCurrent = !terminal && activeIndex === r.stageIdx;
+            return (
+              <div
+                key={r.id}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-lg border p-1.5 text-center font-mono",
+                  isPassed
+                    ? "border-status-success/30 bg-status-success/8 text-status-success"
+                    : isCurrent
+                      ? "border-accent/40 bg-accent/10 text-accent animate-pulse"
+                      : "border-border/60 bg-bg-base/40 text-text-muted",
+                )}
+              >
+                <span className="text-[10px] font-bold">{r.id}</span>
+                <span className="text-[8px] opacity-80">{r.name}</span>
+                <span className="text-[7px] text-text-muted">{r.gate}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }

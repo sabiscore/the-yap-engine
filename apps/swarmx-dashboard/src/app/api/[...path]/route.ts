@@ -8,8 +8,23 @@ export const maxDuration = 60;
 
 const API_URL = resolveServerApiUrl();
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const ALLOWED_PROXY_PREFIXES = ["/api/system/","/api/video/","/api/series/","/api/agents/","/api/workflows/","/api/logs/","/api/settings/"] as const;
-const ALLOWED_EXACT_READS = new Set(["/api/health"]);
+const ALLOWED_NAMESPACES = [
+  "system",
+  "video",
+  "series",
+  "agents",
+  "workflows",
+  "logs",
+  "settings",
+  "models",
+  "composer",
+  "metrics",
+  "config",
+  "events",
+  "sse",
+  "health",
+  "terminal",
+] as const;
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 30;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -19,7 +34,18 @@ function requestId(request: NextRequest): string {
 }
 
 export function isAllowedPath(pathname: string): boolean {
-  return ALLOWED_EXACT_READS.has(pathname) || ALLOWED_PROXY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  if (!pathname.startsWith("/api/") && pathname !== "/api") {
+    return false;
+  }
+  if (pathname.includes("..") || pathname.includes("//")) {
+    return false;
+  }
+  const subpath = pathname.slice(5);
+  const firstSegment = subpath.split("/")[0]?.toLowerCase();
+  if (!firstSegment) {
+    return false;
+  }
+  return (ALLOWED_NAMESPACES as readonly string[]).includes(firstSegment);
 }
 
 export function isLoopbackUrl(value: string): boolean {
@@ -87,6 +113,71 @@ function jsonError(status: number, code: string, message: string, id: string): R
   );
 }
 
+function offlineHealthResponse(id: string): Response {
+  return Response.json(
+    {
+      status: "offline",
+      apiOnline: false,
+      ts: new Date().toISOString(),
+      service: "swarmx-api",
+      port: 3001,
+      message: "Yap Engine API service is offline or unreachable on port 3001.",
+      ollama: { url: "http://127.0.0.1:11434", reachable: false, latencyMs: null },
+      models: [],
+      memory: { totalGb: 0, availableGb: 0, usedGb: 0 },
+      voice: { preferredProvider: "none", benchmark: null },
+      warnings: ["Backend API server is not running or unreachable on port 3001."],
+      runtimeProfile: {
+        id: "offline",
+        label: "Backend Offline",
+        source: "proxy-fallback",
+        totalRamMb: 0,
+        availableRamMb: 0,
+        blockers: ["Yap Engine API (port 3001) is not running"],
+        warnings: ["Start the backend with: pnpm --filter @swarmx/api dev"],
+      },
+      warmup: {
+        done: false,
+        coldStartEtaSecs: null,
+        source: "default",
+      },
+    },
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "x-request-id": id,
+      },
+    },
+  );
+}
+
+function offlineSseResponse(id: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(
+          "retry: 3000\n" +
+          ": upstream api unreachable on port 3001\n\n"
+        )
+      );
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "x-accel-buffering": "no",
+      "x-request-id": id,
+    },
+  });
+}
+
 function buildTargetUrl(path: string[], request: NextRequest): string {
   const target = new URL(API_URL + "/api/" + path.map(encodeURIComponent).join("/"));
   request.nextUrl.searchParams.forEach((value, key) => target.searchParams.append(key, value));
@@ -144,12 +235,20 @@ async function proxyRequest(
     return jsonError(429, "rate_limited", "Too many protected requests. Retry shortly.", id);
   }
 
+  const isSSE =
+    pathname === "/api/events" ||
+    pathname === "/api/sse" ||
+    pathname.endsWith("/sse") ||
+    Boolean(request.headers.get("accept")?.includes("text/event-stream"));
+  const isHealthCheck = pathname === "/api/system/health" || pathname === "/api/health";
+  const isLogEvents = pathname === "/api/logs/events";
+
   const init: RequestInit & { duplex?: "half" } = {
     method,
     headers: forwardedHeaders(request, id, isWrite || isAnalyticsRead),
     cache: "no-store",
     redirect: "manual",
-    signal: AbortSignal.timeout(pathname.endsWith("/sse") ? 55_000 : 8_000),
+    signal: isSSE ? request.signal : AbortSignal.timeout(8_000),
   };
   if (method !== "GET" && method !== "HEAD") {
     init.body = request.body;
@@ -159,6 +258,25 @@ async function proxyRequest(
   try {
     const upstream = await fetch(buildTargetUrl(path, request), init);
     if (upstream.status === 502 || upstream.status === 503 || upstream.status === 504) {
+      if (isHealthCheck) {
+        return offlineHealthResponse(id);
+      }
+      if (isSSE) {
+        return offlineSseResponse(id);
+      }
+      if (isLogEvents) {
+        return Response.json(
+          { events: [], count: 0, offline: true },
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+              "cache-control": "no-store",
+              "x-request-id": id,
+            },
+          },
+        );
+      }
       return jsonError(
         upstream.status,
         upstream.status === 503 ? "upstream_unavailable" : "upstream_gateway_error",
@@ -171,10 +289,39 @@ async function proxyRequest(
     const responseHeaders = new Headers();
     const contentType = upstream.headers.get("content-type");
     if (contentType) responseHeaders.set("content-type", contentType);
-    responseHeaders.set("cache-control", "no-store");
+    if (isSSE || contentType?.includes("text/event-stream")) {
+      responseHeaders.set("content-type", contentType || "text/event-stream; charset=utf-8");
+      responseHeaders.set("cache-control", "no-cache, no-transform");
+      responseHeaders.set("connection", "keep-alive");
+      responseHeaders.set("x-accel-buffering", "no");
+    } else {
+      responseHeaders.set("cache-control", "no-store");
+    }
     responseHeaders.set("x-request-id", id);
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
   } catch (error) {
+    if (request.signal.aborted) {
+      return new Response(null, { status: 499, headers: { "x-request-id": id } });
+    }
+    if (isHealthCheck) {
+      return offlineHealthResponse(id);
+    }
+    if (isSSE) {
+      return offlineSseResponse(id);
+    }
+    if (isLogEvents) {
+      return Response.json(
+        { events: [], count: 0, offline: true },
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+            "x-request-id": id,
+          },
+        },
+      );
+    }
     const timedOut = error instanceof DOMException && error.name === "TimeoutError";
     return jsonError(
       timedOut ? 504 : 502,

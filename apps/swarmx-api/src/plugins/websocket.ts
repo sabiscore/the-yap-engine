@@ -33,9 +33,32 @@ const sessionIdSchema = z
   .max(64)
   .regex(/^[a-zA-Z0-9_-]+$/, "Invalid session ID format");
 
+import { loadEnv } from "../lib/env.js";
+
+export function isTerminalPtyAllowed(): boolean {
+  try {
+    const env = loadEnv();
+    const isLoopback =
+      env.SWARMX_API_HOST === "127.0.0.1" ||
+      env.SWARMX_API_HOST === "localhost" ||
+      env.SWARMX_API_HOST === "::1";
+    if (env.NODE_ENV === "production" || !isLoopback || Boolean(process.env["VERCEL"])) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Plugin ────────────────────────────────────────────────────────────────────
 
 export async function websocketPlugin(server: FastifyInstance): Promise<void> {
+  if (!isTerminalPtyAllowed()) {
+    server.log.info("PTY terminal websocket endpoint is disabled in production or on non-loopback bind");
+    return;
+  }
+
   server.get(
     "/ws/terminal/:sessionId",
     { websocket: true },

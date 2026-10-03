@@ -1235,3 +1235,127 @@ export interface CreativeCompilerArtifact {
   cacheKey: string;
   createdAt: string;
 }
+
+// ============================================================================
+// VIDEO SWARM V5 CANONICAL STAGE CONTRACTS
+// ============================================================================
+
+export interface ScriptContractBeatChunk {
+  id: string;
+  text: string;
+  chars: number;
+}
+
+export type ScriptBeatKind = "HOOK" | "BODY" | "RESOLUTION" | "CTA";
+
+export interface ScriptContractBeat {
+  id: string;
+  kind: ScriptBeatKind;
+  chunks: ScriptContractBeatChunk[];
+  emphasisWords: string[];
+  visualIntent: string;
+  onScreenText: string;
+}
+
+export interface ScriptContract {
+  schemaVersion: "1.0";
+  jobId: string;
+  tone: VideoTone;
+  voiceProfileId?: string;
+  targetSeconds: number;
+  wordBudget: { min: number; max: number };
+  beats: ScriptContractBeat[];
+}
+
+export interface SpeechPlanChunk {
+  id: string;
+  text: string;
+  speed: number;
+  voice: string;
+  trailingSilenceMs: number;
+  beatKind?: ScriptBeatKind;
+}
+
+export interface SpeechPlan {
+  schemaVersion: "1.0";
+  jobId: string;
+  chunks: SpeechPlanChunk[];
+}
+
+export type AlignmentWordFlag = "interpolated" | "low_confidence";
+
+export interface AlignmentWord {
+  text: string;
+  startMs: number;
+  endMs: number;
+  chunkId?: string;
+  probability?: number;
+  flags: AlignmentWordFlag[];
+}
+
+export interface AlignmentStats {
+  coverage: number;
+  nativeDriftMedianMs: number;
+  maxDriftMs?: number;
+}
+
+export interface AlignmentContract {
+  schemaVersion: "1.0";
+  jobId: string;
+  source: "whisper_anchored" | "kokoro_native" | "estimated";
+  words: AlignmentWord[];
+  stats: AlignmentStats;
+}
+
+export interface BeatPlanEntry {
+  id: string;
+  startMs: number;
+  endMs: number;
+  sceneId: string;
+  motion: string;
+  textCard: string;
+}
+
+export interface BeatPlan {
+  schemaVersion: "1.0";
+  jobId: string;
+  beats: BeatPlanEntry[];
+}
+
+export interface VideoQualityGateResult {
+  gate: "G-S" | "G-V" | "G-A" | "G-P" | "G-T" | "G-M" | "G-C" | "G-R";
+  name: string;
+  passed: boolean;
+  metrics: Record<string, unknown>;
+  issues: string[];
+}
+
+export interface QcReport {
+  schemaVersion: "1.0";
+  jobId: string;
+  passed: boolean;
+  gates: Record<string, VideoQualityGateResult>;
+  timestamp: string;
+}
+
+export interface VoiceProsodyCalibrationEntry {
+  voice: string;
+  speed: number;
+  measuredPausesMs: {
+    ellipsis: number;
+    spacedHyphen: number;
+    paragraphBreak: number;
+    comma: number;
+    sentenceStop: number;
+  };
+  wordsPerSecond: number;
+  realTimeFactor: number;
+  date: string;
+  kokoroVersion: string;
+}
+
+export interface VoiceProsodyCalibrationReport {
+  version: "1.0";
+  updatedAt: string;
+  voices: Record<string, Record<string, VoiceProsodyCalibrationEntry>>;
+}

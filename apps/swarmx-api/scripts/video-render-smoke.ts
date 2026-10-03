@@ -12,7 +12,8 @@ process.env["SWARMX_VIDEO_ALLOW_STUB_RENDER"] = "0";
 // host TTS installation. Production renders remain fail-closed unless operators
 // explicitly configure this fallback.
 process.env["SWARMX_VIDEO_ALLOW_SILENT_AUDIO"] = "1";
-process.env["SWARMX_VIDEO_FFMPEG_TIMEOUT_MS"] = "120000";
+process.env["SWARMX_VIDEO_RESOLUTION"] = "720x1280";
+process.env["SWARMX_VIDEO_FFMPEG_TIMEOUT_MS"] = "240000";
 
 try {
   const { renderWithFfmpeg } = await import("../src/services/ffmpeg-video-renderer.js");

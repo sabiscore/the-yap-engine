@@ -404,7 +404,7 @@ export default function VideoJobDetailPage() {
               aria-live="polite"
             >
               <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
-                Virality Score
+                Signal estimate — not measured
               </p>
               <p className="text-xs text-text-secondary">
                 Virality scoring unavailable in low-RAM mode.

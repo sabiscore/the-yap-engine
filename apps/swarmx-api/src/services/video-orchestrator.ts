@@ -2005,14 +2005,14 @@ Visual style: ${styleNote}
 Color palette direction: ${colorMood}${characterSeedNote}
 
 Script:
-${scriptText.slice(0, 1400)}
+${scriptText}
 
-Extract 5-7 visual scenes that map in sequence to the script's beats: HOOK → CONTEXT → INSIGHT → PROOF → CTA.
+Extract visual scenes that map in sequence to the script's beats: HOOK → CONTEXT → INSIGHT → PROOF → CTA. Output scene intents only.
 
 For each scene, output on one line:
-- [SCENE N | BEAT] ${isKinetic ? 'Text: "exact words on screen" | ' : ""}Motion: [what moves and how] | Color: [dominant palette note] | Pacing: [fast cut / hold / slow fade]
+- [SCENE N | BEAT] ${isKinetic ? 'Text: "exact words on screen" | ' : ""}Motion: [what moves and how] | Color: [dominant palette note] | Intent: [visual focus or metaphor] | Pacing: [fast cut / hold / slow fade]
 
-Be specific to this script's content. No generic descriptions.`;
+Be specific to this script's content. Output scene intents only. No generic descriptions.`;
 }
 
 function buildComfyWorkflow(
