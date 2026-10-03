@@ -1,4 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({
+  spawnSync: vi.fn(() => ({
+    status: 0,
+    stdout: JSON.stringify({
+      streams: [
+        { codec_type: "video", width: 1080, height: 1920, codec_name: "h264" },
+        { codec_type: "audio", codec_name: "aac" },
+      ],
+      format: { duration: "30" },
+    }),
+  })),
+}));
+
+vi.mock("node:fs", () => ({ existsSync: vi.fn(() => true) }));
 import { evaluateQualityGates } from "../src/services/quality-gates.js";
 import type { AlignmentContract, BeatPlan, VoiceArtifact } from "@swarmx/types";
 import type { PostEncodeLoudness } from "../src/services/audio-mastering.js";
@@ -55,6 +70,7 @@ describe("evaluateQualityGates (R8 Quality Verifier)", () => {
       beatPlan: validBeatPlan,
       loudness: validLoudness,
       resolution: { width: 1080, height: 1920 },
+      mediaPath: "/tmp/valid-output.mp4",
     });
 
     expect(report.schemaVersion).toBe("1.0");
