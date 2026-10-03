@@ -78,7 +78,8 @@ from urllib.error import URLError
 import structlog
 
 from .config import SwarmConfig
-from .providers.gemini import enabled_for_role as gemini_enabled_for_role, generate as gemini_generate
+from .providers.gemini import enabled_for_role as gemini_enabled_for_role
+from .providers.gemini import generate as gemini_generate
 
 _log = structlog.get_logger("swarmx.llm")
 

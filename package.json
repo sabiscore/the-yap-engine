@@ -15,7 +15,8 @@
     "docker:up:16gb": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.16gb.yml up -d --wait",
     "docker:down": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.8gb.yml down",
     "test:mobile": "echo 'OPEN — needs operator: run the Playwright iPhone 14 Pro Max + 320px suites against preview'",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "db:status": "node scripts/db-status.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",

@@ -15,6 +15,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { log } from "../lib/logger.js";
+import { loadEnv } from "../lib/env.js";
 
 export interface ViralityCheatbookEntry {
   jobId: string;
@@ -36,6 +37,16 @@ export interface ViralityCheatbookEntry {
 }
 
 export function getCheatbookFilePath(): string {
+  const env = loadEnv();
+  if (env.VIRALITY_CHEATBOOK_PATH) {
+    return env.VIRALITY_CHEATBOOK_PATH;
+  }
+  if (env.NODE_ENV === "test") {
+    const base = process.cwd().endsWith("swarmx-api")
+      ? resolve(process.cwd(), "..", "..", ".swarmx", "test-data")
+      : resolve(process.cwd(), ".swarmx", "test-data");
+    return resolve(base, "virality_cheatbook.json");
+  }
   if (process.cwd().endsWith("swarmx-api")) {
     return resolve(process.cwd(), "..", "..", "data", "virality_cheatbook.json");
   }
@@ -49,6 +60,19 @@ export async function readViralityCheatbook(): Promise<ViralityCheatbookEntry[]>
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
+    const env = loadEnv();
+    if (env.NODE_ENV === "test") {
+      try {
+        const seedPath = process.cwd().endsWith("swarmx-api")
+          ? resolve(process.cwd(), "..", "..", "data", "virality_cheatbook.json")
+          : resolve(process.cwd(), "data", "virality_cheatbook.json");
+        const raw = await readFile(seedPath, "utf8");
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
     return [];
   }
 }

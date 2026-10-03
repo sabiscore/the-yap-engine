@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -210,7 +211,7 @@ assert.ok(
 // disabling the entire low-RAM auto-enable feature on constrained hosts.
 {
   const autoEnableIdx = serverSource.indexOf("if (shouldAutoEnableLowRamMode())");
-  const firstLoadEnvCallIdx = serverSource.indexOf("  loadEnv();");
+  const firstLoadEnvCallIdx = serverSource.indexOf("loadEnv();");
   assert.ok(autoEnableIdx > 0 && firstLoadEnvCallIdx > 0, "server must call both shouldAutoEnableLowRamMode() and loadEnv()");
   assert.ok(
     autoEnableIdx < firstLoadEnvCallIdx,

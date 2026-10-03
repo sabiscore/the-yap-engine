@@ -290,7 +290,7 @@ function requireLocalTikTokOAuth(): { userId: string; redirectUri: string } {
   if (!userId || !redirectUri) {
     throw new Error("SWARMX_TIKTOK_OPERATOR_USER_ID and SWARMX_TIKTOK_OAUTH_REDIRECT_URI are required");
   }
-  if (!process.env["SWARMX_TIKTOK_CLIENT_KEY"]?.trim() || !process.env["SWARMX_TIKTOK_CLIENT_SECRET"]?.trim()) {
+  if (!env.SWARMX_TIKTOK_CLIENT_KEY?.trim() || !env.SWARMX_TIKTOK_CLIENT_SECRET?.trim()) {
     throw new Error("TikTok client key and secret are required");
   }
   return { userId, redirectUri };

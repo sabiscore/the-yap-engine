@@ -1,5 +1,7 @@
-from pydantic import ValidationError
 import pytest
+
+pydantic = pytest.importorskip("pydantic")
+from pydantic import ValidationError
 
 from swarmx.contracts.video_render_contract import RenderSegmentTask
 

@@ -3,7 +3,7 @@
   "version": "2026.6.0",
   "private": true,
   "type": "module",
-  "main": "dist/apps/swarmx-api/src/server-runtime.js",
+  "main": "dist/apps/swarmx-api/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server-runtime.ts",
     "build": "tsc -p tsconfig.json && node ../../scripts/assert-render-worker-artifact.mjs",

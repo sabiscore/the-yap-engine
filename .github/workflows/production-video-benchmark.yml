@@ -1,6 +1,10 @@
 name: Production Video Benchmark
 
 on:
+  push:
+    branches:
+      - main
+      - feat/creative-hub-v3
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -39,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,10 +54,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install FFmpeg
+      - name: Verify or install FFmpeg
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          if ! command -v ffmpeg &> /dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
 

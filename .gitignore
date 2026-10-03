@@ -27,6 +27,8 @@ env/
 .ruff_cache/
 .coverage
 htmlcov/
+evidence/
+infra/aws-render-cdk/cdk.context.json
 
 # Turborepo
 .turbo/
@@ -37,6 +39,8 @@ apps/**/.swarmx/video/
 
 # Runtime evolution state — written by the orchestrator on every cycle
 /.swarmx/evolution-layer/
+/.swarmx/test-data/
+/.swarmx/logs/
 
 # Editor
 .vscode/settings.json

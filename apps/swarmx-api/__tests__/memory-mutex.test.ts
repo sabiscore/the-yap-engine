@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getMemoryMutex, MemoryMutex, MemoryMutexError } from "../src/services/memory-mutex.js";
 
 // Mock model-orchestrator
@@ -15,6 +15,13 @@ describe("MemoryMutex", () => {
   beforeEach(async () => {
     mutex = getMemoryMutex();
     await mutex.forceReset();
+  });
+
+  afterEach(async () => {
+    if (mutex) {
+      await mutex.forceReset();
+    }
+    vi.clearAllMocks();
   });
 
   it("should initialize in idle state", () => {
