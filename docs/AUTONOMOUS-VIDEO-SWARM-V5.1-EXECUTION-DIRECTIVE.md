@@ -215,8 +215,8 @@ Storyboard generation remains upstream of render assembly.
 Beat planner MUST:
 - use 5–8 storyboard intents where the source storyboard supports them;
 - target 2.0–2.5 second visual cadence;
-- never allow a visual hold > 3.0 seconds unless the gate explicitly records a justified exception;
-- maintain a hard maximum of 3.6 seconds for compatibility;
+- never allow a visual hold > 3.0 seconds;
+- G-P is fail-closed above 3.0 seconds; no compatibility exception is certification-valid;
 - merge pathological holds < 0.8 seconds;
 - snap transitions to valid word/phrase boundaries;
 - never cut through a word;
