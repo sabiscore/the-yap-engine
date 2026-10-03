@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "phase": "V5.1-execution",
+  "status": "IN PROGRESS",
+  "repo": "sabiscore/the-yap-engine",
+  "branch": "feat/video-swarm-v5",
+  "baseSha": "9a12fafcece666b5159396e558b572a7782e0885",
+  "commitSha": "7b90cf2a938bf9ab3b0f35db86873d89b6a042a8",
+  "utc": "2026-10-03T10:40:00Z",
+  "changes": [
+    "Removed legacy bracket-prosody execution path and obsolete parser tests.",
+    "Tightened alignment QC to coverage >= 0.95, median drift <= 150 ms, max drift <= 400 ms.",
+    "Tightened visual cadence gate to a 3.0 s maximum.",
+    "Tightened post-encode audio acceptance to -14 +/- 1 LUFS and true peak <= -1.0 dBTP.",
+    "Made mastering and post-encode loudness measurement fail-closed.",
+    "Made G-R reject incorrect exact dimensions.",
+    "Added and refined the V5.1 execution directive; provider character-weight timing is explicitly non-authoritative."
+  ],
+  "verification": [
+    {
+      "command": "GitHub repository audit and compare against main",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "command": "Local pnpm typecheck/test/build",
+      "status": "NOT EXECUTED (by design)",
+      "exitCode": null,
+      "notes": ["No network-enabled local checkout is available in this execution environment."]
+    },
+    {
+      "command": "GitHub Actions exact-head validation",
+      "status": "IN PROGRESS",
+      "exitCode": null,
+      "notes": ["A prior PR run is executing against the preceding branch commit; current HEAD requires its own exact-head CI evidence."]
+    }
+  ],
+  "certification": "HOLD"
+}
