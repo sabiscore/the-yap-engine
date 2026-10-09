@@ -76,6 +76,7 @@ decisions use physical `MemAvailable` and report ZRAM separately.
 | `SWARMX_VIDEO_ALLOW_UNSTRUCTURED_INTENT` | unset | Debug escape hatch: set `1` only to pass raw sanitized text through when intent classification is not valid structured output. By default, malformed intent JSON falls back to a deterministic structured intent derived from the validated request. |
 | `SWARMX_VIDEO_INTENT_MODEL` | `instruct-phi4-pro-q8-prod` | Intent classification model override. The default Q8 Pilot is attempted first; retryable Ollama failures fall back to canonical Pilot-lite inside the same stage timeout. Once intent uses Pilot-lite, later text stages keep the Pilot-lite recovery profile for that job. |
 | `SWARMX_VIDEO_LOW_RAM_MODE` | unset | Set `1` to force all video text stages through the 2.5 GB Pilot-lite profile; requires at least 3300 MB available RAM. |
+| `SWARMX_API_URL` | `http://127.0.0.1:3001` | Validated SwarmXQ API origin used by the bounded OpenClaw bridge. Use loopback HTTP only for local execution; remote endpoints must use HTTPS. No path, query, fragment, or credentials. |
 | `SWARMX_VIDEO_API_TOKEN` | unset | Server-only bearer/API-key token for video and series write routes. Production writes fail closed when unset. Never expose through `NEXT_PUBLIC_*`. |
 | `SWARMX_VIDEO_JOB_LIMIT_PER_HOUR` | `10` | Max video job submissions per connection per hour (sliding window). Returns 429 when exceeded. |
 | `SWARMX_VIDEO_QUEUE_MAX_SIZE` | `20` | Max queued or running video jobs accepted by the local registry. |
