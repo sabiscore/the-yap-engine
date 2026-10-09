@@ -14,6 +14,9 @@ CONFIG = ROOT / "integrations/openclaw/config.json5"
 DIRECTIVE_APEX21 = ROOT / "docs/OPENCLAW-SWARMXQ-APEX21-DIRECTIVE.md"
 DIRECTIVE_APEX17 = ROOT / "docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md"
 SKILLS = ROOT / "integrations/openclaw/skills"
+BRIDGE = ROOT / "integrations/openclaw/swarmx-bridge.ts"
+BRIDGE_TESTS = ROOT / "apps/swarmx-api/__tests__/openclaw-bridge.test.ts"
+SKILL_INSTALLER = ROOT / "scripts/install-openclaw-skills.py"
 REQUIRED_SKILLS = {
     "swarmx-creative-director",
     "swarmx-virality-critic",
@@ -34,6 +37,25 @@ REQUIRED_STRINGS = (
     '"gateway"',
     'maxConcurrent: 1',
 )
+BRIDGE_REQUIRED_STRINGS = (
+    "validateVideoJobRequest",
+    'loadEnv().SWARMX_API_URL',
+    'readSecretEnv("SWARMX_VIDEO_API_TOKEN")',
+    "AbortController",
+    'redirect: "error"',
+    "MAX_RESPONSE_BYTES",
+    "MAX_WAIT_TIMEOUT_MS",
+    "readManifestFromConfiguredRoot",
+    "clientRequestId",
+)
+BRIDGE_TEST_REQUIRED_STRINGS = (
+    "adds stable idempotency",
+    "create requires auth",
+    "streaming response limit",
+    "times out a stalled API request",
+    "outside configured artifact",
+)
+
 FORBIDDEN_DIRECT_RUNTIME = (
     "ollama serve",
     "OLLAMA_NUM_PARALLEL=2",
@@ -52,6 +74,32 @@ def main() -> int:
     for needle in FORBIDDEN_DIRECT_RUNTIME:
         if needle in config:
             errors.append(f"forbidden runtime override found in config: {needle}")
+
+    if not SKILL_INSTALLER.is_file():
+        errors.append("missing safe OpenClaw managed-skill installer")
+    else:
+        installer = SKILL_INSTALLER.read_text(encoding="utf-8")
+        for needle in ("--install", "--check-installed", "adds missing skills only", "MAX_SKILL_BYTES"):
+            if needle not in installer:
+                errors.append(f"OpenClaw skill installer is missing a safety contract: {needle}")
+
+    if not BRIDGE.is_file():
+        errors.append("missing bounded OpenClaw-to-SwarmXQ bridge")
+    else:
+        bridge = BRIDGE.read_text(encoding="utf-8")
+        for needle in BRIDGE_REQUIRED_STRINGS:
+            if needle not in bridge:
+                errors.append(f"bounded bridge is missing a required safety contract: {needle}")
+        if 'process.env["SWARMX_VIDEO_API_TOKEN"]' in bridge:
+            errors.append("bridge must use readSecretEnv() for the video write token")
+
+    if not BRIDGE_TESTS.is_file():
+        errors.append("missing OpenClaw bridge regression tests")
+    else:
+        bridge_tests = BRIDGE_TESTS.read_text(encoding="utf-8")
+        for needle in BRIDGE_TEST_REQUIRED_STRINGS:
+            if needle not in bridge_tests:
+                errors.append(f"missing OpenClaw bridge regression coverage: {needle}")
 
     directives_to_check = [p for p in (DIRECTIVE_APEX21, DIRECTIVE_APEX17) if p.is_file()]
     if not directives_to_check:

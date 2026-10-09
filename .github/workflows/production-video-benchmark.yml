@@ -77,6 +77,7 @@ jobs:
 
       - name: End-to-end FFmpeg render smoke
         run: |
+          set -o pipefail
           /usr/bin/time -v pnpm --filter @swarmx/api run test:video:smoke 2>&1 | tee /tmp/video-benchmark.log
 
       - name: Benchmark evidence

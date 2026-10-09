@@ -19,6 +19,13 @@ assert.match(renderer, /SWARMX_VIDEO_REQUIRE_WORD_ALIGNMENT/);
 assert.match(renderer, /subtitles=/);
 assert.match(renderer, /alignment/);
 
+// Native timing must use the canonical millisecond shape and source label.
+assert.match(renderer, /voiceArtifact\?\.providerId === "kokoro"/);
+assert.match(renderer, /source: "kokoro_native"/);
+assert.match(renderer, /startMs: Math\.round\(wb\.startMs\)/);
+assert.match(renderer, /endMs: Math\.round\(wb\.endMs\)/);
+assert.ok(!/wb\.startTime|wb\.endTime/.test(renderer), "native word boundaries are already milliseconds");
+
 // ADR-1: the aligned path must stay inside ONE filter_complex chain (fades,
 // background motion layers, and the progress bar all survive alongside the
 // ASS subtitle burn-in) instead of the old bare "format=yuv420p" + separate

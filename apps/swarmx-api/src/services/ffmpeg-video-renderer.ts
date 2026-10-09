@@ -1421,16 +1421,20 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       throw err;
     }
 
+    // Kokoro returns native boundaries in milliseconds. Keep this contract
+    // provenance-specific: other providers must not be mislabeled as Kokoro.
+    const kokoroNativeWordBoundaries =
+      voiceArtifact?.providerId === "kokoro" ? voiceArtifact.wordBoundaries : undefined;
     const alignmentContract: AlignmentContract | undefined = alignment?.alignmentContract ?? (
-      voiceArtifact?.wordBoundaries && voiceArtifact.wordBoundaries.length > 0
+      kokoroNativeWordBoundaries && kokoroNativeWordBoundaries.length > 0
         ? {
             schemaVersion: "1.0",
             jobId: input.jobId,
-            source: "tts_native",
-            words: voiceArtifact.wordBoundaries.map((wb) => ({
+            source: "kokoro_native",
+            words: kokoroNativeWordBoundaries.map((wb) => ({
               text: wb.word,
-              startMs: Math.round(wb.startTime * 1000),
-              endMs: Math.round(wb.endTime * 1000),
+              startMs: Math.round(wb.startMs),
+              endMs: Math.round(wb.endMs),
               flags: [],
             })),
             stats: {

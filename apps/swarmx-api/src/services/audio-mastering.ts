@@ -152,24 +152,44 @@ export async function measurePostEncodeLoudness(filePath: string): Promise<PostE
   if (proc.error) {
     throw new AudioMasteringError(`FFmpeg ebur128 failed to start: ${proc.error.message}`, "AUDIO_MEASURE_FAILED");
   }
+  if (proc.status !== 0) {
+    throw new AudioMasteringError(
+      `FFmpeg ebur128 exited with code ${proc.status ?? "null"}`,
+      "AUDIO_MEASURE_FAILED",
+    );
+  }
+
   const stderr = proc.stderr ?? "";
   const summaryPart = stderr.includes("Summary:")
     ? stderr.slice(stderr.lastIndexOf("Summary:"))
     : stderr;
-  const iMatch = /I:\s*(-?[\d.]+)\s*LUFS/.exec(summaryPart);
-  const lraMatch = /LRA:\s*(-?[\d.]+)\s*LU/.exec(summaryPart);
-  const tpMatch = /Peak:\s*(-?[\d.]+)\s*dB(?:FS|TP)/.exec(summaryPart);
+  // FFmpeg emits "-inf" for valid measurements of a silent signal. Preserve that
+  // result instead of misclassifying it as a parser failure; certification must
+  // still fail because a silent track is not within the target loudness window.
+  const measurementPattern = "(-?(?:[\\d]+(?:\\.[\\d]*)?|\\.[\\d]+|inf))";
+  const iMatch = new RegExp(`I:\\s*${measurementPattern}\\s*LUFS`, "i").exec(summaryPart);
+  const lraMatch = new RegExp(`LRA:\\s*${measurementPattern}\\s*LU`, "i").exec(summaryPart);
+  const tpMatch = new RegExp(`Peak:\\s*${measurementPattern}\\s*dB(?:FS|TP)`, "i").exec(summaryPart);
 
   if (!iMatch || !tpMatch) {
     throw new AudioMasteringError("Could not parse ebur128 summary from FFmpeg stderr", "AUDIO_MEASURE_PARSE_FAILED");
   }
 
-  const integratedLUFS = parseFloat(iMatch[1]!);
-  const loudnessRangeLRA = lraMatch ? parseFloat(lraMatch[1]!) : 0;
-  const truePeakDBTP = parseFloat(tpMatch[1]!);
+  const parseMeasurement = (raw: string): number => {
+    if (/^-?inf$/i.test(raw)) return raw.startsWith("-") ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+    return Number.parseFloat(raw);
+  };
+  const integratedLUFS = parseMeasurement(iMatch[1]!);
+  const loudnessRangeLRA = lraMatch ? parseMeasurement(lraMatch[1]!) : 0;
+  const truePeakDBTP = parseMeasurement(tpMatch[1]!);
 
-  // Gate G-M compliance: Target -14 LUFS (+/- 1.0 dB) and True Peak <= -1.0 dBTP
-  const compliant = Math.abs(integratedLUFS - (-14)) <= 1.0 && truePeakDBTP <= -1.0;
+  // Gate G-M compliance: Target -14 LUFS (+/- 1.0 dB) and True Peak <= -1.0 dBTP.
+  // Non-finite measurements are explicitly non-compliant, never a green fallback.
+  const compliant =
+    Number.isFinite(integratedLUFS) &&
+    Number.isFinite(truePeakDBTP) &&
+    Math.abs(integratedLUFS - (-14)) <= 1.0 &&
+    truePeakDBTP <= -1.0;
 
   log.info({
     service: "audio-mastering",
