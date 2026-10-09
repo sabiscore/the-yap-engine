@@ -16,6 +16,7 @@ DIRECTIVE_APEX17 = ROOT / "docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md"
 SKILLS = ROOT / "integrations/openclaw/skills"
 BRIDGE = ROOT / "integrations/openclaw/swarmx-bridge.ts"
 BRIDGE_TESTS = ROOT / "apps/swarmx-api/__tests__/openclaw-bridge.test.ts"
+SKILL_INSTALLER = ROOT / "scripts/install-openclaw-skills.py"
 REQUIRED_SKILLS = {
     "swarmx-creative-director",
     "swarmx-virality-critic",
@@ -73,6 +74,14 @@ def main() -> int:
     for needle in FORBIDDEN_DIRECT_RUNTIME:
         if needle in config:
             errors.append(f"forbidden runtime override found in config: {needle}")
+
+    if not SKILL_INSTALLER.is_file():
+        errors.append("missing safe OpenClaw managed-skill installer")
+    else:
+        installer = SKILL_INSTALLER.read_text(encoding="utf-8")
+        for needle in ("--install", "--check-installed", "only creates missing", "MAX_SKILL_BYTES"):
+            if needle not in installer:
+                errors.append(f"OpenClaw skill installer is missing a safety contract: {needle}")
 
     if not BRIDGE.is_file():
         errors.append("missing bounded OpenClaw-to-SwarmXQ bridge")
