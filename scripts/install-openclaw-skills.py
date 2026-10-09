@@ -52,10 +52,10 @@ def load_skill(name: str) -> tuple[Path, bytes]:
     text = content.decode("utf-8")
     if not text.startswith("---\n"):
         raise ValueError(f"{name}: missing YAML frontmatter")
-    _, separator, frontmatter_tail = text[4:].partition("\n---")
+    _, separator, _ = text[4:].partition("\n---")
     if not separator:
         raise ValueError(f"{name}: unterminated YAML frontmatter")
-    frontmatter = frontmatter_tail.split("\n", 1)[0] if False else text[4:].split("\n---", 1)[0]
+    frontmatter = text[4:].split("\n---", 1)[0]
     match = NAME_RE.search(frontmatter)
     if not match or match.group(1) != name:
         actual = match.group(1) if match else "missing"
@@ -107,7 +107,7 @@ def install_missing(records: list[dict[str, str]], skills_root: Path) -> tuple[l
 
     for record in records:
         name = record["name"]
-        source_file, content = load_skill(name)
+        _, content = load_skill(name)
         target_dir = skills_root / name
         target_file = target_dir / "SKILL.md"
         if target_dir.is_symlink() or target_file.is_symlink():
