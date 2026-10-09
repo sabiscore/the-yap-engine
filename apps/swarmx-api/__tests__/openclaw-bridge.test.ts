@@ -107,6 +107,20 @@ describe("OpenClaw SwarmX bounded bridge", () => {
     expect(JSON.stringify(job)).not.toContain("private brief");
   });
 
+  test("job errors expose only a safe code and fixed diagnostic, not raw provider text", async () => {
+    const job = await get_video_job("job-123", {
+      fetchFn: vi.fn().mockResolvedValue(jsonResponse({
+        ...fakeJob,
+        status: "failed",
+        error: { code: "RENDER_FAILED", message: "private prompt /home/user/.env token=secret-value" },
+      })) as any,
+    });
+    expect(job.error?.code).toBe("RENDER_FAILED");
+    expect(job.error?.message).toBe("Video job failed; inspect authorized SwarmXQ diagnostics for details.");
+    expect(JSON.stringify(job)).not.toContain("secret-value");
+    expect(JSON.stringify(job)).not.toContain("/home/user/.env");
+  });
+
   test("rejects malformed job identifiers before network access", async () => {
     const fetchFn = vi.fn();
     await expect(get_video_job("../etc/passwd", { fetchFn: fetchFn as any })).rejects.toThrow(/Invalid video job ID/);
