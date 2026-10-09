@@ -8,7 +8,7 @@
     "lint": "pnpm --filter @swarmx/dashboard lint && ${PYTHON:-.venv/bin/python} -m ruff check .",
     "test": "pnpm --filter @swarmx/dashboard test && pnpm --filter @swarmx/api test",
     "typecheck": "pnpm --filter @swarmx/types typecheck && pnpm --filter @swarmx/api typecheck && pnpm --filter @swarmx/dashboard typecheck",
-    "validate:openclaw": "${PYTHON:-python3} scripts/validate-openclaw-integration.py && ${PYTHON:-python3} scripts/install-openclaw-skills.py",
+    "validate:openclaw": "${PYTHON:-python3} scripts/validate-openclaw-integration.py && ${PYTHON:-python3} scripts/install-openclaw-skills.py && ${PYTHON:-python3} -m unittest discover -s scripts/tests -p test_install_openclaw_skills.py",
     "bench:coding-agent": "${PYTHON:-python3} benchmarks/coding-agent/run.py",
     "dev:hub": "pnpm --filter @swarmx/dashboard dev",
     "docker:up:8gb": "docker compose --env-file env.local -f docker-compose.yml -f docker-compose.8gb.yml up -d --wait",
