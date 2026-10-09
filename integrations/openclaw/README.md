@@ -102,3 +102,23 @@ pnpm validate:openclaw
 ```
 
 The validator is deliberately static. It does not start Ollama, change concurrency, or mutate production model state.
+
+## Install and verify the repository skills
+
+OpenClaw does not automatically discover `integrations/openclaw/skills/` just because the folder is in this repository. The reviewed skill pack must be copied into the active OpenClaw state's managed `skills/` root, which OpenClaw scans automatically.
+
+From the repository root, first validate the source package without modifying your OpenClaw state:
+
+```bash
+python3 scripts/install-openclaw-skills.py
+```
+
+Then install missing skill files into `$OPENCLAW_STATE_DIR/skills` (or `~/.openclaw/skills` when `OPENCLAW_STATE_DIR` is unset):
+
+```bash
+python3 scripts/install-openclaw-skills.py --install
+python3 scripts/install-openclaw-skills.py --check-installed
+openclaw skills list
+```
+
+The installer checks each skill's YAML frontmatter, folder/name correspondence, UTF-8 content and size. It only creates missing files; if a managed skill already differs from the repository version, it refuses to overwrite it. Review and reconcile that difference manually, then rerun `--check-installed`. This installer does not validate the active OpenClaw config, change tool permissions, start/restart the Gateway, or prove that skills are loaded in an active session. Those remain live-runtime gates.
