@@ -147,6 +147,11 @@ jobs:
       - name: Gate 6c — Creative Factory release invariants
         run: pnpm --filter @swarmx/api run test:factory
 
+      # OpenClaw reference policy and bounded bridge contracts are static checks;
+      # runtime discovery/dispatch is still a separate operator-host acceptance gate.
+      - name: Gate 6d — OpenClaw integration safety validator
+        run: pnpm validate:openclaw
+
       # ── Invariants (ms-fast; run before expensive next build) ─────────────
 
       - name: Invariant — console.* zero tolerance (services + routes)
