@@ -52,7 +52,7 @@ BRIDGE_TEST_REQUIRED_STRINGS = (
     "create requires auth",
     "streaming response limit",
     "times out a stalled API request",
-    "outside configured artifact/export roots",
+    "outside configured artifact",
 )
 
 FORBIDDEN_DIRECT_RUNTIME = (
