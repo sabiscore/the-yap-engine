@@ -9,7 +9,15 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import install_openclaw_skills as installer  # noqa: E402
+import importlib.util  # noqa: E402
+
+INSTALLER_PATH = SCRIPTS_DIR / "install-openclaw-skills.py"
+SPEC = importlib.util.spec_from_file_location("install_openclaw_skills", INSTALLER_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("Could not load managed-skill installer for tests")
+installer = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = installer
+SPEC.loader.exec_module(installer)
 
 
 class ManagedSkillInstallerTests(unittest.TestCase):
