@@ -118,6 +118,32 @@ describe("OpenClaw SwarmX bounded bridge", () => {
     await expect(get_video_job("job-123", { fetchFn: fetchFn as any })).rejects.toThrow(/response exceeds/);
   });
 
+  test("enforces the streaming response limit without trusting Content-Length", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response("x".repeat(2048), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    await expect(get_video_job("job-123", { fetchFn: fetchFn as any, maxResponseBytes: 1024 }))
+      .rejects.toThrow(/response exceeds/);
+  });
+
+  test("times out a stalled API request and does not return early", async () => {
+    const fetchFn = vi.fn(() => new Promise<Response>(() => {}));
+    await expect(get_video_job("job-123", { fetchFn: fetchFn as any, requestTimeoutMs: 250 }))
+      .rejects.toThrow(/timed out after 250ms/);
+  });
+
+  test("does not echo arbitrary server error text into the bridge response", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({
+      error: "unauthorized",
+      message: "Bearer secret-token leaked in this untrusted message",
+    }, 401));
+    await expect(get_video_job("job-123", { fetchFn: fetchFn as any }))
+      .rejects.toThrow(/SwarmX API request failed \(401\) \[unauthorized\]/);
+    await expect(get_video_job("job-123", { fetchFn: fetchFn as any }))
+      .rejects.not.toThrow(/secret-token/);
+  });
+
   test("waits until a terminal job status with bounded polling", async () => {
     let callCount = 0;
     const fetchFn = vi.fn().mockImplementation(async () => {
