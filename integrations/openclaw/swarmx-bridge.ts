@@ -257,7 +257,7 @@ function assertEnum(value: unknown, allowed: readonly string[], key: string): vo
 }
 
 function canonicalJson(value: Record<string, unknown>): string {
-  return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
+  return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))));
 }
 
 /** Runtime validation mirrors the creator-facing API boundary and rejects extra fields. */
