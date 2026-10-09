@@ -79,7 +79,7 @@ def main() -> int:
         errors.append("missing safe OpenClaw managed-skill installer")
     else:
         installer = SKILL_INSTALLER.read_text(encoding="utf-8")
-        for needle in ("--install", "--check-installed", "only creates missing", "MAX_SKILL_BYTES"):
+        for needle in ("--install", "--check-installed", "adds missing skills only", "MAX_SKILL_BYTES"):
             if needle not in installer:
                 errors.append(f"OpenClaw skill installer is missing a safety contract: {needle}")
 
