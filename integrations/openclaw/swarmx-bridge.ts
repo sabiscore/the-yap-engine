@@ -389,8 +389,12 @@ function projectJob(value: unknown): BridgeJobSnapshot {
   if (typeof progress === "number" && Number.isFinite(progress) && progress >= 0 && progress <= 100) result.overallProgress = progress;
   if (isRecord(value.error)) {
     result.error = {
-      ...(typeof value.error.code === "string" ? { code: value.error.code.slice(0, 128) } : {}),
-      ...(typeof value.error.message === "string" ? { message: value.error.message.slice(0, 500) } : {}),
+      ...(typeof value.error.code === "string" && /^[a-z0-9_-]{1,128}$/i.test(value.error.code)
+        ? { code: value.error.code }
+        : {}),
+      ...(typeof value.error.message === "string"
+        ? { message: "Video job failed; inspect authorized SwarmXQ diagnostics for details." }
+        : {}),
     };
   }
   result.outputArtifacts = projectArtifacts(value.outputArtifacts);
@@ -409,7 +413,8 @@ export async function create_video_job(request: VideoJobRequest, options?: Bridg
     jobId: body.jobId.slice(0, MAX_JOB_ID_LENGTH),
     status: body.status.slice(0, 64),
     createdAt: body.createdAt.slice(0, 64),
-    message: body.message.slice(0, 300),
+    // The HTTP response is untrusted model context; avoid reflecting arbitrary server text.
+    message: "Video job accepted by SwarmXQ API",
   };
 }
 
