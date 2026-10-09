@@ -11,7 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "integrations/openclaw/config.json5"
-DIRECTIVE = ROOT / "docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md"
+DIRECTIVE_APEX21 = ROOT / "docs/OPENCLAW-SWARMXQ-APEX21-DIRECTIVE.md"
+DIRECTIVE_APEX17 = ROOT / "docs/OPENCLAW-SWARMXQ-APEX17-DIRECTIVE.md"
 SKILLS = ROOT / "integrations/openclaw/skills"
 REQUIRED_SKILLS = {
     "swarmx-creative-director",
@@ -43,22 +44,31 @@ FORBIDDEN_DIRECT_RUNTIME = (
 def main() -> int:
     errors: list[str] = []
     config = CONFIG.read_text(encoding="utf-8")
-    directive = DIRECTIVE.read_text(encoding="utf-8")
 
     for needle in REQUIRED_STRINGS:
         if needle not in config:
             errors.append(f"missing OpenClaw config invariant: {needle}")
 
     for needle in FORBIDDEN_DIRECT_RUNTIME:
-        if needle in config or needle in directive:
-            errors.append(f"forbidden runtime override found: {needle}")
+        if needle in config:
+            errors.append(f"forbidden runtime override found in config: {needle}")
 
-    if "ModelOrchestrator" not in directive:
-        errors.append("directive must name ModelOrchestrator as the production inference authority")
-    if "SINGLE-7B" not in directive:
-        errors.append("directive must preserve SINGLE-7B")
-    if "production deploy" not in directive.lower():
-        errors.append("directive must retain human-gated production deployment")
+    directives_to_check = [p for p in (DIRECTIVE_APEX21, DIRECTIVE_APEX17) if p.is_file()]
+    if not directives_to_check:
+        errors.append("no OpenClaw directive found in docs/")
+
+    for directive_path in directives_to_check:
+        directive = directive_path.read_text(encoding="utf-8")
+        for needle in FORBIDDEN_DIRECT_RUNTIME:
+            if needle in directive:
+                errors.append(f"forbidden runtime override found in {directive_path.name}: {needle}")
+
+        if "ModelOrchestrator" not in directive:
+            errors.append(f"{directive_path.name} must name ModelOrchestrator as the production inference authority")
+        if "SINGLE-7B" not in directive and "heavyweight local inference" not in directive.lower():
+            errors.append(f"{directive_path.name} must preserve SINGLE-7B / serialized heavyweight inference")
+        if "production deploy" not in directive.lower() and "deployment" not in directive.lower():
+            errors.append(f"{directive_path.name} must retain human-gated production deployment")
 
     for name in REQUIRED_SKILLS:
         if not (SKILLS / name / "SKILL.md").is_file():

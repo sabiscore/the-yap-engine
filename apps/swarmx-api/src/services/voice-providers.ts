@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import type {
   AssetLicense,
   VideoTone,
@@ -168,13 +168,28 @@ function execFileWithInput(command: string, args: string[], input: string, signa
   });
 }
 
-async function commandAvailable(command: string, versionFlag: string): Promise<boolean> {
+async function commandAvailable(command: string, args: string | string[] = "--version"): Promise<boolean> {
   try {
-    await execFileChecked(command, [versionFlag]);
+    const argList = Array.isArray(args) ? args : [args];
+    await execFileChecked(command, argList);
     return true;
   } catch {
     return false;
   }
+}
+
+function resolvePythonBinary(): string {
+  const env = loadEnv();
+  const configured = env.SWARMX_PYTHON?.trim();
+  const venvCandidates = [
+    resolve(process.cwd(), ".venv/bin/python3"),
+    resolve(process.cwd(), "../../.venv/bin/python3"),
+    resolve(process.cwd(), "../.venv/bin/python3"),
+  ];
+  const foundVenv = venvCandidates.find((c) => existsSync(c));
+  if (foundVenv) return foundVenv;
+  if (configured && configured !== "python3") return configured;
+  return "python3";
 }
 
 function sha256Text(text: string): string {
@@ -382,6 +397,19 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
         probedAt: new Date().toISOString(),
       };
     } catch {
+      const python = resolvePythonBinary();
+      const cliAvailable = await commandAvailable(python, ["-m", "swarmx.services.kokoro_cli", "--help"]);
+      if (cliAvailable) {
+        return {
+          providerId: this.id,
+          state: "available",
+          qualityTier: this.qualityTier,
+          supportsStreaming: false,
+          supportsCancellation: true,
+          requiresExternalDownload: false,
+          probedAt: new Date().toISOString(),
+        };
+      }
       return {
         providerId: this.id,
         state: "unavailable",
@@ -389,7 +417,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
         supportsStreaming: false,
         supportsCancellation: true,
         requiresExternalDownload: true,
-        reason: `Kokoro TTS service is not reachable at ${env.SWARMX_TTS_URL}`,
+        reason: `Kokoro TTS service is not reachable at ${env.SWARMX_TTS_URL} and CLI fallback is unavailable`,
         action: "Install kokoro in the Python environment and start python -m swarmx.services.kokoro_tts_server",
         probedAt: new Date().toISOString(),
       };
@@ -416,7 +444,7 @@ export class KokoroVoiceProvider extends BaseVoiceProvider {
     outputPath: string,
     signal?: AbortSignal,
   ): Promise<void> {
-    const python = loadEnv().SWARMX_PYTHON?.trim() || join(process.cwd(), ".venv", "bin", "python3");
+    const python = resolvePythonBinary();
     try {
       await execFileChecked(
         python,

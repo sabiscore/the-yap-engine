@@ -23,7 +23,7 @@ import { alignNarrationAudio, type CaptionAlignmentArtifacts } from "./video-cap
 import { createAmbientBed, masterAudio, masterAudioWithBed, measurePostEncodeLoudness, type PostEncodeLoudness } from "./audio-mastering.js";
 import { planBeats, type BeatPlannerOutput } from "./beat-planner.js";
 import { evaluateQualityGates } from "./quality-gates.js";
-import type { BeatPlan, QcReport } from "@swarmx/types";
+import type { BeatPlan, QcReport, AlignmentContract } from "@swarmx/types";
 import { log } from "../lib/logger.js";
 import { MemoryMutex } from "./memory-mutex.js";
 
@@ -1421,12 +1421,33 @@ export async function renderWithFfmpeg(input: FfmpegRenderInput): Promise<{ outp
       throw err;
     }
 
+    const alignmentContract: AlignmentContract | undefined = alignment?.alignmentContract ?? (
+      voiceArtifact?.wordBoundaries && voiceArtifact.wordBoundaries.length > 0
+        ? {
+            schemaVersion: "1.0",
+            jobId: input.jobId,
+            source: "tts_native",
+            words: voiceArtifact.wordBoundaries.map((wb) => ({
+              text: wb.word,
+              startMs: Math.round(wb.startTime * 1000),
+              endMs: Math.round(wb.endTime * 1000),
+              flags: [],
+            })),
+            stats: {
+              coverage: 1.0,
+              nativeDriftMedianMs: 0,
+              maxDriftMs: 0,
+            },
+          }
+        : undefined
+    );
+
     const qcReport = evaluateQualityGates({
       jobId: input.jobId,
       script: input.scriptText ?? narration,
       targetDurationSeconds: duration,
       voiceArtifact,
-      alignment: alignment?.alignmentContract,
+      alignment: alignmentContract,
       beatPlan: beatPlannerOutput.beatPlan,
       loudness: postEncodeLoudness,
       mediaPath: outputPath,

@@ -153,9 +153,12 @@ export async function measurePostEncodeLoudness(filePath: string): Promise<PostE
     throw new AudioMasteringError(`FFmpeg ebur128 failed to start: ${proc.error.message}`, "AUDIO_MEASURE_FAILED");
   }
   const stderr = proc.stderr ?? "";
-  const iMatch = /I:\s*(-?[\d.]+)\s*LUFS/.exec(stderr);
-  const lraMatch = /LRA:\s*(-?[\d.]+)\s*LU/.exec(stderr);
-  const tpMatch = /Peak:\s*(-?[\d.]+)\s*dB(?:FS|TP)/.exec(stderr);
+  const summaryPart = stderr.includes("Summary:")
+    ? stderr.slice(stderr.lastIndexOf("Summary:"))
+    : stderr;
+  const iMatch = /I:\s*(-?[\d.]+)\s*LUFS/.exec(summaryPart);
+  const lraMatch = /LRA:\s*(-?[\d.]+)\s*LU/.exec(summaryPart);
+  const tpMatch = /Peak:\s*(-?[\d.]+)\s*dB(?:FS|TP)/.exec(summaryPart);
 
   if (!iMatch || !tpMatch) {
     throw new AudioMasteringError("Could not parse ebur128 summary from FFmpeg stderr", "AUDIO_MEASURE_PARSE_FAILED");

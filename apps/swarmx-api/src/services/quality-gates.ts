@@ -73,7 +73,8 @@ export function evaluateQualityGates(input: QualityGatesInput): QcReport {
 
   // 1. G-S: Script Gate
   const scriptIssues: string[] = [];
-  const words: string[] = scriptText.trim().split(/\s+/).filter(Boolean);
+  const cleanedScript = scriptText.replace(/\[[A-Za-z0-9_\s-]+\]/g, " ").trim();
+  const words: string[] = cleanedScript.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
   const targetWords = targetDurationSeconds * 2.6;
   const minWords = Math.round(targetWords * 0.65);

@@ -63,3 +63,8 @@ AGENTS.md
 
 # Neon CLI project context — contains account/project/branch binding
 .neon
+
+# Media export directories and local model cache
+exports/
+apps/**/exports/
+.ollama_home/

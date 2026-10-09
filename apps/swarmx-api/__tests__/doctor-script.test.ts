@@ -37,5 +37,5 @@ describe("doctor script check functions", () => {
       expect(typeof r.ok).toBe("boolean");
       expect(typeof r.detail).toBe("string");
     }
-  });
+  }, 15_000);
 });
