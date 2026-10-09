@@ -36,6 +36,7 @@ const schema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   SWARMX_API_PORT: z.preprocess(preprocessPort, port).default(3001),
   SWARMX_API_HOST: z.string().min(1).default("127.0.0.1"),
+  SWARMX_API_URL: z.string().url().default("http://127.0.0.1:3001"),
   SWARMX_API_INTERNAL: z.string().url().default("http://localhost:7380"),
   SWARMX_DASHBOARD_ORIGIN: z.string().optional(),
 
