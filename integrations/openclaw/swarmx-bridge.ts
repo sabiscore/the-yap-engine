@@ -213,10 +213,12 @@ async function requestJson(path: string, init: RequestInit, options?: BridgeOpti
     });
     const body = await readJsonLimited(response, maxBytes);
     if (!response.ok) {
-      const message = isRecord(body)
-        ? [body.message, body.error].find((item): item is string => typeof item === "string" && item.length > 0)
+      const code = isRecord(body) && typeof body.error === "string" && /^[a-z0-9_-]{1,80}$/i.test(body.error)
+        ? body.error
         : undefined;
-      throw new Error(`SwarmX API request failed (${response.status}): ${(message ?? "request rejected").slice(0, 300)}`);
+      // Do not echo arbitrary provider/server text into the LLM context: error
+      // bodies can include user content, paths, or accidentally echoed secrets.
+      throw new Error(`SwarmX API request failed (${response.status})${code ? ` [${code}]` : ""}`);
     }
     return body;
   };
